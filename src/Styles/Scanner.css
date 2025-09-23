@@ -1,0 +1,412 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.tablet-container {
+    background: #2c3e50;
+    border-radius: 30px;
+    padding: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    max-width: 800px;
+    width: 100%;
+}
+
+.screen {
+    background: #f8f9fa;
+    border-radius: 20px;
+    padding: 40px;
+    min-height: 600px;
+    position: relative;
+    overflow: hidden;
+}
+
+.screen::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 200px;
+    height: 300px;
+    background: radial-gradient(circle, #ddd 2px, transparent 2px);
+    background-size: 15px 15px;
+    opacity: 0.5;
+}
+
+.hospital-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.hospital-header h1 {
+    font-size: 2.5em;
+    color: #2c3e50;
+    font-weight: bold;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+.hospital-header h2 {
+    font-size: 1.8em;
+    color: #34495e;
+    font-weight: normal;
+    margin-bottom: 20px;
+}
+
+.welcome-banner {
+    background: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin: 40px 0;
+    border-radius: 10px;
+}
+
+.welcome-banner h3 {
+    font-size: 2.5em;
+    font-weight: bold;
+    letter-spacing: 3px;
+}
+
+.scanner-section {
+    text-align: center;
+    margin-top: 60px;
+}
+
+.scan-button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 30px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.scan-button:hover {
+    transform: scale(1.05);
+}
+
+.scan-text {
+    display: block;
+    font-size: 2.2em;
+    color: #2c3e50;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.scan-line {
+    width: 300px;
+    height: 4px;
+    background: #2c3e50;
+    margin: 0 auto;
+    border-radius: 2px;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.scanner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.scanner-header h3 {
+    color: #2c3e50;
+    font-size: 1.5em;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2em;
+    cursor: pointer;
+    color: #7f8c8d;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    background: #ecf0f1;
+    color: #2c3e50;
+}
+
+.camera-container {
+    position: relative;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#camera {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    background: #2c3e50;
+}
+
+.scan-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.scan-frame {
+    width: 250px;
+    height: 160px;
+    border: 3px solid #e74c3c;
+    border-radius: 10px;
+    position: relative;
+    background: rgba(231, 76, 60, 0.1);
+}
+
+.scan-frame::before,
+.scan-frame::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #e74c3c;
+}
+
+.scan-frame::before {
+    top: -3px;
+    left: -3px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.scan-frame::after {
+    bottom: -3px;
+    right: -3px;
+    border-left: none;
+    border-top: none;
+}
+
+.scanning-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #e74c3c, transparent);
+}
+
+@keyframes scanning {
+    0% {
+        top: 0;
+    }
+    50% {
+        top: calc(100% - 2px);
+    }
+    100% {
+        top: 0;
+    }
+}
+
+.scanner-instructions {
+    text-align: center;
+}
+
+.scanner-instructions p {
+    margin-bottom: 20px;
+    color: #7f8c8d;
+    font-size: 1.1em;
+}
+
+.capture-button {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.capture-button:hover {
+    background: #2ecc71;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+}
+
+/* Processing Overlay */
+.processing-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.processing-content {
+    text-align: center;
+    color: white;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.processing-content p {
+    font-size: 1.2em;
+}
+
+/* Result Modal */
+.result-content {
+    text-align: center;
+}
+
+.result-header h3 {
+    color: #27ae60;
+    margin-bottom: 30px;
+}
+
+.result-info {
+    margin-bottom: 30px;
+}
+
+.success-icon {
+    font-size: 4em;
+    color: #27ae60;
+    margin-bottom: 20px;
+}
+
+.result-info p {
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #2c3e50;
+}
+
+.continue-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.continue-btn:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hospital-header h1 {
+        font-size: 2em;
+    }
+    
+    .hospital-header h2 {
+        font-size: 1.4em;
+    }
+    
+    .welcome-banner h3 {
+        font-size: 2em;
+    }
+    
+    .scan-text {
+        font-size: 1.8em;
+    }
+    
+    .scan-line {
+        width: 250px;
+    }
+    
+    .scan-frame {
+        width: 200px;
+        height: 130px;
+    }
+}
+
+@media (max-width: 480px) {
+    .screen {
+        padding: 20px;
+    }
+    
+    .hospital-header h1 {
+        font-size: 1.6em;
+    }
+    
+    .hospital-header h2 {
+        font-size: 1.2em;
+    }
+    
+    .welcome-banner h3 {
+        font-size: 1.8em;
+    }
+    
+    .scan-text {
+        font-size: 1.5em;
+    }
+    
+    .modal-content {
+        padding: 20px;
+        margin: 10px;
+    }
+}

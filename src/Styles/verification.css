@@ -1,0 +1,379 @@
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e8f0f2 0%, #d4e6ea 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Decorative dots pattern */
+        .dots-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            z-index: 0;
+        }
+
+        .dots-top-right {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 15px;
+        }
+
+        .dots-bottom-left {
+            position: absolute;
+            bottom: 50px;
+            left: 50px;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 15px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            background-color: #666;
+            border-radius: 50%;
+        }
+
+        .verification-card {
+            background: #f5f5f5;
+            border: 8px solid #1a1a1a;
+            border-radius: 25px;
+            padding: 60px 80px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            transform: scale(0.8);
+            opacity: 0;
+            animation: cardAppear 1s ease-out forwards;
+        }
+
+        @keyframes cardAppear {
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .hospital-header {
+            margin-bottom: 40px;
+        }
+
+        .hospital-name {
+            font-size: 2.2em;
+            font-weight: 600;
+            color: #2c2c2c;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .hospital-subtitle {
+            font-size: 1.8em;
+            font-weight: 500;
+            color: #444;
+            letter-spacing: -0.3px;
+        }
+
+        .checkmark-container {
+            margin: 50px 0;
+            position: relative;
+        }
+
+        .checkmark-circle {
+            width: 150px;
+            height: 150px;
+            border: 6px solid #20b2aa;
+            border-radius: 20px;
+            margin: 0 auto;
+            position: relative;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: scale(0);
+            animation: circleGrow 0.8s ease-out 0.5s forwards;
+        }
+
+        @keyframes circleGrow {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .checkmark {
+            width: 80px;
+            height: 80px;
+            stroke: #2c5f5f;
+            stroke-width: 6;
+            fill: none;
+            opacity: 0;
+            animation: checkmarkDraw 1s ease-out 1s forwards;
+        }
+
+        .checkmark path {
+            stroke-dasharray: 200;
+            stroke-dashoffset: 200;
+            animation: drawPath 1s ease-out 1.3s forwards;
+        }
+
+        @keyframes checkmarkDraw {
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes drawPath {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .status-text {
+            font-size: 2.5em;
+            font-weight: 600;
+            color: #20b2aa;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: textFadeIn 0.8s ease-out 1.8s forwards;
+        }
+
+        @keyframes textFadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .verification-details {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: detailsSlideIn 0.8s ease-out 2.2s forwards;
+        }
+
+        @keyframes detailsSlideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 1.1em;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .detail-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .visitor-id {
+            color: #20b2aa;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+            opacity: 0;
+            animation: buttonsAppear 0.8s ease-out 2.6s forwards;
+        }
+
+        @keyframes buttonsAppear {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #20b2aa, #17a2b8);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1a9691, #138496);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(32, 178, 170, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #555;
+            border: 2px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #f8f9fa;
+            border-color: #20b2aa;
+            color: #20b2aa;
+        }
+
+        .success-icon {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: #28a745;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            opacity: 0;
+            animation: iconPop 0.5s ease-out 2.8s forwards;
+        }
+
+        @keyframes iconPop {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            70% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .qr-code {
+            margin-top: 30px;
+            opacity: 0;
+            animation: qrAppear 0.8s ease-out 3s forwards;
+        }
+
+        @keyframes qrAppear {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .qr-placeholder {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            color: #666;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .qr-pattern {
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(45deg, #333 25%, transparent 25%),
+                linear-gradient(-45deg, #333 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #333 75%),
+                linear-gradient(-45deg, transparent 75%, #333 75%);
+            background-size: 8px 8px;
+            background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+            opacity: 0.3;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .verification-card {
+                border: 2px solid #333;
+                box-shadow: none;
+            }
+            
+            .action-buttons {
+                display: none;
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .verification-card {
+                padding: 40px 30px;
+                margin: 10px;
+            }
+            
+            .hospital-name {
+                font-size: 1.8em;
+            }
+            
+            .hospital-subtitle {
+                font-size: 1.4em;
+            }
+            
+            .status-text {
+                font-size: 2em;
+            }
+            
+            .checkmark-circle {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .checkmark {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    
