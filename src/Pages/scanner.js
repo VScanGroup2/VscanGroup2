@@ -146,7 +146,7 @@ const HospitalIDScanner = () => {
           </div>
           
           <div className="welcome-banner">
-            <h3>WELCOME</h3>
+            <h3>VSCAN</h3>
           </div>
           
           <div className="scanner-section">
