@@ -1,0 +1,226 @@
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d5a27, #4a8b3a);
+            color: white;
+            padding: 20px 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .about-us {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .dashboard-content {
+            padding: 30px 40px;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: #2d5a27;
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            min-width: 250px;
+        }
+
+        .stat-icon {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 30px;
+        }
+
+        .stat-info h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            text-decoration: underline;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .controls-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .search-bar {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            padding: 12px 24px;
+            width: 300px;
+            font-size: 16px;
+        }
+
+        .date-display {
+            background: #4a8b3a;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #e8e8e8;
+            padding: 20px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 16px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        td {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            font-size: 16px;
+        }
+
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        tr:nth-child(odd) {
+            background: white;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            background: #4a8b3a;
+            color: white;
+            padding: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            color: #4a8b3a;
+            font-weight: 500;
+        }
+
+        .menu-item.active {
+            background: #f0f8f0;
+        }
+
+        .menu-icon {
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .admin-section {
+            margin-top: auto;
+            background: #2d5a27;
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .admin-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        .admin-name {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+
+        .admin-role {
+            font-size: 16px;
+            text-decoration: underline;
+        }
+
+        .admin-contact {
+            margin-top: 20px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .menu-section {
+            flex: 1;
+        }
