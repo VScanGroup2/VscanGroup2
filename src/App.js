@@ -1,11 +1,11 @@
 import React from 'react';
-import HospitalIDScanner from './Pages/scanner';
+import Home from './Pages/Home';
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <HospitalIDScanner />
+      <Home />
     </div>
   );
 }
