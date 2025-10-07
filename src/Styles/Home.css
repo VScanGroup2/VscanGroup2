@@ -1,250 +1,574 @@
-/* Home.css */
-body {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f5f5f5;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Visitor Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-.dashboard-container {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-}
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
 
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
+        .header {
+            background-color: #0d7a5f;
+            color: white;
+            padding: 20px 40px;
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
 
-.header {
-  background: linear-gradient(135deg, #2e8b57, #228b22);
-  color: white;
-  padding: 20px 40px;
-  font-size: 28px;
-  font-weight: bold;
-  text-align: left;
-}
+        .container {
+            display: flex;
+            min-height: calc(100vh - 76px);
+        }
 
-.stats-section {
-  display: flex;
-  padding: 40px;
-  gap: 40px;
-  background-color: #e8e8e8;
-}
+        .content {
+            flex: 1;
+            padding: 40px;
+        }
 
-.stat-card {
-  background-color: #2e8b57;
-  color: white;
-  padding: 30px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  min-width: 200px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
+        .sidebar {
+            width: 350px;
+            background-color: #e8e8e8;
+            padding: 20px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+        }
 
-.stat-icon {
-  font-size: 40px;
-  background-color: rgba(255, 255, 255, 0.2);
-  padding: 15px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 60px;
-  height: 60px;
-}
+        .home-icon {
+            font-size: 40px;
+            text-align: right;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
 
-.stat-icon.register {
-  font-size: 50px;
-  border: 3px solid white;
-}
+        .menu-item {
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            background-color: #f0f0f0;
+            transition: background-color 0.3s;
+        }
 
-.stat-text {
-  display: flex;
-  flex-direction: column;
-}
+        .menu-item.active {
+            background-color: #d0d0d0;
+        }
 
-.stat-title {
-  font-size: 16px;
-  margin-bottom: 10px;
-}
+        .menu-item:hover {
+            background-color: #e0e0e0;
+        }
 
-.stat-value {
-  font-size: 32px;
-  font-weight: bold;
-}
+        .register-btn {
+            background-color: #0d7a5f;
+            color: white;
+            padding: 20px;
+            margin-top: 40px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: background-color 0.3s;
+        }
 
-.table-section {
-  flex: 1;
-  padding: 20px 40px;
-  background-color: white;
-  overflow: auto;
-}
+        .register-btn:hover {
+            background-color: #0a6049;
+        }
 
-.search-date-section {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 30px;
-  align-items: center;
-}
+        .title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
 
-.search-input {
-  padding: 12px 20px;
-  border: 2px solid #ddd;
-  border-radius: 25px;
-  width: 300px;
-  font-size: 16px;
-  outline: none;
-}
+        .stats-container {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 30px;
+        }
 
-.search-input:focus {
-  border-color: #2e8b57;
-}
+        .stat-box {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
 
-.date-button {
-  background-color: #2e8b57;
-  color: white;
-  border: none;
-  padding: 12px 25px;
-  border-radius: 25px;
-  font-size: 16px;
-  cursor: pointer;
-}
+        .stat-icon {
+            font-size: 50px;
+        }
 
-.date-button:hover {
-  background-color: #228b22;
-}
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
 
-.visitors-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: white;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
+        .stat-label {
+            font-size: 24px;
+            font-weight: bold;
+        }
 
-.visitors-table thead tr {
-  background-color: #f8f9fa;
-}
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+        }
 
-.visitors-table th {
-  padding: 15px;
-  text-align: left;
-  font-weight: bold;
-  font-size: 16px;
-  border-bottom: 2px solid #ddd;
-  color: #333;
-}
+        .date-box {
+            background-color: #0d7a5f;
+            color: white;
+            padding: 10px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            width: fit-content;
+            margin-left: auto;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
 
-.visitors-table tbody tr {
-  transition: background-color 0.2s;
-}
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
 
-.visitors-table tbody tr:nth-child(even) {
-  background-color: #f8f9fa;
-}
+        th {
+            padding: 15px;
+            text-align: left;
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: 2px solid #ddd;
+            background-color: #f5f5f5;
+        }
 
-.visitors-table tbody tr:hover {
-  background-color: #e3f2fd;
-}
+        td {
+            padding: 15px;
+            font-size: 18px;
+            border-bottom: 1px solid #eee;
+        }
 
-.visitors-table td {
-  padding: 15px;
-  border-bottom: 1px solid #eee;
-  font-size: 14px;
-  color: #555;
-}
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
 
-.sidebar {
-  width: 350px;
-  background-color: white;
-  display: flex;
-  flex-direction: column;
-  border-left: 1px solid #ddd;
-}
+        .form-container {
+            max-width: 600px;
+        }
 
-.about-header {
-  background-color: #2e8b57;
-  color: white;
-  padding: 20px;
-  font-size: 24px;
-  font-weight: bold;
-  text-align: right;
-}
+        .form-box {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
 
-.nav-menu {
-  padding: 30px 20px;
-}
+        .field-group {
+            margin-bottom: 20px;
+        }
 
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px 10px;
-  font-size: 16px;
-  color: #2e8b57;
-  cursor: pointer;
-  border-radius: 5px;
-  transition: background-color 0.2s;
-}
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 18px;
+            font-weight: bold;
+        }
 
-.menu-item:hover {
-  background-color: #f0f8f0;
-}
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
 
-.menu-item.active {
-  background-color: #f0f8f0;
-  font-weight: bold;
-}
+        .submit-btn {
+            background-color: #0d7a5f;
+            color: white;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
 
-.menu-icon {
-  font-size: 18px;
-}
+        .submit-btn:hover {
+            background-color: #0a6049;
+        }
 
-.admin-section {
-  margin-top: auto;
-  background-color: #2e8b57;
-  color: white;
-  padding: 30px 20px;
-  text-align: center;
-}
+        .status-active {
+            color: #0d7a5f;
+            font-weight: bold;
+        }
 
-.profile-img {
-  width: 100px;
-  height: 100px;
-  background-color: #ff6b6b;
-  border-radius: 50%;
-  margin: 0 auto 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 40px;
-}
+        .status-left {
+            color: #999;
+            font-weight: bold;
+        }
 
-.admin-name {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        IGNACIO LACSON ARROYO MEMORIAL HOSPITAL
+    </div>
 
-.admin-title {
-  font-size: 16px;
-  margin-bottom: 20px;
-  text-decoration: underline;
-}
+    <div class="container">
+        <div class="content">
+            <!-- Dashboard View -->
+            <div id="dashboardView">
+                <div class="title">DASHBOARD</div>
+                
+                <div class="stats-container">
+                    <div class="stat-box">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <div class="stat-label">TOTAL VISITOR'S</div>
+                            <div class="stat-value" id="totalVisitors">6</div>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-icon">✓</div>
+                        <div class="stat-info">
+                            <div class="stat-label">Discharge Patient</div>
+                            <div class="stat-value">45</div>
+                        </div>
+                    </div>
+                </div>
 
-.contact-info {
-  text-align: left;
-  font-size: 14px;
-  line-height: 1.8;
-}
+                <div class="date-box" id="currentDate">DATE: 12-12-25</div>
 
-.contact-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Room no.</th>
+                            <th>Time In/Out</th>
+                            <th>Contact No.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="visitorTableBody">
+                        <tr>
+                            <td>Steven Perfas</td>
+                            <td>102</td>
+                            <td>9:00AM</td>
+                            <td>09326789902</td>
+                        </tr>
+                        <tr>
+                            <td>Rino Villar</td>
+                            <td>121</td>
+                            <td>3:00PM</td>
+                            <td>09326789989</td>
+                        </tr>
+                        <tr>
+                            <td>Rey Javier</td>
+                            <td>105</td>
+                            <td>10:00AM</td>
+                            <td>09326789889</td>
+                        </tr>
+                        <tr>
+                            <td>Carlos Casi</td>
+                            <td>109</td>
+                            <td>7:00PM</td>
+                            <td>09306759889</td>
+                        </tr>
+                        <tr>
+                            <td>John Boni</td>
+                            <td>119</td>
+                            <td>5:00PM</td>
+                            <td>09986759989</td>
+                        </tr>
+                        <tr>
+                            <td>Jireh Bindol</td>
+                            <td>114</td>
+                            <td>9:00PM</td>
+                            <td>09323459989</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Register View -->
+            <div id="registerView" class="hidden">
+                <div class="form-container">
+                    <div class="title">REGISTER NEW VISITOR</div>
+                    
+                    <div class="form-box">
+                        <div class="field-group">
+                            <label for="visitorName">Full Name:</label>
+                            <input type="text" id="visitorName" placeholder="Enter full name">
+                        </div>
+                        <div class="field-group">
+                            <label for="roomNumber">Room Number:</label>
+                            <input type="text" id="roomNumber" placeholder="Enter room number">
+                        </div>
+                        <div class="field-group">
+                            <label for="timeIn">Time In:</label>
+                            <input type="text" id="timeIn" placeholder="e.g., 9:00AM">
+                        </div>
+                        <div class="field-group">
+                            <label for="contactNumber">Contact Number:</label>
+                            <input type="text" id="contactNumber" placeholder="e.g., 09123456789">
+                        </div>
+                        <button class="submit-btn" onclick="registerVisitor()">SUBMIT</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Registered Visitors View -->
+            <div id="registeredView" class="hidden">
+                <div class="title">REGISTERED VISITORS</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Room no.</th>
+                            <th>Time In</th>
+                            <th>Contact No.</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="registeredTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Visitor History View -->
+            <div id="historyView" class="hidden">
+                <div class="title">VISITOR'S HISTORY</div>
+                <div style="font-size: 20px; margin-bottom: 20px; color: #666;">
+                    Total visits: <span id="totalVisits">6</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Room no.</th>
+                            <th>Time</th>
+                            <th>Contact No.</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Attendance View -->
+            <div id="attendanceView" class="hidden">
+                <div class="title">ATTENDANCE</div>
+                <div class="stats-container">
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: #0d7a5f;">Present</div>
+                        <div style="font-size: 36px; font-weight: bold;" id="presentCount">6</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: #666;">Total Registered</div>
+                        <div style="font-size: 36px; font-weight: bold;" id="totalRegistered">6</div>
+                    </div>
+                </div>
+                <table style="margin-top: 30px;">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Room no.</th>
+                            <th>Time In</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="home-icon" onclick="showView('dashboard')">🏠</div>
+            
+            <div class="menu-item active" onclick="showView('dashboard')">Dashboard</div>
+            <div class="menu-item" onclick="showView('dashboard')">Visitor's Information</div>
+            <div class="menu-item" onclick="showView('registered')">Registered Visitor</div>
+            <div class="menu-item" onclick="showView('history')">Visitor's History</div>
+            <div class="menu-item" onclick="showView('attendance')">Attendance</div>
+            
+            <div class="register-btn" onclick="showView('register')">REGISTER</div>
+        </div>
+    </div>
+
+    <script>
+        // Initial data
+        let visitors = [
+            { name: "Steven Perfas", room: "102", time: "9:00AM", contact: "09326789902", status: "in" },
+            { name: "Rino Villar", room: "121", time: "3:00PM", contact: "09326789989", status: "in" },
+            { name: "Rey Javier", room: "105", time: "10:00AM", contact: "09326789889", status: "in" },
+            { name: "Carlos Casi", room: "109", time: "7:00PM", contact: "09306759889", status: "in" },
+            { name: "John Boni", room: "119", time: "5:00PM", contact: "09986759989", status: "in" },
+            { name: "Jireh Bindol", room: "114", time: "9:00PM", contact: "09323459989", status: "in" }
+        ];
+
+        // Get current date
+        function getCurrentDate() {
+            const date = new Date();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+            return `${month}-${day}-${year}`;
+        }
+
+        // Update current date on page load
+        document.getElementById('currentDate').textContent = `DATE: ${getCurrentDate()}`;
+
+        // Show view function
+        function showView(view) {
+            // Hide all views
+            document.getElementById('dashboardView').classList.add('hidden');
+            document.getElementById('registerView').classList.add('hidden');
+            document.getElementById('registeredView').classList.add('hidden');
+            document.getElementById('historyView').classList.add('hidden');
+            document.getElementById('attendanceView').classList.add('hidden');
+
+            // Update menu items
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => item.classList.remove('active'));
+
+            // Show selected view
+            if (view === 'dashboard') {
+                document.getElementById('dashboardView').classList.remove('hidden');
+                menuItems[0].classList.add('active');
+                updateDashboard();
+            } else if (view === 'register') {
+                document.getElementById('registerView').classList.remove('hidden');
+            } else if (view === 'registered') {
+                document.getElementById('registeredView').classList.remove('hidden');
+                menuItems[2].classList.add('active');
+                updateRegisteredView();
+            } else if (view === 'history') {
+                document.getElementById('historyView').classList.remove('hidden');
+                menuItems[3].classList.add('active');
+                updateHistoryView();
+            } else if (view === 'attendance') {
+                document.getElementById('attendanceView').classList.remove('hidden');
+                menuItems[4].classList.add('active');
+                updateAttendanceView();
+            }
+        }
+
+        // Register visitor function
+        function registerVisitor() {
+            const name = document.getElementById('visitorName').value;
+            const room = document.getElementById('roomNumber').value;
+            const time = document.getElementById('timeIn').value;
+            const contact = document.getElementById('contactNumber').value;
+
+            if (name && room && time && contact) {
+                visitors.push({
+                    name: name,
+                    room: room,
+                    time: time,
+                    contact: contact,
+                    status: 'in'
+                });
+
+                // Clear form
+                document.getElementById('visitorName').value = '';
+                document.getElementById('roomNumber').value = '';
+                document.getElementById('timeIn').value = '';
+                document.getElementById('contactNumber').value = '';
+
+                alert('Visitor registered successfully!');
+                showView('dashboard');
+            } else {
+                alert('Please fill in all fields');
+            }
+        }
+
+        // Update dashboard
+        function updateDashboard() {
+            document.getElementById('totalVisitors').textContent = visitors.length;
+            
+            const tbody = document.getElementById('visitorTableBody');
+            tbody.innerHTML = '';
+            
+            visitors.forEach(visitor => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = visitor.name;
+                row.insertCell(1).textContent = visitor.room;
+                row.insertCell(2).textContent = visitor.time;
+                row.insertCell(3).textContent = visitor.contact;
+            });
+        }
+
+        // Update registered view
+        function updateRegisteredView() {
+            const tbody = document.getElementById('registeredTableBody');
+            tbody.innerHTML = '';
+            
+            visitors.forEach(visitor => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = visitor.name;
+                row.insertCell(1).textContent = visitor.room;
+                row.insertCell(2).textContent = visitor.time;
+                row.insertCell(3).textContent = visitor.contact;
+                const statusCell = row.insertCell(4);
+                statusCell.textContent = visitor.status === 'in' ? 'Active' : 'Left';
+                statusCell.className = visitor.status === 'in' ? 'status-active' : 'status-left';
+            });
+        }
+
+        // Update history view
+        function updateHistoryView() {
+            document.getElementById('totalVisits').textContent = visitors.length;
+            
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+            
+            visitors.forEach(visitor => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = visitor.name;
+                row.insertCell(1).textContent = visitor.room;
+                row.insertCell(2).textContent = visitor.time;
+                row.insertCell(3).textContent = visitor.contact;
+                row.insertCell(4).textContent = getCurrentDate();
+            });
+        }
+
+        // Update attendance view
+        function updateAttendanceView() {
+            document.getElementById('presentCount').textContent = visitors.length;
+            document.getElementById('totalRegistered').textContent = visitors.length;
+            
+            const tbody = document.getElementById('attendanceTableBody');
+            tbody.innerHTML = '';
+            
+            visitors.forEach(visitor => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = visitor.name;
+                row.insertCell(1).textContent = visitor.room;
+                row.insertCell(2).textContent = visitor.time;
+                const statusCell = row.insertCell(3);
+                statusCell.textContent = '✓ Present';
+                statusCell.className = 'status-active';
+            });
+        }
+
+        // Initialize on page load
+        updateDashboard();
+    </script>
+</body>
+</html>
