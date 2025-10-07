@@ -2,359 +2,269 @@ import React, { useState } from 'react';
 import '../Styles/Home.css';
 
 function Home() {
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const visitorsData = [
-    { name: 'Miah Omalza', contact: 'miah@gmail.com', id: '0119', datetime: '9:00AM 09-25-2025', room: '10' },
-    { name: 'Janjan Casi', contact: 'casi@gmail.com', id: '0120', datetime: '8:00AM 09-23-2025', room: '07' },
-    { name: 'Jirah Bindol', contact: 'jirah@gmail.com', id: '0101', datetime: '8:00AM 09-02-2025', room: '13' },
-    { name: 'Andrea Magayon', contact: 'andrea@gmail.com', id: '0123', datetime: '9:00PM 08-30-2025', room: '15' },
-    { name: 'Grace Poe', contact: 'gracepoe@gmail.com', id: '0145', datetime: '11:00AM 08-25-2025', room: '22' }
-  ];
+  const [view, setView] = useState('dashboard');
+  const [visitors, setVisitors] = useState([
+    { name: "Steven Perfas", room: "102", time: "9:00AM", contact: "09326789902", status: "in" },
+    { name: "Rino Villar", room: "121", time: "3:00PM", contact: "09326789989", status: "in" },
+    { name: "Rey Javier", room: "105", time: "10:00AM", contact: "09326789889", status: "in" },
+    { name: "Carlos Casi", room: "109", time: "7:00PM", contact: "09306759889", status: "in" },
+    { name: "John Boni", room: "119", time: "5:00PM", contact: "09986759989", status: "in" },
+    { name: "Jireh Bindol", room: "114", time: "9:00PM", contact: "09323459989", status: "in" }
+  ]);
+  const [registerForm, setRegisterForm] = useState({
+    name: '',
+    room: '',
+    time: '',
+    contact: ''
+  });
 
-  const filteredVisitors = visitorsData.filter(visitor =>
-    Object.values(visitor).some(value =>
-      value.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  function getCurrentDate() {
+    const date = new Date();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    return `${month}-${day}-${year}`;
+  }
 
-  const statsData = [
-    { title: "Total Visitors", value: '45', icon: '👥' },
-    { title: 'Discharge Patients', value: '34', icon: '👥' },
-    { title: 'Register Visitor', value: '', icon: '✓', isRegister: true }
-  ];
+  function handleMenuClick(newView) {
+    setView(newView);
+  }
 
-  const menuItems = [
-    { text: 'HOME', icon: '🏠' },
-    { text: 'Dashboard', icon: '📊', active: true },
-    { text: 'Visitor Information', icon: '👤' },
-    { text: 'Registered Visitor', icon: '✓' },
-    { text: 'Visitor History', icon: '📋' },
-    { text: 'Attendance', icon: '📅' }
-  ];
+  function handleRegisterChange(e) {
+    setRegisterForm({ ...registerForm, [e.target.name]: e.target.value });
+  }
 
-  const styles = {
-    container: {
-      display: 'flex',
-      height: '100vh',
-      width: '100vw',
-      fontFamily: 'Arial, sans-serif'
-    },
-    mainContent: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    header: {
-      background: 'linear-gradient(135deg, #2e8b57, #228b22)',
-      color: 'white',
-      padding: '20px 40px',
-      fontSize: '28px',
-      fontWeight: 'bold'
-    },
-    statsSection: {
-      display: 'flex',
-      gap: '40px',
-      padding: '40px',
-      backgroundColor: '#e8e8e8'
-    },
-    statCard: {
-      backgroundColor: '#2e8b57',
-      color: 'white',
-      padding: '30px',
-      borderRadius: '10px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '20px',
-      minWidth: '200px',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-    },
-    statIcon: {
-      fontSize: '40px',
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      padding: '15px',
-      borderRadius: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '60px',
-      height: '60px'
-    },
-    statIconRegister: {
-      fontSize: '50px',
-      backgroundColor: 'rgba(255,255,255,0.2)',
-      padding: '15px',
-      borderRadius: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '60px',
-      height: '60px',
-      border: '3px solid white'
-    },
-    statText: {
-      display: 'flex',
-      flexDirection: 'column'
-    },
-    statTitle: {
-      fontSize: '16px',
-      marginBottom: '10px'
-    },
-    statValue: {
-      fontSize: '32px',
-      fontWeight: 'bold'
-    },
-    tableSection: {
-      flex: 1,
-      padding: '20px 40px',
-      backgroundColor: 'white',
-      overflow: 'auto'
-    },
-    searchDateSection: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '30px'
-    },
-    searchInput: {
-      padding: '12px 20px',
-      border: '2px solid #ddd',
-      borderRadius: '25px',
-      width: '300px',
-      fontSize: '16px',
-      outline: 'none'
-    },
-    dateButton: {
-      backgroundColor: '#2e8b57',
-      color: 'white',
-      border: 'none',
-      padding: '12px 25px',
-      borderRadius: '25px',
-      fontSize: '16px',
-      cursor: 'pointer'
-    },
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      backgroundColor: 'white',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-    },
-    th: {
-      padding: '15px',
-      textAlign: 'left',
-      fontWeight: 'bold',
-      fontSize: '16px',
-      borderBottom: '2px solid #ddd',
-      color: '#333',
-      backgroundColor: '#f8f9fa'
-    },
-    td: {
-      padding: '15px',
-      borderBottom: '1px solid #eee',
-      fontSize: '14px',
-      color: '#555'
-    },
-    sidebar: {
-      width: '350px',
-      backgroundColor: 'white',
-      display: 'flex',
-      flexDirection: 'column',
-      borderLeft: '1px solid #ddd'
-    },
-    aboutHeader: {
-      backgroundColor: '#2e8b57',
-      color: 'white',
-      padding: '20px',
-      fontSize: '24px',
-      fontWeight: 'bold',
-      textAlign: 'right'
-    },
-    navMenu: {
-      padding: '30px 20px'
-    },
-    menuItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '15px',
-      padding: '15px 10px',
-      fontSize: '16px',
-      color: '#2e8b57',
-      cursor: 'pointer',
-      borderRadius: '5px',
-      transition: 'background-color 0.2s'
-    },
-    menuItemActive: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '15px',
-      padding: '15px 10px',
-      fontSize: '16px',
-      color: '#2e8b57',
-      cursor: 'pointer',
-      borderRadius: '5px',
-      backgroundColor: '#f0f8f0',
-      fontWeight: 'bold'
-    },
-    adminSection: {
-      marginTop: 'auto',
-      backgroundColor: '#2e8b57',
-      color: 'white',
-      padding: '30px 20px',
-      textAlign: 'center'
-    },
-    profileImg: {
-      width: '100px',
-      height: '100px',
-      backgroundColor: '#ff6b6b',
-      borderRadius: '50%',
-      margin: '0 auto 20px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: '40px'
-    },
-    adminName: {
-      fontSize: '20px',
-      fontWeight: 'bold',
-      marginBottom: '5px'
-    },
-    adminTitle: {
-      fontSize: '16px',
-      marginBottom: '20px',
-      textDecoration: 'underline'
-    },
-    contactInfo: {
-      textAlign: 'left',
-      fontSize: '14px',
-      lineHeight: '1.8'
-    },
-    contactItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px',
-      marginBottom: '10px'
+  function handleRegisterSubmit(e) {
+    e.preventDefault();
+    const { name, room, time, contact } = registerForm;
+    if (name && room && time && contact) {
+      setVisitors([
+        ...visitors,
+        { name, room, time, contact, status: 'in' }
+      ]);
+      setRegisterForm({ name: '', room: '', time: '', contact: '' });
+      alert('Visitor registered successfully!');
+      setView('dashboard');
+    } else {
+      alert('Please fill in all fields');
     }
-  };
+  }
 
   return (
-    <div style={styles.container}>
-      {/* Main Content Area */}
-      <div style={styles.mainContent}>
-        {/* Header */}
-        <div style={styles.header}>
-          DASHBOARD
-        </div>
-
-        {/* Stats Section */}
-        <div style={styles.statsSection}>
-          {statsData.map((stat, index) => (
-            <div key={index} style={styles.statCard}>
-              <div style={stat.isRegister ? styles.statIconRegister : styles.statIcon}>
-                {stat.icon}
-              </div>
-              <div style={styles.statText}>
-                <div style={styles.statTitle}>{stat.title}</div>
-                {stat.value && <div style={styles.statValue}>{stat.value}</div>}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Table Section */}
-        <div style={styles.tableSection}>
-          {/* Search and Date */}
-          <div style={styles.searchDateSection}>
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={styles.searchInput}
-            />
-            <button style={styles.dateButton}>
-              📅 09-30-2025
-            </button>
-          </div>
-
-          {/* Table */}
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>G-Mail/Contact No.</th>
-                <th style={styles.th}>Visitor ID</th>
-                <th style={styles.th}>Time & Date</th>
-                <th style={styles.th}>Room No.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredVisitors.map((visitor, index) => (
-                <tr
-                  key={index}
-                  style={{
-                    backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e3f2fd'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#f8f9fa' : 'white'}
-                >
-                  <td style={styles.td}>{visitor.name}</td>
-                  <td style={styles.td}>{visitor.contact}</td>
-                  <td style={styles.td}>{visitor.id}</td>
-                  <td style={styles.td}>{visitor.datetime}</td>
-                  <td style={styles.td}>{visitor.room}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div>
+      <div className="header">
+        IGNACIO LACSON ARROYO MEMORIAL HOSPITAL
       </div>
+      <div className="container">
+        <div className="content">
+          {/* Dashboard View */}
+          {view === 'dashboard' && (
+            <div id="dashboardView">
+              <div className="title">DASHBOARD</div>
+              <div className="stats-container">
+                <div className="stat-box">
+                  <div className="stat-icon">👥</div>
+                  <div className="stat-info">
+                    <div className="stat-label">TOTAL VISITOR'S</div>
+                    <div className="stat-value" id="totalVisitors">{visitors.length}</div>
+                  </div>
+                </div>
+                <div className="stat-box">
+                  <div className="stat-icon">✓</div>
+                  <div className="stat-info">
+                    <div className="stat-label">Discharge Patient</div>
+                    <div className="stat-value">45</div>
+                  </div>
+                </div>
+              </div>
+              <div className="date-box" id="currentDate">DATE: {getCurrentDate()}</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Room no.</th>
+                    <th>Time In/Out</th>
+                    <th>Contact No.</th>
+                  </tr>
+                </thead>
+                <tbody id="visitorTableBody">
+                  {visitors.map((v, i) => (
+                    <tr key={i}>
+                      <td>{v.name}</td>
+                      <td>{v.room}</td>
+                      <td>{v.time}</td>
+                      <td>{v.contact}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-      {/* Right Sidebar */}
-      <div style={styles.sidebar}>
-        {/* About Us Header */}
-        <div style={styles.aboutHeader}>
-          About Us
+          {/* Register View */}
+          {view === 'register' && (
+            <div id="registerView">
+              <div className="form-container">
+                <div className="title">REGISTER NEW VISITOR</div>
+                <form className="form-box" onSubmit={handleRegisterSubmit}>
+                  <div className="field-group">
+                    <label htmlFor="visitorName">Full Name:</label>
+                    <input
+                      type="text"
+                      id="visitorName"
+                      name="name"
+                      placeholder="Enter full name"
+                      value={registerForm.name}
+                      onChange={handleRegisterChange}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="roomNumber">Room Number:</label>
+                    <input
+                      type="text"
+                      id="roomNumber"
+                      name="room"
+                      placeholder="Enter room number"
+                      value={registerForm.room}
+                      onChange={handleRegisterChange}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="timeIn">Time In:</label>
+                    <input
+                      type="text"
+                      id="timeIn"
+                      name="time"
+                      placeholder="e.g., 9:00AM"
+                      value={registerForm.time}
+                      onChange={handleRegisterChange}
+                    />
+                  </div>
+                  <div className="field-group">
+                    <label htmlFor="contactNumber">Contact Number:</label>
+                    <input
+                      type="text"
+                      id="contactNumber"
+                      name="contact"
+                      placeholder="e.g., 09123456789"
+                      value={registerForm.contact}
+                      onChange={handleRegisterChange}
+                    />
+                  </div>
+                  <button className="submit-btn" type="submit">SUBMIT</button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Registered Visitors View */}
+          {view === 'registered' && (
+            <div id="registeredView">
+              <div className="title">REGISTERED VISITORS</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Room no.</th>
+                    <th>Time In</th>
+                    <th>Contact No.</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="registeredTableBody">
+                  {visitors.map((v, i) => (
+                    <tr key={i}>
+                      <td>{v.name}</td>
+                      <td>{v.room}</td>
+                      <td>{v.time}</td>
+                      <td>{v.contact}</td>
+                      <td className={v.status === 'in' ? 'status-active' : 'status-left'}>
+                        {v.status === 'in' ? 'Active' : 'Left'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Visitor History View */}
+          {view === 'history' && (
+            <div id="historyView">
+              <div className="title">VISITOR'S HISTORY</div>
+              <div style={{ fontSize: 20, marginBottom: 20, color: '#666' }}>
+                Total visits: <span id="totalVisits">{visitors.length}</span>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Room no.</th>
+                    <th>Time</th>
+                    <th>Contact No.</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                  {visitors.map((v, i) => (
+                    <tr key={i}>
+                      <td>{v.name}</td>
+                      <td>{v.room}</td>
+                      <td>{v.time}</td>
+                      <td>{v.contact}</td>
+                      <td>{getCurrentDate()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Attendance View */}
+          {view === 'attendance' && (
+            <div id="attendanceView">
+              <div className="title">ATTENDANCE</div>
+              <div className="stats-container">
+                <div>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#0d7a5f' }}>Present</div>
+                  <div style={{ fontSize: 36, fontWeight: 'bold' }} id="presentCount">{visitors.length}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#666' }}>Total Registered</div>
+                  <div style={{ fontSize: 36, fontWeight: 'bold' }} id="totalRegistered">{visitors.length}</div>
+                </div>
+              </div>
+              <table style={{ marginTop: 30 }}>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Room no.</th>
+                    <th>Time In</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceTableBody">
+                  {visitors.map((v, i) => (
+                    <tr key={i}>
+                      <td>{v.name}</td>
+                      <td>{v.room}</td>
+                      <td>{v.time}</td>
+                      <td className="status-active">✓ Present</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-
-        {/* Navigation Menu */}
-        <div style={styles.navMenu}>
-          {menuItems.map((item, index) => (
-            <div
-              key={index}
-              style={item.active ? styles.menuItemActive : styles.menuItem}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f8f0'}
-              onMouseLeave={(e) => {
-                if (!item.active) e.currentTarget.style.backgroundColor = 'transparent'
-              }}
-            >
-              <span style={{ fontSize: '18px' }}>{item.icon}</span>
-              <span>{item.text}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Admin Profile Section */}
-        <div style={styles.adminSection}>
-          <div style={styles.profileImg}>
-            👩
-          </div>
-          <div style={styles.adminName}>Sarah Dismaya</div>
-          <div style={styles.adminTitle}>Admin</div>
-          
-          <div style={styles.contactInfo}>
-            <div style={styles.contactItem}>
-              <span>👤</span>
-              <span>Admin</span>
-            </div>
-            <div style={styles.contactItem}>
-              <span>📧</span>
-              <span>sarahdismaya@gmail.com</span>
-            </div>
-            <div style={styles.contactItem}>
-              <span>📞</span>
-              <span>09345676789</span>
-            </div>
-          </div>
+        <div className="sidebar">
+          <div className="home-icon" onClick={() => handleMenuClick('dashboard')}>🏠</div>
+          <div className={`menu-item${view === 'dashboard' ? ' active' : ''}`} onClick={() => handleMenuClick('dashboard')}>Dashboard</div>
+          <div className={`menu-item${view === 'dashboard' ? ' active' : ''}`} onClick={() => handleMenuClick('dashboard')}>Visitor's Information</div>
+          <div className={`menu-item${view === 'registered' ? ' active' : ''}`} onClick={() => handleMenuClick('registered')}>Registered Visitor</div>
+          <div className={`menu-item${view === 'history' ? ' active' : ''}`} onClick={() => handleMenuClick('history')}>Visitor's History</div>
+          <div className={`menu-item${view === 'attendance' ? ' active' : ''}`} onClick={() => handleMenuClick('attendance')}>Attendance</div>
+          <div className="register-btn" onClick={() => handleMenuClick('register')}>REGISTER</div>
         </div>
       </div>
     </div>
