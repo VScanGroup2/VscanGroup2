@@ -14,7 +14,7 @@ body {
     position: relative;
     width: 100%;
     height: 100vh;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080"><rect fill="%23c9d6d4" width="1920" height="1080"/></svg>');
+    background: url('bg.png');
     background-size: cover;
     background-position: center;
 }
