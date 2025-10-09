@@ -20,7 +20,7 @@ export default function VisitorDashboard() {
       {/* Sidebar */}
       <div className="w-80 bg-white shadow-lg flex flex-col">
         <div className="p-6 flex items-center justify-center border-b">
-          <HomeIcon className="w-12 h-12 text-gray-700" strokeWidth={1.5} />
+          <Home className="w-12 h-12 text-gray-700" strokeWidth={1.5} />
         </div>
         
         <nav className="flex-1 py-4">
@@ -66,7 +66,7 @@ export default function VisitorDashboard() {
             {/* Stats Bar */}
             <div className="flex items-center justify-between mb-8 pb-6 border-b-4 border-gray-300">
               <div className="flex items-center gap-4">
-                <UserCircle className="w-16 h-16 text-gray-800" strokeWidth={2} />
+                <User className="w-16 h-16 text-gray-800" strokeWidth={2} />
                 <div>
                   <div className="text-2xl font-bold text-gray-900">TOTAL VISITOR'S</div>
                   <div className="text-5xl font-bold text-gray-900">{visitors.length}</div>
