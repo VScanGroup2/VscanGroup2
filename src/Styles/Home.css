@@ -23,6 +23,20 @@ body {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
+.table-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 400px; /* adjust as needed */
+}
+
+.main-content {
+  overflow-y: auto;
+  height: calc(100vh - 300px); /* adjust based on your header height */
+}
+.dashboard-content {
+  overflow: auto;
+  flex: 1;
+}
 
 /* Main Container */
 .container {
