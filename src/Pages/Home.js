@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import History from './History';
-import Calendar from './Calendar'; // You'll need to create this component
+import { Users, UserCheck, ClipboardList, History, Calendar } from 'lucide-react';
 import '../Styles/LoginPage.css';
 
 const HospitalVisitorSystem = () => {
@@ -47,6 +46,7 @@ const HospitalVisitorSystem = () => {
         ...newVisitor,
         date: new Date().toISOString().split('T')[0],
         status: 'checked-in'
+      }]);
       setNewVisitor({ patientName: '', room: '', visitorName: '', time: '', phone: '' });
     }
   };
