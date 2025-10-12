@@ -46,7 +46,8 @@ import '../Styles/History.css';
                     day: '2-digit',
                     year: '2-digit'
                 });
-                return this.visitors.filter(visitor => visitor.date === today).length;
+            // Line 48 - closing bracket
+return this.visitors.filter(visitor => visitor.date === today).length; // Line 49 - ERROR! return this.visitors.filter(visitor => visitor.date === today).length;
             
 
             calculateAverageVisitTime() 
