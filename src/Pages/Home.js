@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../Styles/Home.css';
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -172,7 +173,7 @@ function Home({ onLogout }) {
     setVisitors(prev => [...prev, newVisitor]);
     setFormData({ visitorName: '', roomNo: '', patientName: '', contactNo: '', timeIn: '', photo: null });
     setPhotoPreview(null);
-    showView('dashboard');
+    showView('registered');
     alert('Visitor registered successfully!');
   };
 
@@ -269,6 +270,15 @@ function Home({ onLogout }) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1em', marginBottom: '20px' }}
               />
+              
+              <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px', textAlign: 'center', marginBottom: '30px' }}>
+                <p style={{ color: '#666', fontSize: '1.3em', margin: 0 }}>
+                  <strong>Total Visitors:</strong> <span style={{ color: '#1a8f6f', fontSize: '1.5em', fontWeight: 'bold' }}>{visitors.length}</span>
+                </p>
+                <p style={{ color: '#666', fontSize: '1.1em', margin: '10px 0 0 0' }}>
+                  Showing: {filteredVisitors.length} {filteredVisitors.length === 1 ? 'visitor' : 'visitors'}
+                </p>
+              </div>
               
               {filteredVisitors.length > 0 ? (
                 <div style={{ display: 'grid', gap: '20px' }}>
