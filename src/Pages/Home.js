@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import '../Styles/Home.css';
 
 export default function App() {
@@ -90,11 +90,11 @@ function LoginPage({ onLogin }) {
           <button onClick={handleLogin} disabled={loading} style={{ width: '100%', padding: '18px', fontSize: '1.3em', fontWeight: 'bold', color: 'white', background: loading ? '#999' : 'linear-gradient(135deg, #1a8f6f 0%, #22a885 100%)', border: 'none', borderRadius: '8px', cursor: loading ? 'not-allowed' : 'pointer', transition: 'transform 0.2s, background 0.3s', boxShadow: '0 4px 15px rgba(26,143,111,0.3)' }} onMouseOver={(e) => !loading && (e.target.style.transform = 'scale(1.02)')} onMouseOut={(e) => !loading && (e.target.style.transform = 'scale(1)')}>
             {loading ? 'LOGGING IN...' : 'LOGIN'}
           </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 function Home({ onLogout }) {
   const [visitors, setVisitors] = useState([]);
@@ -106,6 +106,9 @@ function Home({ onLogout }) {
   const [registeredSearchQuery, setRegisteredSearchQuery] = useState('');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [attendanceDate, setAttendanceDate] = useState('');
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [currentQRData, setCurrentQRData] = useState(null);
+  const qrCodeRef = useRef(null);
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -128,6 +131,18 @@ function Home({ onLogout }) {
     const year = String(now.getFullYear()).slice(-2);
     setCurrentDate(`${month}-${day}-${year}`);
     setAttendanceDate(today);
+
+    // Load QRCode.js library
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
   }, []);
 
   const showView = (view) => setCurrentView(view);
@@ -148,6 +163,53 @@ function Home({ onLogout }) {
       const reader = new FileReader();
       reader.onloadend = () => setPhotoPreview(reader.result);
       reader.readAsDataURL(file);
+    }
+  };
+
+  const generateQRCode = (visitorData) => {
+    if (!window.QRCode) {
+      alert('QR Code library is still loading. Please try again in a moment.');
+      return;
+    }
+
+    const qrData = JSON.stringify({
+      visitorId: visitorData.id,
+      name: visitorData.name,
+      room: visitorData.room,
+      patient: visitorData.patient,
+      contact: visitorData.contact,
+      timeIn: visitorData.timeIn,
+      date: visitorData.date,
+      verificationUrl: `https://hospital.com/verify/${visitorData.id}`
+    });
+
+    setCurrentQRData(visitorData);
+    setShowQRModal(true);
+
+    // Wait for modal to render
+    setTimeout(() => {
+      if (qrCodeRef.current) {
+        qrCodeRef.current.innerHTML = '';
+        new window.QRCode(qrCodeRef.current, {
+          text: qrData,
+          width: 256,
+          height: 256,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: window.QRCode.CorrectLevel.H
+        });
+      }
+    }, 100);
+  };
+
+  const downloadQRCode = () => {
+    const canvas = qrCodeRef.current?.querySelector('canvas');
+    if (canvas) {
+      const url = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Visitor_QR_${currentQRData.id}_${currentQRData.name.replace(/\s+/g, '_')}.png`;
+      link.href = url;
+      link.click();
     }
   };
 
@@ -173,8 +235,14 @@ function Home({ onLogout }) {
     setVisitors(prev => [...prev, newVisitor]);
     setFormData({ visitorName: '', roomNo: '', patientName: '', contactNo: '', timeIn: '', photo: null });
     setPhotoPreview(null);
-    showView('registered');
-    alert('Visitor registered successfully!');
+    
+    // Generate QR Code for the new visitor
+    generateQRCode(newVisitor);
+    
+    // Show registered view after closing QR modal
+    setTimeout(() => {
+      showView('registered');
+    }, 500);
   };
 
   const cancelRegister = () => {
@@ -210,130 +278,45 @@ function Home({ onLogout }) {
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', minHeight: '100vh', background: 'linear-gradient(135deg, #e8e0d4 0%, #d4c4b0 100%)' }}>
-      <div style={{ background: '#1a8f6f', color: 'white', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ textAlign: 'center', flex: 1, fontSize: '2em', fontWeight: 'bold', letterSpacing: '2px' }}>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</div>
-        <button onClick={onLogout} style={{ padding: '10px 25px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1em', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s' }} onMouseOver={(e) => e.target.style.background = '#c82333'} onMouseOut={(e) => e.target.style.background = '#dc3545'}>Logout</button>
-      </div>
-      
-      <div style={{ display: 'flex', maxWidth: '1400px', margin: '0 auto', padding: '20px', gap: '20px' }}>
-        <div style={{ flex: 1, background: 'white', borderRadius: '10px', padding: '30px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
-          <h1 style={{ color: '#1a8f6f', marginBottom: '30px', fontSize: '2.5em' }}>
-            {currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "VISITOR'S INFORMATION" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'history' ? "VISITOR'S HISTORY" : currentView === 'attendance' ? 'ATTENDANCE' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}
-          </h1>
+      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', padding: '40px' }}>
+        <div style={{ flex: 1 }}>
+          {/* QR Code Modal */}
+          {showQRModal && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+              <div style={{ background: 'white', borderRadius: '15px', padding: '40px', maxWidth: '500px', width: '90%', textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
+                <div style={{ fontSize: '3em', marginBottom: '20px' }}>✅</div>
+                <h2 style={{ color: '#1a8f6f', marginBottom: '10px', fontSize: '2em' }}>Registration Successful!</h2>
+                <p style={{ color: '#666', marginBottom: '30px', fontSize: '1.1em' }}>Visitor has been registered successfully</p>
 
-          {currentView === 'dashboard' && (
-            <>
-              <div style={{ display: 'flex', gap: '20px', marginBottom: '30px', alignItems: 'center' }}>
-                <div style={{ background: '#f8f9fa', padding: '25px', borderRadius: '10px', flex: 1, display: 'flex', alignItems: 'center', gap: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-                  <div style={{ fontSize: '3em' }}>👥</div>
-                  <div>
-                    <h3 style={{ color: '#666', marginBottom: '5px', fontSize: '0.9em' }}>TOTAL VISITORS</h3>
-                    <div style={{ fontSize: '3em', fontWeight: 'bold', color: '#1a8f6f' }}>{activeVisitors.length}</div>
-                  </div>
-                </div>
-                <div style={{ background: '#1a8f6f', color: 'white', padding: '20px 40px', borderRadius: '10px', fontSize: '1.3em', fontWeight: 'bold', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>DATE: {currentDate}</div>
-              </div>
-
-              <div style={{ background: 'white', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>
-                      <th style={{ padding: '20px 15px', textAlign: 'left', fontWeight: 'bold', color: '#333' }}>Name</th>
-                      <th style={{ padding: '20px 15px', textAlign: 'left', fontWeight: 'bold', color: '#333' }}>Room no.</th>
-                      <th style={{ padding: '20px 15px', textAlign: 'left', fontWeight: 'bold', color: '#333' }}>Patient Name</th>
-                      <th style={{ padding: '20px 15px', textAlign: 'left', fontWeight: 'bold', color: '#333' }}>Time In/Out</th>
-                      <th style={{ padding: '20px 15px', textAlign: 'left', fontWeight: 'bold', color: '#333' }}>Contact No.</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activeVisitors.map((visitor, index) => (
-                      <tr key={visitor.id} style={{ background: index % 2 === 0 ? 'white' : '#f8f9fa', transition: 'background 0.2s' }}>
-                        <td style={{ padding: '18px 15px', borderBottom: '1px solid #e9ecef', fontWeight: '600', color: '#2c3e50' }}>{visitor.name}</td>
-                        <td style={{ padding: '18px 15px', borderBottom: '1px solid #e9ecef', color: '#e74c3c', fontWeight: 'bold', textAlign: 'center' }}>{visitor.room}</td>
-                        <td style={{ padding: '18px 15px', borderBottom: '1px solid #e9ecef', color: '#333' }}>{visitor.patient}</td>
-                        <td style={{ padding: '18px 15px', borderBottom: '1px solid #e9ecef', color: '#27ae60', fontWeight: '500' }}>{visitor.timeIn}</td>
-                        <td style={{ padding: '18px 15px', borderBottom: '1px solid #e9ecef', color: '#333' }}>{visitor.contact}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-
-          {currentView === 'visitorInfo' && (
-            <div>
-              <input 
-                type="text" 
-                placeholder="Search visitor by name, room, or patient name..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: '100%', padding: '15px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '1em', marginBottom: '20px' }}
-              />
-              
-              <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px', textAlign: 'center', marginBottom: '30px' }}>
-                <p style={{ color: '#666', fontSize: '1.3em', margin: 0 }}>
-                  <strong>Total Visitors:</strong> <span style={{ color: '#1a8f6f', fontSize: '1.5em', fontWeight: 'bold' }}>{visitors.length}</span>
-                </p>
-                <p style={{ color: '#666', fontSize: '1.1em', margin: '10px 0 0 0' }}>
-                  Showing: {filteredVisitors.length} {filteredVisitors.length === 1 ? 'visitor' : 'visitors'}
-                </p>
-              </div>
-              
-              {filteredVisitors.length > 0 ? (
-                <div style={{ display: 'grid', gap: '20px' }}>
-                  {filteredVisitors.map((visitor) => (
-                    <div key={visitor.id} style={{ background: '#f8f9fa', borderRadius: '10px', padding: '25px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', borderLeft: '5px solid #1a8f6f' }}>
-                      <div style={{ display: 'flex', gap: '25px', alignItems: 'start' }}>
-                        {visitor.photo ? (
-                          <div style={{ width: '120px', height: '120px', border: '3px solid #1a8f6f', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 }}>
-                            <img 
-                              src={visitor.photo} 
-                              alt={visitor.name} 
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          </div>
-                        ) : (
-                          <div style={{ width: '120px', height: '120px', border: '3px solid #1a8f6f', borderRadius: '10px', background: '#e9ecef', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3em', flexShrink: 0 }}>
-                            👤
-                          </div>
-                        )}
-                        <div style={{ flex: 1 }}>
-                          <h3 style={{ color: '#1a8f6f', marginBottom: '15px', fontSize: '1.8em' }}>{visitor.name}</h3>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '1.1em' }}>
-                            <p style={{ margin: 0 }}><strong>Room No:</strong> <span style={{ color: '#e74c3c', fontWeight: 'bold' }}>{visitor.room}</span></p>
-                            <p style={{ margin: 0 }}><strong>Patient Name:</strong> {visitor.patient}</p>
-                            <p style={{ margin: 0 }}><strong>Time In:</strong> <span style={{ color: '#27ae60', fontWeight: 'bold' }}>{visitor.timeIn}</span></p>
-                            <p style={{ margin: 0 }}><strong>Time Out:</strong> {visitor.timeOut || 'Still visiting'}</p>
-                            <p style={{ margin: 0 }}><strong>Contact:</strong> {visitor.contact}</p>
-                            <p style={{ margin: 0 }}><strong>Date:</strong> {visitor.date}</p>
-                          </div>
-                          <div style={{ marginTop: '15px' }}>
-                            <span style={{ 
-                              display: 'inline-block',
-                              padding: '6px 15px', 
-                              borderRadius: '20px', 
-                              fontSize: '0.9em', 
-                              fontWeight: 'bold',
-                              background: visitor.status === 'active' ? '#d4edda' : '#cce5ff',
-                              color: visitor.status === 'active' ? '#155724' : '#004085'
-                            }}>
-                              {visitor.status === 'active' ? 'ACTIVE' : 'COMPLETED'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                {currentQRData ? (
+                  <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '10px', marginBottom: '30px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', textAlign: 'left', marginBottom: '20px' }}>
+                      <p style={{ margin: '5px 0' }}><strong>Name:</strong></p>
+                      <p style={{ margin: '5px 0', color: '#1a8f6f' }}>{currentQRData.name}</p>
+                      <p style={{ margin: '5px 0' }}><strong>Room:</strong></p>
+                      <p style={{ margin: '5px 0', color: '#e74c3c', fontWeight: 'bold' }}>{currentQRData.room}</p>
+                      <p style={{ margin: '5px 0' }}><strong>Patient:</strong></p>
+                      <p style={{ margin: '5px 0' }}>{currentQRData.patient}</p>
+                      <p style={{ margin: '5px 0' }}><strong>Contact:</strong></p>
+                      <p style={{ margin: '5px 0' }}>{currentQRData.contact}</p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                  <div style={{ fontSize: '4em', marginBottom: '20px' }}>📋</div>
-                  <p style={{ color: '#666', fontSize: '1.2em' }}>
-                    {searchQuery ? 'No visitors found matching your search' : 'No visitor information available'}
-                  </p>
-                </div>
-              )}
+
+                    <div ref={qrCodeRef} style={{ marginTop: '10px' }} />
+
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                      <button onClick={downloadQRCode} style={{ padding: '10px 16px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Download QR</button>
+                      <button onClick={() => setShowQRModal(false)} style={{ padding: '10px 16px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Close</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                    <div style={{ fontSize: '4em', marginBottom: '20px' }}>📋</div>
+                    <p style={{ color: '#666', fontSize: '1.2em' }}>
+                      {searchQuery ? 'No visitors found matching your search' : 'No visitor information available'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -368,6 +351,7 @@ function Home({ onLogout }) {
                         <th style={{ padding: '18px 15px', textAlign: 'left', fontWeight: 'bold' }}>Contact</th>
                         <th style={{ padding: '18px 15px', textAlign: 'left', fontWeight: 'bold' }}>Date</th>
                         <th style={{ padding: '18px 15px', textAlign: 'center', fontWeight: 'bold' }}>Status</th>
+                        <th style={{ padding: '18px 15px', textAlign: 'center', fontWeight: 'bold' }}>QR</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -405,6 +389,26 @@ function Home({ onLogout }) {
                             }}>
                               {visitor.status === 'active' ? 'ACTIVE' : 'COMPLETED'}
                             </span>
+                          </td>
+                          <td style={{ padding: '15px', borderBottom: '1px solid #e9ecef', textAlign: 'center' }}>
+                            <button 
+                              onClick={() => generateQRCode(visitor)}
+                              style={{ 
+                                padding: '8px 15px', 
+                                background: '#1a8f6f', 
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '6px', 
+                                fontSize: '0.9em', 
+                                fontWeight: 'bold', 
+                                cursor: 'pointer',
+                                transition: 'background 0.3s'
+                              }}
+                              onMouseOver={(e) => e.target.style.background = '#157a5f'}
+                              onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
+                            >
+                              View QR
+                            </button>
                           </td>
                         </tr>
                       ))}
