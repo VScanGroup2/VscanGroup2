@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
