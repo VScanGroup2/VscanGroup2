@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { QRCodeCanvas } from 'qrcode.react';
+import QRCodeLib from 'qrcode';
+import bgImage from '../Styles/bg.png';
 
 export default function Dashboard({ onLogout }) {
   const [visitors, setVisitors] = useState([]);
@@ -10,6 +13,10 @@ export default function Dashboard({ onLogout }) {
   const [registeredSearchQuery, setRegisteredSearchQuery] = useState('');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [attendanceDate, setAttendanceDate] = useState('');
+  const [lastQRCode, setLastQRCode] = useState(null);
+  const [lastVisitorId, setLastVisitorId] = useState(null);
+  const [lastQRCodeDataUrl, setLastQRCodeDataUrl] = useState(null);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   useEffect(() => {
     const sample = [
@@ -46,7 +53,7 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
-  const submitVisitor = () => {
+  const submitVisitor = async () => {
     if (!formData.visitorName.trim()) {
       alert('Please fill in the visitor name');
       return;
@@ -66,15 +73,53 @@ export default function Dashboard({ onLogout }) {
     };
 
     setVisitors(prev => [...prev, newVisitor]);
+    // prepare QR data: encode visitor id, name, room, and date
+    const qrData = JSON.stringify({ id: newVisitor.id, name: newVisitor.name, room: newVisitor.room, date: newVisitor.date });
+    setLastQRCode(qrData);
+    setLastVisitorId(newVisitor.id);
+    // also generate a PNG data URL for more reliable rendering and download
+    try {
+      const dataUrl = await QRCodeLib.toDataURL(qrData, { margin: 1, width: 300 });
+      setLastQRCodeDataUrl(dataUrl);
+      setShowQRModal(true);
+    } catch (err) {
+      console.warn('QR generation failed', err);
+      setLastQRCodeDataUrl(null);
+    }
     setFormData({ visitorName: '', roomNo: '', patientName: '', contactNo: '', timeIn: '', photo: null });
     setPhotoPreview(null);
-    showView('dashboard');
+    // show registered view and display the QR for the latest registration
+    showView('registered');
   };
 
   const cancelRegister = () => {
     setFormData({ visitorName: '', roomNo: '', patientName: '', contactNo: '', timeIn: '', photo: null });
     setPhotoPreview(null);
     showView('dashboard');
+  };
+
+  const downloadQRCode = () => {
+    if (lastQRCodeDataUrl) {
+      const a = document.createElement('a');
+      a.href = lastQRCodeDataUrl;
+      a.download = `visitor-${lastVisitorId}.png`;
+      a.click();
+      return;
+    }
+
+    // fallback: try to download canvas if present
+    try {
+      const canvas = document.querySelector('#latest-qr-canvas canvas');
+      if (!canvas) return alert('QR canvas not found');
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `visitor-${lastVisitorId}.png`;
+      a.click();
+    } catch (err) {
+      console.error(err);
+      alert('Unable to download QR image');
+    }
   };
 
   const activeVisitors = visitors.filter(v => v.status === 'active');
@@ -95,11 +140,33 @@ export default function Dashboard({ onLogout }) {
   const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '2px solid #ddd', fontSize: '1em', outline: 'none', transition: 'border-color 0.3s', backgroundColor: 'white' };
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', minHeight: '100vh', background: 'linear-gradient(135deg, #e8e0d4 0%, #d4c4b0 100%)' }}>
+    <div style={{ fontFamily: 'Arial, sans-serif', minHeight: '100vh', backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
       <div style={{ background: '#1a8f6f', color: 'white', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ textAlign: 'center', flex: 1, fontSize: '2em', fontWeight: 'bold', letterSpacing: '2px' }}>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</div>
         <button onClick={onLogout} style={{ padding: '10px 25px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1em', fontWeight: 'bold', cursor: 'pointer' }}>Logout</button>
       </div>
+
+      {showQRModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: 'white', padding: 20, borderRadius: 10, width: 360, textAlign: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
+            <h3 style={{ marginTop: 0 }}>Registration Successful</h3>
+            <p style={{ margin: '8px 0 12px' }}>Visitor #{lastVisitorId} — scan this QR</p>
+            <div style={{ marginBottom: 12 }}>
+              {lastQRCodeDataUrl ? (
+                <img src={lastQRCodeDataUrl} alt={`QR-${lastVisitorId}`} style={{ width: 200, height: 200 }} />
+              ) : (
+                <div id="latest-qr-canvas" style={{ display: 'inline-block', padding: 8, background: 'white', borderRadius: 8 }}>
+                  <QRCodeCanvas value={lastQRCode} size={160} />
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button onClick={downloadQRCode} style={{ padding: '8px 12px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 6 }}>Download QR</button>
+              <button onClick={() => setShowQRModal(false)} style={{ padding: '8px 12px', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6 }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', maxWidth: '1200px', margin: '0 auto', padding: '20px', gap: '20px' }}>
         <div style={{ flex: 1, background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
@@ -156,6 +223,36 @@ export default function Dashboard({ onLogout }) {
 
           {currentView === 'registered' && (
             <div>
+              {lastQRCode && (
+                <div style={{ marginBottom: 16, padding: 12, border: '1px dashed #ddd', borderRadius: 8, background: '#fbfbfb' }}>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>QR for latest registration (visitor #{lastVisitorId})</div>
+                  <div id="latest-qr-canvas" style={{ display: 'inline-block', padding: 8, background: 'white', borderRadius: 8 }}>
+                    {/* Prefer the generated PNG (more portable). Keep canvas as fallback. */}
+                    {lastQRCodeDataUrl ? (
+                      <img src={lastQRCodeDataUrl} alt={`QR-${lastVisitorId}`} style={{ width: 160, height: 160, display: 'block' }} />
+                    ) : (
+                      <QRCodeCanvas value={lastQRCode} size={160} />
+                    )}
+                  </div>
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                    <button onClick={() => {
+                      try {
+                        const canvas = document.querySelector('#latest-qr-canvas canvas');
+                        if (!canvas) return alert('QR canvas not found');
+                        const url = canvas.toDataURL('image/png');
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `visitor-${lastVisitorId}.png`;
+                        a.click();
+                      } catch (err) {
+                        console.error(err);
+                        alert('Unable to download QR image');
+                      }
+                    }} style={{ padding: '8px 12px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 6 }}>Download QR</button>
+                    <button onClick={() => setLastQRCode(null)} style={{ padding: '8px 12px', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6 }}>Hide QR</button>
+                  </div>
+                </div>
+              )}
               <input placeholder="Search registered..." value={registeredSearchQuery} onChange={(e) => setRegisteredSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
               <div>{filteredRegisteredVisitors.map(v => (
                 <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>{v.name} — {v.room} — {v.date}</div>
