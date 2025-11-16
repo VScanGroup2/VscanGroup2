@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../Styles/LoginPage.css';
+import bg from '../Styles/bg.png';
 import Dashboard from './Dashboard';
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -52,7 +53,7 @@ function LoginPage({ onLogin }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #a8c5c0 0%, #7ba5a0 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ minHeight: '100vh', backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
       <div style={{ background: '#1a8f6f', color: 'white', padding: '20px 40px', borderRadius: '10px', marginBottom: '40px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.2)', maxWidth: '800px', width: '100%' }}>
         <h1 style={{ fontSize: '1.8em', fontWeight: 'bold', letterSpacing: '1px', margin: 0 }}>IGNACIO LACSON ARROYO SR. MEMORIAL DISTRICT HOSPITAL</h1>
       </div>
