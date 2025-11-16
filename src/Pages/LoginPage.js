@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import '../Styles/LoginPage.css';
 import Dashboard from './Dashboard';
 export default function App() {
