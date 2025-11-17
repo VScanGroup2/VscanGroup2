@@ -8,6 +8,7 @@ export default function Dashboard({ onLogout }) {
   const [visitors, setVisitors] = useState([]);
   const [currentView, setCurrentView] = useState('dashboard');
   const [currentDate, setCurrentDate] = useState('');
+  const [currentTime, setCurrentTime] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [registeredSearchQuery, setRegisteredSearchQuery] = useState('');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
@@ -23,6 +24,32 @@ export default function Dashboard({ onLogout }) {
   const [registeredVisitorData, setRegisteredVisitorData] = useState(null);
   const qrCanvasRef = useRef(null);
 
+  // Update current date and time
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date();
+      
+      // Format date as MM-DD-YY
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const year = String(now.getFullYear()).slice(-2);
+      setCurrentDate(`${month}-${day}-${year}`);
+      
+      // Format time as HH:MM:SS AM/PM
+      const hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      setCurrentTime(`${displayHours}:${minutes}:${seconds} ${ampm}`);
+    };
+
+    updateDateTime();
+    const interval = setInterval(updateDateTime, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     // subscribe to Firestore visitors collection
     const unsub = listenVisitorsRealtime((data) => {
@@ -35,18 +62,13 @@ export default function Dashboard({ onLogout }) {
         timeIn: v.checkInTime || '',
         timeOut: v.checkOutTime || null,
         contact: v.contactNumber || 'N/A',
-        date: new Date(v.timestamp).toISOString().split('T')[0],
+        date: v.registrationDate || new Date(v.timestamp).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }),
+        fullDate: v.registrationFullDate || new Date(v.timestamp).toLocaleString(),
         status: v.status === 'checked-in' ? 'active' : 'inactive',
         photo: v.photoUrl || null
       }));
       setVisitors(normalized);
     });
-
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const year = String(now.getFullYear()).slice(-2);
-    setCurrentDate(`${month}-${day}-${year}`);
 
     return () => unsub && typeof unsub === 'function' ? unsub() : undefined;
   }, []);
@@ -64,7 +86,6 @@ export default function Dashboard({ onLogout }) {
     setPreviewUrl(f ? URL.createObjectURL(f) : null);
   };
 
-  // logout is handled by the parent via onLogout prop
   // Register a new visitor (called by the Register button)
   const handleRegister = async () => {
     if (!formData.visitorName || !formData.roomNumber || !formData.patientName || !formData.contactNumber) {
@@ -92,13 +113,37 @@ export default function Dashboard({ onLogout }) {
         }
       }
 
+      const now = new Date();
+      const registrationDateTime = now.toLocaleString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+      
+      const registrationDate = now.toLocaleDateString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: '2-digit' 
+      });
+
       const visitorData = {
         visitorName: formData.visitorName,
         roomNumber: formData.roomNumber,
         patientName: formData.patientName,
         contactNumber: formData.contactNumber,
-        timestamp: new Date().toISOString(),
-        checkInTime: new Date().toLocaleTimeString(),
+        timestamp: now.toISOString(),
+        registrationFullDate: registrationDateTime,
+        registrationDate: registrationDate,
+        checkInTime: now.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit',
+          hour12: true 
+        }),
         status: 'checked-in',
         photoUrl: photoUrl
       };
@@ -114,7 +159,8 @@ export default function Dashboard({ onLogout }) {
         patient: formData.patientName,
         contact: formData.contactNumber,
         checkIn: visitorData.checkInTime,
-        date: new Date().toLocaleDateString()
+        date: registrationDate,
+        fullDateTime: registrationDateTime
       });
       
       const qrUrl = await QRCode.toDataURL(qrData, {
@@ -133,7 +179,8 @@ export default function Dashboard({ onLogout }) {
         room: formData.roomNumber,
         patient: formData.patientName,
         contact: formData.contactNumber,
-        checkIn: visitorData.checkInTime
+        checkIn: visitorData.checkInTime,
+        registrationDateTime: registrationDateTime
       });
       
       setMessage({ type: 'success', text: `Visitor registered successfully!` });
@@ -192,7 +239,7 @@ export default function Dashboard({ onLogout }) {
               <div class="info-row"><span class="label">Room:</span> ${registeredVisitorData.room}</div>
               <div class="info-row"><span class="label">Patient:</span> ${registeredVisitorData.patient}</div>
               <div class="info-row"><span class="label">Contact:</span> ${registeredVisitorData.contact}</div>
-              <div class="info-row"><span class="label">Check-in Time:</span> ${registeredVisitorData.checkIn}</div>
+              <div class="info-row"><span class="label">Registration Date & Time:</span> ${registeredVisitorData.registrationDateTime}</div>
             </div>
           </body>
         </html>
@@ -232,12 +279,15 @@ export default function Dashboard({ onLogout }) {
 
           {currentView === 'dashboard' && (
             <>
-              <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                <div style={{ flex: 1, background: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '200px', background: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
                   <div style={{ fontSize: '1.1em', color: '#666' }}>TOTAL VISITORS</div>
                   <div style={{ fontSize: '2em', color: '#1a8f6f', fontWeight: '700' }}>{activeVisitors.length}</div>
                 </div>
-                <div style={{ background: '#1a8f6f', color: 'white', padding: '15px 25px', borderRadius: '8px', fontWeight: '700' }}>DATE: {currentDate}</div>
+                <div style={{ background: '#1a8f6f', color: 'white', padding: '15px 25px', borderRadius: '8px', fontWeight: '700' }}>
+                  <div style={{ fontSize: '1.1em', marginBottom: '5px' }}>DATE: {currentDate}</div>
+                  <div style={{ fontSize: '1.3em' }}>TIME: {currentTime}</div>
+                </div>
               </div>
 
               <div style={{ overflow: 'auto', borderRadius: '8px' }}>
@@ -273,7 +323,8 @@ export default function Dashboard({ onLogout }) {
               <div>{filteredVisitors.map(v => (
                 <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
                   <div style={{ fontWeight: 700 }}>{v.name}</div>
-                  <div style={{ color: '#666' }}>{v.patient} — {v.room} — {v.date}</div>
+                  <div style={{ color: '#666' }}>{v.patient} — {v.room}</div>
+                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
                 </div>
               ))}</div>
             </div>
@@ -283,7 +334,11 @@ export default function Dashboard({ onLogout }) {
             <div>
               <input placeholder="Search registered..." value={registeredSearchQuery} onChange={(e) => setRegisteredSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
               <div>{filteredRegisteredVisitors.map(v => (
-                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>{v.name} — {v.room} — {v.date}</div>
+                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
+                  <div style={{ fontWeight: 700 }}>{v.name}</div>
+                  <div style={{ color: '#666' }}>{v.room} — {v.patient}</div>
+                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
+                </div>
               ))}</div>
             </div>
           )}
@@ -292,7 +347,11 @@ export default function Dashboard({ onLogout }) {
             <div>
               <input placeholder="Search history..." value={historySearchQuery} onChange={(e) => setHistorySearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
               <div>{filteredHistoryVisitors.map(v => (
-                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>{v.name} — {v.room} — {v.date}</div>
+                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
+                  <div style={{ fontWeight: 700 }}>{v.name}</div>
+                  <div style={{ color: '#666' }}>{v.room} — {v.patient}</div>
+                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
+                </div>
               ))}</div>
             </div>
           )}
@@ -303,15 +362,17 @@ export default function Dashboard({ onLogout }) {
               <input type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} />
 
               <div style={{ marginTop: '12px' }}>{attendanceVisitors.map(v => (
-                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>{v.name} — {v.room} — {v.timeIn} — {v.status}</div>
+                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
+                  <div style={{ fontWeight: 700 }}>{v.name}</div>
+                  <div style={{ color: '#666' }}>{v.room} — {v.timeIn} — {v.status}</div>
+                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
+                </div>
               ))}</div>
             </div>
           )}
 
           {currentView === 'register' && (
             <div>
-              <h2 style={{ fontSize: '1.8em', fontWeight: 'bold', color: '#1a8f6f', marginBottom: '20px' }}>Register New Visitor</h2>
-
               {message.text && (
                 <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', background: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24', border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`, fontSize: '1em' }}>
                   {message.text}
@@ -340,7 +401,7 @@ export default function Dashboard({ onLogout }) {
                         <strong style={{ color: '#1a8f6f' }}>Contact:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.contact}</span>
                       </div>
                       <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                        <strong style={{ color: '#1a8f6f' }}>Check-in:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.checkIn}</span>
+                        <strong style={{ color: '#1a8f6f' }}>Registration:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.registrationDateTime}</span>
                       </div>
                     </div>
                     
@@ -408,7 +469,7 @@ export default function Dashboard({ onLogout }) {
               </div>
 
               <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ width: '100%', padding: '16px', background: loading || uploadingImage ? '#ccc' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'background 0.3s' }}>
-                {uploadingImage ? 'UPLOADING IMAGE...' : loading ? 'REGISTERING...' : 'REGISTER '}
+                {uploadingImage ? 'UPLOADING IMAGE...' : loading ? 'REGISTERING...' : 'REGISTER'}
               </button>
             </div>
           )}
@@ -421,7 +482,7 @@ export default function Dashboard({ onLogout }) {
           <div onClick={() => showView('registered')} style={{ padding: 10, marginBottom: 8, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Registered Visitor</div>
           <div onClick={() => showView('history')} style={{ padding: 10, marginBottom: 8, background: currentView === 'history' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'history' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Visitor's History</div>
           <div onClick={() => showView('attendance')} style={{ padding: 10, marginBottom: 16, background: currentView === 'attendance' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'attendance' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Attendance</div>
-          <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold' }}>REGISTER </button>
+          <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold' }}>REGISTER</button>
         </div>
       </div>
     </div>
