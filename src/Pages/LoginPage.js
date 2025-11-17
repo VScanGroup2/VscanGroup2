@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import '../Styles/LoginPage.css';
 import bg from '../Styles/bg.png';
 import Dashboard from './Dashboard';
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -66,9 +67,6 @@ function LoginPage({ onLogin }) {
             <label style={{ display: 'block', fontSize: '1.1em', fontWeight: 'bold', color: '#555', marginBottom: '8px' }}>Email</label>
             <div style={{ position: 'relative' }}>
               <input type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyPress={handleKeyPress} autoComplete="email" style={{ width: '100%', padding: '15px 50px 15px 15px', fontSize: '1.1em', border: '2px solid #ddd', borderRadius: '8px', outline: 'none', transition: 'border-color 0.3s', boxSizing: 'border-box' }} onFocus={(e) => e.target.style.borderColor = '#1a8f6f'} onBlur={(e) => e.target.style.borderColor = '#ddd'} />
-              <div style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', width: '24px', height: '24px', fill: '#1a8f6f' }}>
-                <svg viewBox="0 0 24 24" style={{ width: '100%', height: '100%' }}><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/></svg>
-              </div>
             </div>
           </div>
 
