@@ -1,396 +1,193 @@
 import React, { useState, useEffect } from 'react';
+import { addVisitor as addVisitorDoc, listenVisitorsRealtime, updateVisitor as updateVisitorDoc, deleteVisitor as deleteVisitorDoc } from '../lib/firestore';
+import uploadImageToCloudinary from '../lib/cloudinary';
+import QRCode from 'qrcode';
 
 export default function VisitorRegistration() {
-  const [activeTab, setActiveTab] = useState('register');
-  const [formData, setFormData] = useState({
-    visitorName: '',
-    roomNumber: '',
-    patientName: '',
-    contactNumber: ''
-  });
-  const [visitors, setVisitors] = useState([]);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [formData, setFormData] = useState({ visitorName: '', roomNumber: '', patientName: '', contactNumber: '' });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [visitors, setVisitors] = useState([]);
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [lastDocId, setLastDocId] = useState(null);
 
   useEffect(() => {
-    loadVisitors();
+    const unsub = listenVisitorsRealtime((data) => setVisitors(data));
+    return () => unsub && typeof unsub === 'function' ? unsub() : undefined;
   }, []);
-
-  const loadVisitors = async () => {
-    try {
-      const result = await window.storage.list('visitor:');
-      if (result && result.keys && result.keys.length > 0) {
-        const visitorPromises = result.keys.map(async key => {
-          try {
-            return await window.storage.get(key);
-          } catch (error) {
-            console.log('Error loading key:', key);
-            return null;
-          }
-        });
-        const visitorResults = await Promise.all(visitorPromises);
-        const loadedVisitors = visitorResults
-          .filter(r => r && r.value)
-          .map(r => JSON.parse(r.value))
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        setVisitors(loadedVisitors);
-      } else {
-        setVisitors([]);
-      }
-    } catch (error) {
-      console.log('No visitors yet or error loading:', error);
-      setVisitors([]);
-    }
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData((p) => ({ ...p, [name]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    setSelectedFile(f || null);
+    setPreviewUrl(f ? URL.createObjectURL(f) : null);
   };
 
   const handleRegister = async () => {
     if (!formData.visitorName || !formData.roomNumber || !formData.patientName || !formData.contactNumber) {
-      setMessage({ type: 'error', text: 'Please fill in all fields!' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      setMessage({ type: 'error', text: 'Please fill in all fields' });
       return;
     }
 
     setLoading(true);
-    
     try {
+      let photoUrl = null;
+      if (selectedFile) {
+        setUploadingImage(true);
+        try {
+          const res = await uploadImageToCloudinary(selectedFile);
+          photoUrl = res.secure_url || res.url || null;
+        } catch (err) {
+          console.error('Cloudinary upload failed', err);
+          // surface detailed error to the user so they can check env/config
+          const msg = err && err.message ? err.message : 'Image upload failed';
+          setMessage({ type: 'error', text: `Image upload failed: ${msg}` });
+          setLoading(false);
+          setUploadingImage(false);
+          return;
+        } finally {
+          setUploadingImage(false);
+        }
+      }
+
       const visitorData = {
-        ...formData,
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
+        visitorName: formData.visitorName,
+        roomNumber: formData.roomNumber,
+        patientName: formData.patientName,
+        contactNumber: formData.contactNumber,
         checkInTime: new Date().toLocaleString(),
-        status: 'checked-in'
+        timestamp: Date.now(),
+        status: 'checked-in',
+        photoUrl: photoUrl || null,
       };
 
-      const result = await window.storage.set(`visitor:${visitorData.id}`, JSON.stringify(visitorData));
-      
-      if (result) {
-        setMessage({ type: 'success', text: '✓ Visitor registered successfully!' });
-        setFormData({
-          visitorName: '',
-          roomNumber: '',
-          patientName: '',
-          contactNumber: ''
-        });
-        await loadVisitors();
-        setTimeout(() => {
-          setMessage({ type: '', text: '' });
-          setActiveTab('registered');
-        }, 1500);
-      } else {
-        setMessage({ type: 'error', text: 'Registration failed. Please try again.' });
+      console.log('Attempting to add visitor:', visitorData);
+      const docId = await addVisitorDoc(visitorData);
+      console.log('addVisitor returned id:', docId);
+
+      // generate QR code that encodes a verification URL containing the doc id
+      try {
+        const targetUrl = `${window.location.origin}/verified?id=${docId}`;
+        const dataUrl = await QRCode.toDataURL(targetUrl, { margin: 2, width: 300 });
+        setQrDataUrl(dataUrl);
+      } catch (qrErr) {
+        console.error('QR generation failed', qrErr);
+        setQrDataUrl(null);
       }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Error registering visitor. Please try again.' });
-      console.error('Registration error:', error);
+
+      setLastDocId(docId);
+
+      setMessage({ type: 'success', text: `Registered (id: ${docId})` });
+      setFormData({ visitorName: '', roomNumber: '', patientName: '', contactNumber: '' });
+      setSelectedFile(null);
+      setPreviewUrl(null);
+
+      setTimeout(() => setMessage({ type: '', text: '' }), 2000);
+    } catch (err) {
+      console.error('Registration error', err);
+      setMessage({ type: 'error', text: err?.message || String(err) });
     } finally {
       setLoading(false);
+      setUploadingImage(false);
     }
   };
 
   const checkOutVisitor = async (id) => {
     try {
-      const visitorKey = `visitor:${id}`;
-      const result = await window.storage.get(visitorKey);
-      
-      if (result && result.value) {
-        const visitor = JSON.parse(result.value);
-        visitor.status = 'checked-out';
-        visitor.checkOutTime = new Date().toLocaleString();
-        
-        await window.storage.set(visitorKey, JSON.stringify(visitor));
-        await loadVisitors();
-        setMessage({ type: 'success', text: 'Visitor checked out successfully!' });
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Error checking out visitor.' });
-      console.error('Check out error:', error);
+      await updateVisitorDoc(id, { status: 'checked-out', checkOutTime: new Date().toLocaleString() });
+    } catch (err) {
+      console.error('checkOut error', err);
+      setMessage({ type: 'error', text: 'Unable to check out' });
     }
   };
 
   const deleteVisitor = async (id) => {
     try {
-      await window.storage.delete(`visitor:${id}`);
-      await loadVisitors();
-      setMessage({ type: 'success', text: 'Visitor record deleted successfully!' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Error deleting visitor record.' });
-      console.error('Delete error:', error);
+      await deleteVisitorDoc(id);
+    } catch (err) {
+      console.error('delete error', err);
+      setMessage({ type: 'error', text: 'Unable to delete' });
     }
   };
 
-  const getActiveVisitors = () => visitors.filter(v => v.status === 'checked-in');
-  const getTodayVisitors = () => {
-    const today = new Date().toDateString();
-    return visitors.filter(v => new Date(v.timestamp).toDateString() === today);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-teal-700 text-white py-5 px-6 shadow-lg">
-        <h1 className="text-2xl font-bold text-center tracking-wider">
-          IGNACIO LACSON ARROYO MEMORIAL HOSPITAL
-        </h1>
-        <p className="text-center text-teal-100 mt-1">Visitor Management System</p>
+    <div style={{ padding: 20 }}>
+      <h2>Register Visitor</h2>
+
+      {message.text && (
+        <div style={{ margin: '12px 0', padding: 8, borderRadius: 4, background: message.type === 'success' ? '#e6fffa' : '#fff5f5' }}>
+          {message.text}
+        </div>
+      )}
+
+      <div style={{ maxWidth: 600 }}>
+        <div style={{ marginBottom: 8 }}>
+          <label>Visitor Name</label>
+          <input name="visitorName" value={formData.visitorName} onChange={handleInputChange} style={{ width: '100%', padding: 8 }} />
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <label>Room Number</label>
+          <input name="roomNumber" value={formData.roomNumber} onChange={handleInputChange} style={{ width: '100%', padding: 8 }} />
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <label>Patient Name</label>
+          <input name="patientName" value={formData.patientName} onChange={handleInputChange} style={{ width: '100%', padding: 8 }} />
+        </div>
+        <div style={{ marginBottom: 8 }}>
+          <label>Contact Number</label>
+          <input name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} style={{ width: '100%', padding: 8 }} />
+        </div>
+
+        <div style={{ marginBottom: 8 }}>
+          <label>Photo (optional)</label>
+          <input type="file" accept="image/*" onChange={handleFileChange} />
+          {previewUrl && <div style={{ marginTop: 8 }}><img src={previewUrl} alt="preview" style={{ maxWidth: 180 }} /></div>}
+        </div>
+
+        <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ padding: '10px 16px' }}>
+          {uploadingImage ? 'Uploading...' : loading ? 'Registering...' : 'Register'}
+        </button>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-xl p-8">
-            <h2 className="text-3xl font-bold text-teal-700 mb-8">Register New Visitor</h2>
-
-            {message.text && (
-              <div className={`mb-6 p-4 rounded-lg ${
-                message.type === 'success' 
-                  ? 'bg-green-100 text-green-800 border border-green-300' 
-                  : 'bg-red-100 text-red-800 border border-red-300'
-              }`}>
-                {message.text}
-              </div>
-            )}
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-xl font-semibold text-gray-700 mb-2">
-                  Visitor Name:
-                </label>
-                <input
-                  type="text"
-                  name="visitorName"
-                  value={formData.visitorName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none text-lg"
-                  placeholder="Enter visitor's full name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xl font-semibold text-gray-700 mb-2">
-                  Room Number:
-                </label>
-                <input
-                  type="text"
-                  name="roomNumber"
-                  value={formData.roomNumber}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none text-lg"
-                  placeholder="Enter room number"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xl font-semibold text-gray-700 mb-2">
-                  Patient Name:
-                </label>
-                <input
-                  type="text"
-                  name="patientName"
-                  value={formData.patientName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none text-lg"
-                  placeholder="Enter patient's name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xl font-semibold text-gray-700 mb-2">
-                  Contact Number:
-                </label>
-                <input
-                  type="tel"
-                  name="contactNumber"
-                  value={formData.contactNumber}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-teal-500 focus:outline-none text-lg"
-                  placeholder="Enter contact number"
-                />
-              </div>
-
-              <button
-                onClick={handleRegister}
-                disabled={loading}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-6 rounded-full text-xl shadow-lg transform transition hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {loading ? 'REGISTERING...' : 'REGISTER 👆'}
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-xl p-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h3>
-              
-              <div className="space-y-3">
-                <button
-                  onClick={() => setActiveTab('info')}
-                  className={`w-full text-left px-4 py-3 rounded-lg font-semibold transition ${
-                    activeTab === 'info' 
-                      ? 'bg-teal-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
-                  Visitor's Information
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('registered')}
-                  className={`w-full text-left px-4 py-3 rounded-lg font-semibold transition ${
-                    activeTab === 'registered' 
-                      ? 'bg-teal-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
-                  Registered Visitor
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('history')}
-                  className={`w-full text-left px-4 py-3 rounded-lg font-semibold transition ${
-                    activeTab === 'history' 
-                      ? 'bg-teal-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
-                  Visitor's History
-                </button>
-                
-                <button
-                  onClick={() => setActiveTab('attendance')}
-                  className={`w-full text-left px-4 py-3 rounded-lg font-semibold transition flex items-center justify-between ${
-                    activeTab === 'attendance' 
-                      ? 'bg-teal-600 text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}>
-                  <span>Attendance</span>
-                  <span>→</span>
-                </button>
-              </div>
-            </div>
-
-            {activeTab === 'info' && (
-              <div className="bg-white rounded-lg shadow-xl p-6">
-                <h4 className="text-xl font-bold text-gray-800 mb-4">Visitor Statistics</h4>
-                <div className="space-y-3">
-                  <div className="bg-teal-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Total Registered</p>
-                    <p className="text-3xl font-bold text-teal-700">{visitors.length}</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Currently Checked In</p>
-                    <p className="text-3xl font-bold text-green-700">{getActiveVisitors().length}</p>
-                  </div>
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">Today's Visitors</p>
-                    <p className="text-3xl font-bold text-blue-700">{getTodayVisitors().length}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'registered' && (
-              <div className="bg-white rounded-lg shadow-xl p-6 max-h-96 overflow-y-auto">
-                <h4 className="text-xl font-bold text-gray-800 mb-4">Registered Visitors ({visitors.length})</h4>
-                {visitors.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No visitors registered yet.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {visitors.map((visitor) => (
-                      <div key={visitor.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="font-bold text-teal-700">{visitor.visitorName}</p>
-                            <span className={`inline-block px-2 py-1 rounded text-xs font-semibold mt-1 ${
-                              visitor.status === 'checked-in' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {visitor.status === 'checked-in' ? '● Active' : '○ Checked Out'}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => deleteVisitor(visitor.id)}
-                            className="text-red-500 hover:text-red-700 text-sm font-semibold"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                        <p className="text-sm text-gray-600">Room: {visitor.roomNumber}</p>
-                        <p className="text-sm text-gray-600">Patient: {visitor.patientName}</p>
-                        <p className="text-sm text-gray-600">Contact: {visitor.contactNumber}</p>
-                        <p className="text-xs text-gray-400 mt-2">Check-in: {visitor.checkInTime}</p>
-                        {visitor.checkOutTime && (
-                          <p className="text-xs text-gray-400">Check-out: {visitor.checkOutTime}</p>
-                        )}
-                        {visitor.status === 'checked-in' && (
-                          <button
-                            onClick={() => checkOutVisitor(visitor.id)}
-                            className="mt-2 w-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2 px-3 rounded"
-                          >
-                            Check Out
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'history' && (
-              <div className="bg-white rounded-lg shadow-xl p-6 max-h-96 overflow-y-auto">
-                <h4 className="text-xl font-bold text-gray-800 mb-4">Visitor's History</h4>
-                <p className="text-gray-600 mb-4">Total visits recorded: {visitors.length}</p>
-                {visitors.length > 0 && (
-                  <div className="space-y-2">
-                    {visitors.slice(0, 10).map((visitor) => (
-                      <div key={visitor.id} className="border-l-4 border-teal-500 pl-3 py-2">
-                        <p className="font-semibold text-gray-800">{visitor.visitorName}</p>
-                        <p className="text-sm text-gray-600">Visited: {visitor.patientName} (Room {visitor.roomNumber})</p>
-                        <p className="text-xs text-gray-400">{visitor.checkInTime}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'attendance' && (
-              <div className="bg-white rounded-lg shadow-xl p-6 max-h-96 overflow-y-auto">
-                <h4 className="text-xl font-bold text-gray-800 mb-4">Active Visitors</h4>
-                <p className="text-gray-600 mb-4">Currently checked in: {getActiveVisitors().length}</p>
-                {getActiveVisitors().length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No active visitors.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {getActiveVisitors().map((visitor) => (
-                      <div key={visitor.id} className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <p className="font-bold text-gray-800">{visitor.visitorName}</p>
-                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded">Active</span>
-                        </div>
-                        <p className="text-sm text-gray-600">Room: {visitor.roomNumber}</p>
-                        <p className="text-sm text-gray-600">Patient: {visitor.patientName}</p>
-                        <p className="text-xs text-gray-500 mt-2">Since: {visitor.checkInTime}</p>
-                        <button
-                          onClick={() => checkOutVisitor(visitor.id)}
-                          className="mt-3 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-3 rounded"
-                        >
-                          Check Out Visitor
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+      {qrDataUrl && (
+        <div style={{ marginTop: 16, padding: 12, border: '1px solid #e6e6e6', borderRadius: 6, maxWidth: 360 }}>
+          <h4 style={{ margin: 0, marginBottom: 8 }}>Visitor QR</h4>
+          <img src={qrDataUrl} alt="visitor-qr" style={{ width: 180, height: 180, display: 'block' }} />
+          <div style={{ marginTop: 8 }}>
+            <a href={qrDataUrl} download={`visitor-${lastDocId || 'qr'}.png`} style={{ marginRight: 8 }}>
+              <button>Download QR</button>
+            </a>
+            <button onClick={() => { setQrDataUrl(null); setLastDocId(null); }}>Close</button>
           </div>
         </div>
+      )}
+
+      <hr style={{ margin: '20px 0' }} />
+
+      <h3>Registered (live)</h3>
+      <div>
+        {visitors.length === 0 ? <p>No visitors</p> : visitors.map(v => (
+          <div key={v.id} style={{ border: '1px solid #eee', padding: 8, marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <strong>{v.visitorName}</strong>
+                <div style={{ fontSize: 12 }}>{v.patientName} — Room {v.roomNumber}</div>
+                <div style={{ fontSize: 11, color: '#666' }}>{v.checkInTime}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button onClick={() => checkOutVisitor(v.id)}>Check out</button>
+                <button onClick={() => deleteVisitor(v.id)}>Delete</button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
