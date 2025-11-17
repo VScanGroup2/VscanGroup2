@@ -1,35 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { QRCodeCanvas } from 'qrcode.react';
-import QRCodeLib from 'qrcode';
+import React, { useState, useEffect, useRef } from 'react';
 import bgImage from '../Styles/bg.png';
+import { listenVisitorsRealtime, addVisitor as addVisitorDoc } from '../lib/firestore';
+import uploadImageToCloudinary from '../lib/cloudinary';
+import QRCode from 'qrcode';
 
 export default function Dashboard({ onLogout }) {
   const [visitors, setVisitors] = useState([]);
   const [currentView, setCurrentView] = useState('dashboard');
   const [currentDate, setCurrentDate] = useState('');
-  const [formData, setFormData] = useState({ visitorName: '', roomNo: '', patientName: '', contactNo: '', timeIn: '', photo: null });
-  const [photoPreview, setPhotoPreview] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [registeredSearchQuery, setRegisteredSearchQuery] = useState('');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [attendanceDate, setAttendanceDate] = useState('');
-  const [lastQRCode, setLastQRCode] = useState(null);
-  const [lastVisitorId, setLastVisitorId] = useState(null);
-  const [lastQRCodeDataUrl, setLastQRCodeDataUrl] = useState(null);
-  const [showQRModal, setShowQRModal] = useState(false);
+  // Registration form state
+  const [formData, setFormData] = useState({ visitorName: '', roomNumber: '', patientName: '', contactNumber: '' });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [loading, setLoading] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState(null);
+  const [registeredVisitorData, setRegisteredVisitorData] = useState(null);
+  const qrCanvasRef = useRef(null);
 
   useEffect(() => {
-    const sample = [
-      { id: 1, name: 'Steven Perfas', room: '102', patient: 'Maria Santos', timeIn: '9:00AM', timeOut: null, contact: '09326789902', date: new Date().toISOString().split('T')[0], status: 'active' },
-      { id: 2, name: 'Rino Villar', room: '121', patient: 'Juan dela Cruz', timeIn: '3:00PM', timeOut: null, contact: '09326789989', date: new Date().toISOString().split('T')[0], status: 'active' }
-    ];
-    setVisitors(sample);
+    // subscribe to Firestore visitors collection
+    const unsub = listenVisitorsRealtime((data) => {
+      // normalize Firestore fields to match UI expectations
+      const normalized = data.map(v => ({
+        id: v.id,
+        name: v.visitorName || '',
+        room: v.roomNumber || 'N/A',
+        patient: v.patientName || 'N/A',
+        timeIn: v.checkInTime || '',
+        timeOut: v.checkOutTime || null,
+        contact: v.contactNumber || 'N/A',
+        date: new Date(v.timestamp).toISOString().split('T')[0],
+        status: v.status === 'checked-in' ? 'active' : 'inactive',
+        photo: v.photoUrl || null
+      }));
+      setVisitors(normalized);
+    });
 
     const now = new Date();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const year = String(now.getFullYear()).slice(-2);
     setCurrentDate(`${month}-${day}-${year}`);
+
+    return () => unsub && typeof unsub === 'function' ? unsub() : undefined;
   }, []);
 
   const showView = (view) => setCurrentView(view);
@@ -39,86 +58,147 @@ export default function Dashboard({ onLogout }) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) {
-        alert('Photo size should be less than 5MB');
-        return;
+  const handleFileChange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    setSelectedFile(f || null);
+    setPreviewUrl(f ? URL.createObjectURL(f) : null);
+  };
+
+  // logout is handled by the parent via onLogout prop
+  // Register a new visitor (called by the Register button)
+  const handleRegister = async () => {
+    if (!formData.visitorName || !formData.roomNumber || !formData.patientName || !formData.contactNumber) {
+      setMessage({ type: 'error', text: 'Please fill in all fields!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      let photoUrl = null;
+      if (selectedFile) {
+        try {
+          setUploadingImage(true);
+          const uploadRes = await uploadImageToCloudinary(selectedFile);
+          photoUrl = uploadRes.secure_url || uploadRes.url || null;
+        } catch (err) {
+          console.error('Image upload failed', err);
+          const msg = err && err.message ? err.message : 'Image upload failed. Please try again.';
+          setMessage({ type: 'error', text: `Image upload failed: ${msg}` });
+          setLoading(false);
+          return;
+        } finally {
+          setUploadingImage(false);
+        }
       }
-      setFormData(prev => ({ ...prev, photo: file }));
-      const reader = new FileReader();
-      reader.onloadend = () => setPhotoPreview(reader.result);
-      reader.readAsDataURL(file);
+
+      const visitorData = {
+        visitorName: formData.visitorName,
+        roomNumber: formData.roomNumber,
+        patientName: formData.patientName,
+        contactNumber: formData.contactNumber,
+        timestamp: new Date().toISOString(),
+        checkInTime: new Date().toLocaleTimeString(),
+        status: 'checked-in',
+        photoUrl: photoUrl
+      };
+
+      const docId = await addVisitorDoc(visitorData);
+      console.log('handleRegister: added visitor', docId);
+      
+      // Generate QR Code
+      const qrData = JSON.stringify({
+        id: docId,
+        name: formData.visitorName,
+        room: formData.roomNumber,
+        patient: formData.patientName,
+        contact: formData.contactNumber,
+        checkIn: visitorData.checkInTime,
+        date: new Date().toLocaleDateString()
+      });
+      
+      const qrUrl = await QRCode.toDataURL(qrData, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#1a8f6f',
+          light: '#ffffff'
+        }
+      });
+      
+      setQrCodeUrl(qrUrl);
+      setRegisteredVisitorData({
+        id: docId,
+        name: formData.visitorName,
+        room: formData.roomNumber,
+        patient: formData.patientName,
+        contact: formData.contactNumber,
+        checkIn: visitorData.checkInTime
+      });
+      
+      setMessage({ type: 'success', text: `Visitor registered successfully!` });
+      setFormData({ visitorName: '', roomNumber: '', patientName: '', contactNumber: '' });
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (error) {
+      console.error('Registration error:', error);
+      const errMsg = error && error.message ? error.message : String(error);
+      setMessage({ type: 'error', text: `Error registering visitor: ${errMsg}` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 6000);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const submitVisitor = async () => {
-    if (!formData.visitorName.trim()) {
-      alert('Please fill in the visitor name');
-      return;
+  const handleDownloadQR = () => {
+    if (qrCodeUrl && registeredVisitorData) {
+      const link = document.createElement('a');
+      link.href = qrCodeUrl;
+      link.download = `visitor-${registeredVisitorData.name.replace(/\s+/g, '-')}-${registeredVisitorData.id}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
-
-    const newVisitor = {
-      id: visitors.length + 1,
-      name: formData.visitorName,
-      room: formData.roomNo || 'N/A',
-      patient: formData.patientName || 'N/A',
-      timeIn: formData.timeIn || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      timeOut: null,
-      contact: formData.contactNo || 'N/A',
-      date: new Date().toISOString().split('T')[0],
-      status: 'active',
-      photo: photoPreview
-    };
-
-    setVisitors(prev => [...prev, newVisitor]);
-    // prepare QR data: encode visitor id, name, room, and date
-    const qrData = JSON.stringify({ id: newVisitor.id, name: newVisitor.name, room: newVisitor.room, date: newVisitor.date });
-    setLastQRCode(qrData);
-    setLastVisitorId(newVisitor.id);
-    // also generate a PNG data URL for more reliable rendering and download
-    try {
-      const dataUrl = await QRCodeLib.toDataURL(qrData, { margin: 1, width: 300 });
-      setLastQRCodeDataUrl(dataUrl);
-      setShowQRModal(true);
-    } catch (err) {
-      console.warn('QR generation failed', err);
-      setLastQRCodeDataUrl(null);
-    }
-    setFormData({ visitorName: '', roomNo: '', patientName: '', contactNo: '', timeIn: '', photo: null });
-    setPhotoPreview(null);
-    // show registered view and display the QR for the latest registration
-    showView('registered');
   };
 
-  const cancelRegister = () => {
-    setFormData({ visitorName: '', roomNo: '', patientName: '', contactNo: '', timeIn: '', photo: null });
-    setPhotoPreview(null);
-    showView('dashboard');
-  };
-
-  const downloadQRCode = () => {
-    if (lastQRCodeDataUrl) {
-      const a = document.createElement('a');
-      a.href = lastQRCodeDataUrl;
-      a.download = `visitor-${lastVisitorId}.png`;
-      a.click();
-      return;
-    }
-
-    // fallback: try to download canvas if present
-    try {
-      const canvas = document.querySelector('#latest-qr-canvas canvas');
-      if (!canvas) return alert('QR canvas not found');
-      const url = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `visitor-${lastVisitorId}.png`;
-      a.click();
-    } catch (err) {
-      console.error(err);
-      alert('Unable to download QR image');
+  const handlePrintQR = () => {
+    if (qrCodeUrl && registeredVisitorData) {
+      const printWindow = window.open('', '', 'width=600,height=600');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Visitor QR Code - ${registeredVisitorData.name}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+              .header { color: #1a8f6f; margin-bottom: 20px; }
+              .qr-container { margin: 20px 0; }
+              .info { text-align: left; margin: 20px auto; max-width: 400px; }
+              .info-row { margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 4px; }
+              .label { font-weight: bold; color: #1a8f6f; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</h1>
+              <h2>Visitor Pass</h2>
+            </div>
+            <div class="qr-container">
+              <img src="${qrCodeUrl}" alt="Visitor QR Code" />
+            </div>
+            <div class="info">
+              <div class="info-row"><span class="label">Visitor ID:</span> ${registeredVisitorData.id}</div>
+              <div class="info-row"><span class="label">Name:</span> ${registeredVisitorData.name}</div>
+              <div class="info-row"><span class="label">Room:</span> ${registeredVisitorData.room}</div>
+              <div class="info-row"><span class="label">Patient:</span> ${registeredVisitorData.patient}</div>
+              <div class="info-row"><span class="label">Contact:</span> ${registeredVisitorData.contact}</div>
+              <div class="info-row"><span class="label">Check-in Time:</span> ${registeredVisitorData.checkIn}</div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
     }
   };
 
@@ -145,28 +225,6 @@ export default function Dashboard({ onLogout }) {
         <div style={{ textAlign: 'center', flex: 1, fontSize: '2em', fontWeight: 'bold', letterSpacing: '2px' }}>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</div>
         <button onClick={onLogout} style={{ padding: '10px 25px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1em', fontWeight: 'bold', cursor: 'pointer' }}>Logout</button>
       </div>
-
-      {showQRModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div style={{ background: 'white', padding: 20, borderRadius: 10, width: 360, textAlign: 'center', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
-            <h3 style={{ marginTop: 0 }}>Registration Successful</h3>
-            <p style={{ margin: '8px 0 12px' }}>Visitor #{lastVisitorId} — scan this QR</p>
-            <div style={{ marginBottom: 12 }}>
-              {lastQRCodeDataUrl ? (
-                <img src={lastQRCodeDataUrl} alt={`QR-${lastVisitorId}`} style={{ width: 200, height: 200 }} />
-              ) : (
-                <div id="latest-qr-canvas" style={{ display: 'inline-block', padding: 8, background: 'white', borderRadius: 8 }}>
-                  <QRCodeCanvas value={lastQRCode} size={160} />
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-              <button onClick={downloadQRCode} style={{ padding: '8px 12px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 6 }}>Download QR</button>
-              <button onClick={() => setShowQRModal(false)} style={{ padding: '8px 12px', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6 }}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div style={{ display: 'flex', maxWidth: '1200px', margin: '0 auto', padding: '20px', gap: '20px' }}>
         <div style={{ flex: 1, background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
@@ -223,36 +281,6 @@ export default function Dashboard({ onLogout }) {
 
           {currentView === 'registered' && (
             <div>
-              {lastQRCode && (
-                <div style={{ marginBottom: 16, padding: 12, border: '1px dashed #ddd', borderRadius: 8, background: '#fbfbfb' }}>
-                  <div style={{ fontWeight: 700, marginBottom: 8 }}>QR for latest registration (visitor #{lastVisitorId})</div>
-                  <div id="latest-qr-canvas" style={{ display: 'inline-block', padding: 8, background: 'white', borderRadius: 8 }}>
-                    {/* Prefer the generated PNG (more portable). Keep canvas as fallback. */}
-                    {lastQRCodeDataUrl ? (
-                      <img src={lastQRCodeDataUrl} alt={`QR-${lastVisitorId}`} style={{ width: 160, height: 160, display: 'block' }} />
-                    ) : (
-                      <QRCodeCanvas value={lastQRCode} size={160} />
-                    )}
-                  </div>
-                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                    <button onClick={() => {
-                      try {
-                        const canvas = document.querySelector('#latest-qr-canvas canvas');
-                        if (!canvas) return alert('QR canvas not found');
-                        const url = canvas.toDataURL('image/png');
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `visitor-${lastVisitorId}.png`;
-                        a.click();
-                      } catch (err) {
-                        console.error(err);
-                        alert('Unable to download QR image');
-                      }
-                    }} style={{ padding: '8px 12px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 6 }}>Download QR</button>
-                    <button onClick={() => setLastQRCode(null)} style={{ padding: '8px 12px', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6 }}>Hide QR</button>
-                  </div>
-                </div>
-              )}
               <input placeholder="Search registered..." value={registeredSearchQuery} onChange={(e) => setRegisteredSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
               <div>{filteredRegisteredVisitors.map(v => (
                 <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>{v.name} — {v.room} — {v.date}</div>
@@ -281,38 +309,107 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {currentView === 'register' && (
-            <div style={{ maxWidth: 600 }}>
-              <div style={{ marginBottom: 12 }}>
-                <label>Visitor Name</label>
-                <input name="visitorName" value={formData.visitorName} onChange={handleInputChange} style={{ ...inputStyle, marginTop: 6 }} />
-              </div>
+            <div>
+              <h2 style={{ fontSize: '1.8em', fontWeight: 'bold', color: '#1a8f6f', marginBottom: '20px' }}>Register New Visitor</h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label>Room No</label>
-                  <input name="roomNo" value={formData.roomNo} onChange={handleInputChange} style={{ ...inputStyle, marginTop: 6 }} />
+              {message.text && (
+                <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', background: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24', border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`, fontSize: '1em' }}>
+                  {message.text}
                 </div>
+              )}
+
+              {qrCodeUrl && registeredVisitorData && (
+                <div style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '12px', border: '2px solid #1a8f6f' }}>
+                  <h3 style={{ color: '#1a8f6f', marginBottom: '16px', textAlign: 'center', fontSize: '1.5em' }}>✅ Registration Successful!</h3>
+                  
+                  <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '250px' }}>
+                      <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                        <strong style={{ color: '#1a8f6f' }}>Visitor ID:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.id}</span>
+                      </div>
+                      <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                        <strong style={{ color: '#1a8f6f' }}>Name:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.name}</span>
+                      </div>
+                      <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                        <strong style={{ color: '#1a8f6f' }}>Room:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.room}</span>
+                      </div>
+                      <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                        <strong style={{ color: '#1a8f6f' }}>Patient:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.patient}</span>
+                      </div>
+                      <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                        <strong style={{ color: '#1a8f6f' }}>Contact:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.contact}</span>
+                      </div>
+                      <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                        <strong style={{ color: '#1a8f6f' }}>Check-in:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.checkIn}</span>
+                      </div>
+                    </div>
+                    
+                    <div style={{ textAlign: 'center', background: 'white', padding: '15px', borderRadius: '8px' }}>
+                      <img src={qrCodeUrl} alt="Visitor QR Code" style={{ borderRadius: '8px', border: '3px solid #1a8f6f', display: 'block' }} />
+                      <p style={{ marginTop: '12px', fontSize: '0.9em', color: '#666', fontWeight: 'bold' }}>Scan to view visitor info</p>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                    <button 
+                      onClick={handleDownloadQR}
+                      style={{ flex: 1, minWidth: '150px', padding: '12px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s' }}
+                      onMouseOver={(e) => e.target.style.background = '#157a5e'}
+                      onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
+                    >
+                      📥 Download QR Code
+                    </button>
+                    <button 
+                      onClick={handlePrintQR}
+                      style={{ flex: 1, minWidth: '150px', padding: '12px', background: '#0d6efd', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s' }}
+                      onMouseOver={(e) => e.target.style.background = '#0b5ed7'}
+                      onMouseOut={(e) => e.target.style.background = '#0d6efd'}
+                    >
+                      🖨️ Print QR Code
+                    </button>
+                    <button 
+                      onClick={() => { setQrCodeUrl(null); setRegisteredVisitorData(null); }}
+                      style={{ flex: 1, minWidth: '150px', padding: '12px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s' }}
+                      onMouseOver={(e) => e.target.style.background = '#5c636a'}
+                      onMouseOut={(e) => e.target.style.background = '#6c757d'}
+                    >
+                      ✖️ Close
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div>
-                  <label>Patient</label>
-                  <input name="patientName" value={formData.patientName} onChange={handleInputChange} style={{ ...inputStyle, marginTop: 6 }} />
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Visitor Name:</label>
+                  <input type="text" name="visitorName" value={formData.visitorName} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter visitor's full name" />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Room Number:</label>
+                  <input type="text" name="roomNumber" value={formData.roomNumber} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter room number" />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Patient Name:</label>
+                  <input type="text" name="patientName" value={formData.patientName} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter patient's name" />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Contact Number:</label>
+                  <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter contact number" />
                 </div>
               </div>
 
-              <div style={{ marginTop: 12 }}>
-                <label>Contact</label>
-                <input name="contactNo" value={formData.contactNo} onChange={handleInputChange} style={{ ...inputStyle, marginTop: 6 }} />
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Photo (optional):</label>
+                <input type="file" accept="image/*" onChange={handleFileChange} style={{ marginBottom: '8px' }} />
+                {previewUrl && <img src={previewUrl} alt="preview" style={{ maxWidth: '200px', marginTop: '8px', borderRadius: '8px' }} />}
               </div>
 
-              <div style={{ marginTop: 12 }}>
-                <label>Photo</label>
-                <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ marginTop: 6 }} />
-                {photoPreview && <div style={{ width: 90, height: 90, marginTop: 8 }}><img src={photoPreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></div>}
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                <button onClick={submitVisitor} style={{ padding: '10px 12px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 6 }}>Register</button>
-                <button onClick={cancelRegister} style={{ padding: '10px 12px', background: '#6c757d', color: 'white', border: 'none', borderRadius: 6 }}>Cancel</button>
-              </div>
+              <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ width: '100%', padding: '16px', background: loading || uploadingImage ? '#ccc' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'background 0.3s' }}>
+                {uploadingImage ? 'UPLOADING IMAGE...' : loading ? 'REGISTERING...' : 'REGISTER 👆'}
+              </button>
             </div>
           )}
         </div>
@@ -324,7 +421,7 @@ export default function Dashboard({ onLogout }) {
           <div onClick={() => showView('registered')} style={{ padding: 10, marginBottom: 8, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Registered Visitor</div>
           <div onClick={() => showView('history')} style={{ padding: 10, marginBottom: 8, background: currentView === 'history' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'history' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Visitor's History</div>
           <div onClick={() => showView('attendance')} style={{ padding: 10, marginBottom: 16, background: currentView === 'attendance' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'attendance' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Attendance</div>
-          <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30 }}>REGISTER 👆</button>
+          <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold' }}>REGISTER 👆</button>
         </div>
       </div>
     </div>
