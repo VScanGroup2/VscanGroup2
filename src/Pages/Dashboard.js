@@ -357,7 +357,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#157a5e'}
                       onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
                     >
-                      📥 Download QR Code
+                       Download QR Code
                     </button>
                     <button 
                       onClick={handlePrintQR}
@@ -365,7 +365,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#0b5ed7'}
                       onMouseOut={(e) => e.target.style.background = '#0d6efd'}
                     >
-                      🖨️ Print QR Code
+                      Print QR Code
                     </button>
                     <button 
                       onClick={() => { setQrCodeUrl(null); setRegisteredVisitorData(null); }}
@@ -373,7 +373,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#5c636a'}
                       onMouseOut={(e) => e.target.style.background = '#6c757d'}
                     >
-                      ✖️ Close
+                       Close
                     </button>
                   </div>
                 </div>
@@ -408,20 +408,20 @@ export default function Dashboard({ onLogout }) {
               </div>
 
               <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ width: '100%', padding: '16px', background: loading || uploadingImage ? '#ccc' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'background 0.3s' }}>
-                {uploadingImage ? 'UPLOADING IMAGE...' : loading ? 'REGISTERING...' : 'REGISTER 👆'}
+                {uploadingImage ? 'UPLOADING IMAGE...' : loading ? 'REGISTERING...' : 'REGISTER '}
               </button>
             </div>
           )}
         </div>
 
         <div style={{ width: 260, background: 'white', borderRadius: 10, padding: 16, boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
-          <div onClick={() => showView('dashboard')} style={{ fontSize: 28, textAlign: 'center', marginBottom: 12, cursor: 'pointer' }}>🏠</div>
+          <div onClick={() => showView('dashboard')} style={{ fontSize: 28, textAlign: 'center', marginBottom: 12, cursor: 'pointer' }}></div>
           <div onClick={() => showView('dashboard')} style={{ padding: 10, marginBottom: 8, background: currentView === 'dashboard' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'dashboard' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Dashboard</div>
           <div onClick={() => showView('visitorInfo')} style={{ padding: 10, marginBottom: 8, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Visitor's Information</div>
           <div onClick={() => showView('registered')} style={{ padding: 10, marginBottom: 8, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Registered Visitor</div>
           <div onClick={() => showView('history')} style={{ padding: 10, marginBottom: 8, background: currentView === 'history' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'history' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Visitor's History</div>
           <div onClick={() => showView('attendance')} style={{ padding: 10, marginBottom: 16, background: currentView === 'attendance' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'attendance' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Attendance</div>
-          <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold' }}>REGISTER 👆</button>
+          <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold' }}>REGISTER </button>
         </div>
       </div>
     </div>
