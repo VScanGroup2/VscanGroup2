@@ -68,3 +68,29 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## Local environment setup (Cloudinary & Firebase)
+
+Copy the example env file and fill your secrets locally:
+
+```powershell
+cp .env.local.example .env.local
+notepad .env.local
+```
+
+Fill the following values in `.env.local`:
+
+- `REACT_APP_FIREBASE_API_KEY`, `REACT_APP_FIREBASE_AUTH_DOMAIN`, `REACT_APP_FIREBASE_PROJECT_ID`, etc. (if using Firebase)
+- `REACT_APP_CLOUDINARY_CLOUD_NAME` — your Cloudinary cloud name (default: `dmzzcot45`)
+- `REACT_APP_CLOUDINARY_UPLOAD_PRESET` — unsigned upload preset (default: `vscanner`)
+
+Restart the dev server after editing `.env.local`:
+
+```powershell
+npm start
+```
+
+Notes:
+- `.env.local` is ignored by git and should not be committed.
+- For production, prefer server-signed Cloudinary uploads rather than unsigned presets.
+
