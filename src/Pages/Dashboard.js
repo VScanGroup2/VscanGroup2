@@ -381,7 +381,7 @@ export default function Dashboard({ onLogout }) {
 
               {qrCodeUrl && registeredVisitorData && (
                 <div style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '12px', border: '2px solid #1a8f6f' }}>
-                  <h3 style={{ color: '#1a8f6f', marginBottom: '16px', textAlign: 'center', fontSize: '1.5em' }}>✅ Registration Successful!</h3>
+                  <h3 style={{ color: '#1a8f6f', marginBottom: '16px', textAlign: 'center', fontSize: '1.5em' }}> Registration Successful!</h3>
                   
                   <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: '250px' }}>
