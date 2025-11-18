@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
+import { listenVisitorsRealtime, addVisitor as addVisitorDoc } from '../lib/firestore';
 
 const app = initializeApp({
   // Your Firebase configuration object.
