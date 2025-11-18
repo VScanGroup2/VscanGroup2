@@ -289,9 +289,29 @@ export default function Dashboard({ onLogout }) {
       const visitor = visitors.find(v => v.id === qrData.id);
       
       if (visitor) {
+        // Use visitor from database for most current info
         setScannedVisitorData(visitor);
         setQrScanInput('');
         setMessage({ type: 'success', text: 'Visitor information loaded!' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      } else if (qrData.id && qrData.name) {
+        // Use QR data directly if visitor not in database
+        const scannedData = {
+          id: qrData.id,
+          name: qrData.name,
+          room: qrData.room,
+          patient: qrData.patient,
+          contact: qrData.contact,
+          timeIn: qrData.checkIn,
+          timeOut: null,
+          date: qrData.date,
+          fullDate: qrData.fullDateTime,
+          status: 'active',
+          photo: null
+        };
+        setScannedVisitorData(scannedData);
+        setQrScanInput('');
+        setMessage({ type: 'success', text: 'Visitor information loaded from QR code!' });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       } else {
         setMessage({ type: 'error', text: 'Visitor not found!' });
