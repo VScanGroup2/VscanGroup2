@@ -505,37 +505,6 @@ export default function Dashboard({ onLogout }) {
           {currentView === 'visitorInfo' && (
             <div>
               <input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div>{filteredVisitors.map(v => (
-                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
-                  <div style={{ fontWeight: 700 }}>{v.name}</div>
-                  <div style={{ color: '#666' }}>{v.patient} — {v.room}</div>
-                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
-                </div>
-              ))}</div>
-            </div>
-          )}
-
-          {currentView === 'registered' && (
-            <div>
-              <input placeholder="Search registered..." value={registeredSearchQuery} onChange={(e) => setRegisteredSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div>{filteredRegisteredVisitors.map(v => (
-                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
-                  <div style={{ fontWeight: 700 }}>{v.name}</div>
-                  <div style={{ color: '#666' }}>{v.room} — {v.patient}</div>
-                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
-                </div>
-              ))}</div>
-            </div>
-          )}
-
-          {currentView === 'monitoring' && (
-            <div>
-              {message.text && (
-                <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', background: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24', border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`, fontSize: '1em' }}>
-                  {message.text}
-                </div>
-              )}
-              <input placeholder="Search monitoring..." value={monitoringSearchQuery} onChange={(e) => setMonitoringSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
               <div style={{ overflow: 'auto', borderRadius: '8px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ background: '#f1f1f1' }}>
@@ -543,6 +512,7 @@ export default function Dashboard({ onLogout }) {
                       <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Contact</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Time Out</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
@@ -550,11 +520,12 @@ export default function Dashboard({ onLogout }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredMonitoringVisitors.map((v) => (
+                    {filteredVisitors.map((v) => (
                       <tr key={v.id}>
                         <td style={{ padding: '10px' }}>{v.name}</td>
                         <td style={{ padding: '10px' }}>{v.room}</td>
                         <td style={{ padding: '10px' }}>{v.patient}</td>
+                        <td style={{ padding: '10px' }}>{v.contact}</td>
                         <td style={{ padding: '10px' }}>{v.timeIn}</td>
                         <td style={{ padding: '10px' }}>{v.timeOut || 'N/A'}</td>
                         <td style={{ padding: '10px' }}>
@@ -590,6 +561,54 @@ export default function Dashboard({ onLogout }) {
                             <span style={{ color: '#999', fontSize: '0.9em' }}>Completed</span>
                           )}
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {currentView === 'registered' && (
+            <div>
+              <input placeholder="Search registered..." value={registeredSearchQuery} onChange={(e) => setRegisteredSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
+              <div>{filteredRegisteredVisitors.map(v => (
+                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
+                  <div style={{ fontWeight: 700 }}>{v.name}</div>
+                  <div style={{ color: '#666' }}>{v.room} — {v.patient}</div>
+                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
+                </div>
+              ))}</div>
+            </div>
+          )}
+
+          {currentView === 'monitoring' && (
+            <div>
+              {message.text && (
+                <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', background: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24', border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`, fontSize: '1em' }}>
+                  {message.text}
+                </div>
+              )}
+              <input placeholder="Search monitoring..." value={monitoringSearchQuery} onChange={(e) => setMonitoringSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
+              <div style={{ overflow: 'auto', borderRadius: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead style={{ background: '#f1f1f1' }}>
+                    <tr>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Time Out</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredMonitoringVisitors.map((v) => (
+                      <tr key={v.id}>
+                        <td style={{ padding: '10px' }}>{v.name}</td>
+                        <td style={{ padding: '10px' }}>{v.room}</td>
+                        <td style={{ padding: '10px' }}>{v.patient}</td>
+                        <td style={{ padding: '10px' }}>{v.timeIn}</td>
+                        <td style={{ padding: '10px' }}>{v.timeOut || 'N/A'}</td>
                       </tr>
                     ))}
                   </tbody>
