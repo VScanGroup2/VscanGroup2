@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import bgImage from '../Styles/bg.png';
-import { listenVisitorsRealtime, addVisitor as addVisitorDoc } from '../lib/firestore';
+import { listenVisitorsRealtime, addVisitor as addVisitorDoc, updateVisitor } from '../lib/firestore';
 import uploadImageToCloudinary from '../lib/cloudinary';
 import QRCode from 'qrcode';
 
@@ -12,6 +12,7 @@ export default function Dashboard({ onLogout }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [registeredSearchQuery, setRegisteredSearchQuery] = useState('');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [monitoringSearchQuery, setMonitoringSearchQuery] = useState('');
   const [attendanceDate, setAttendanceDate] = useState('');
   // Registration form state
   const [formData, setFormData] = useState({ visitorName: '', roomNumber: '', patientName: '', contactNumber: '' });
@@ -22,6 +23,8 @@ export default function Dashboard({ onLogout }) {
   const [loading, setLoading] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState(null);
   const [registeredVisitorData, setRegisteredVisitorData] = useState(null);
+  const [scannedVisitorData, setScannedVisitorData] = useState(null);
+  const [qrScanInput, setQrScanInput] = useState('');
   const qrCanvasRef = useRef(null);
 
   // Update current date and time
@@ -249,6 +252,58 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
+  const handleDischarge = async (visitorId) => {
+    try {
+      const now = new Date();
+      const checkOutTime = now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      });
+
+      await updateVisitor(visitorId, {
+        status: 'discharged',
+        checkOutTime: checkOutTime
+      });
+
+      setMessage({ type: 'success', text: 'Visitor discharged successfully!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (error) {
+      console.error('Discharge error:', error);
+      const errMsg = error && error.message ? error.message : String(error);
+      setMessage({ type: 'error', text: `Error discharging visitor: ${errMsg}` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 6000);
+    }
+  };
+
+  const handleQRScan = () => {
+    try {
+      if (!qrScanInput.trim()) {
+        setMessage({ type: 'error', text: 'Please enter QR code data!' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        return;
+      }
+
+      const qrData = JSON.parse(qrScanInput);
+      const visitor = visitors.find(v => v.id === qrData.id);
+      
+      if (visitor) {
+        setScannedVisitorData(visitor);
+        setQrScanInput('');
+        setMessage({ type: 'success', text: 'Visitor information loaded!' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      } else {
+        setMessage({ type: 'error', text: 'Visitor not found!' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      }
+    } catch (error) {
+      console.error('QR Scan error:', error);
+      setMessage({ type: 'error', text: 'Invalid QR code data!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    }
+  };
+
   const activeVisitors = visitors.filter(v => v.status === 'active');
   const filteredVisitors = visitors.filter(v => {
     const q = searchQuery.toLowerCase();
@@ -262,6 +317,10 @@ export default function Dashboard({ onLogout }) {
     const q = historySearchQuery.toLowerCase();
     return v.name.toLowerCase().includes(q) || v.room.toLowerCase().includes(q) || v.patient.toLowerCase().includes(q) || v.date.toLowerCase().includes(q);
   });
+  const filteredMonitoringVisitors = visitors.filter(v => {
+    const q = monitoringSearchQuery.toLowerCase();
+    return v.name.toLowerCase().includes(q) || v.room.toLowerCase().includes(q) || v.patient.toLowerCase().includes(q);
+  });
   const attendanceVisitors = attendanceDate ? visitors.filter(v => v.date === attendanceDate) : visitors;
 
   const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '2px solid #ddd', fontSize: '1em', outline: 'none', transition: 'border-color 0.3s', backgroundColor: 'white' };
@@ -273,9 +332,137 @@ export default function Dashboard({ onLogout }) {
         <button onClick={onLogout} style={{ padding: '10px 25px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1em', fontWeight: 'bold', cursor: 'pointer' }}>Logout</button>
       </div>
 
-      <div style={{ display: 'flex', maxWidth: '1200px', margin: '0 auto', padding: '20px', gap: '20px' }}>
+      <div style={{ display: 'flex', maxWidth: '1400px', margin: '0 auto', padding: '20px', gap: '20px' }}>
+        <div style={{ width: 320, background: 'white', borderRadius: 10, padding: 20, boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
+          <h2 style={{ color: '#1a8f6f', marginBottom: '16px', fontSize: '1.3em' }}>QR SCANNER</h2>
+          
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '0.9em' }}>Scan QR Code:</label>
+            <textarea
+              placeholder="Paste QR code data here..."
+              value={qrScanInput}
+              onChange={(e) => setQrScanInput(e.target.value)}
+              style={{ 
+                width: '100%', 
+                minHeight: '100px',
+                padding: '12px', 
+                borderRadius: '6px', 
+                border: '2px solid #ddd', 
+                fontSize: '0.9em',
+                resize: 'vertical',
+                fontFamily: 'monospace'
+              }}
+            />
+            <button 
+              onClick={handleQRScan}
+              style={{ 
+                width: '100%', 
+                padding: '10px', 
+                marginTop: '8px',
+                background: '#1a8f6f', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '6px', 
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Load Visitor Info
+            </button>
+          </div>
+
+          {scannedVisitorData && (
+            <div style={{ marginTop: '20px', padding: '16px', background: '#f8f9fa', borderRadius: '12px', border: '2px solid #1a8f6f' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.1em' }}>VISITOR INFO</h3>
+                <button 
+                  onClick={() => setScannedVisitorData(null)}
+                  style={{ 
+                    background: '#dc3545', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '4px', 
+                    padding: '4px 8px',
+                    cursor: 'pointer',
+                    fontSize: '0.8em'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {scannedVisitorData.photo && (
+                <div style={{ marginBottom: '12px', textAlign: 'center' }}>
+                  <img 
+                    src={scannedVisitorData.photo} 
+                    alt="Visitor" 
+                    style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      borderRadius: '50%', 
+                      objectFit: 'cover',
+                      border: '3px solid #1a8f6f'
+                    }} 
+                  />
+                </div>
+              )}
+
+              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>NAME</div>
+                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.name}</div>
+              </div>
+
+              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>CONTACT NUMBER</div>
+                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.contact}</div>
+              </div>
+
+              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>ROOM NUMBER</div>
+                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.room}</div>
+              </div>
+
+              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>PATIENT NAME</div>
+                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.patient}</div>
+              </div>
+
+              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>CHECK-IN TIME</div>
+                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.timeIn}</div>
+              </div>
+
+              {scannedVisitorData.timeOut && (
+                <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>CHECK-OUT TIME</div>
+                  <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.timeOut}</div>
+                </div>
+              )}
+
+              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
+                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>REGISTRATION DATE</div>
+                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.fullDate}</div>
+              </div>
+
+              <div style={{ padding: '8px', background: 'white', borderRadius: '6px' }}>
+                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>STATUS</div>
+                <span style={{ 
+                  padding: '4px 12px', 
+                  borderRadius: '12px', 
+                  fontSize: '0.8em',
+                  fontWeight: 'bold',
+                  background: scannedVisitorData.status === 'active' ? '#d4edda' : '#f8d7da',
+                  color: scannedVisitorData.status === 'active' ? '#155724' : '#721c24'
+                }}>
+                  {scannedVisitorData.status === 'active' ? 'ACTIVE' : 'DISCHARGED'}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+        
         <div style={{ flex: 1, background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
-          <h1 style={{ color: '#1a8f6f', marginBottom: '20px' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "VISITOR'S INFORMATION" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'history' ? "VISITOR'S HISTORY" : currentView === 'attendance' ? 'ATTENDANCE' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
+          <h1 style={{ color: '#1a8f6f', marginBottom: '20px' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'history' ? "VISITOR'S HISTORY" : currentView === 'attendance' ? 'ATTENDANCE' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
 
           {currentView === 'dashboard' && (
             <>
@@ -297,7 +484,6 @@ export default function Dashboard({ onLogout }) {
                       <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Contact</th>
                     </tr>
                   </thead>
@@ -307,7 +493,6 @@ export default function Dashboard({ onLogout }) {
                         <td style={{ padding: '10px' }}>{v.name}</td>
                         <td style={{ padding: '10px' }}>{v.room}</td>
                         <td style={{ padding: '10px' }}>{v.patient}</td>
-                        <td style={{ padding: '10px' }}>{v.timeIn}</td>
                         <td style={{ padding: '10px' }}>{v.contact}</td>
                       </tr>
                     ))}
@@ -340,6 +525,76 @@ export default function Dashboard({ onLogout }) {
                   <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
                 </div>
               ))}</div>
+            </div>
+          )}
+
+          {currentView === 'monitoring' && (
+            <div>
+              {message.text && (
+                <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', background: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24', border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`, fontSize: '1em' }}>
+                  {message.text}
+                </div>
+              )}
+              <input placeholder="Search monitoring..." value={monitoringSearchQuery} onChange={(e) => setMonitoringSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
+              <div style={{ overflow: 'auto', borderRadius: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead style={{ background: '#f1f1f1' }}>
+                    <tr>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Time Out</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredMonitoringVisitors.map((v) => (
+                      <tr key={v.id}>
+                        <td style={{ padding: '10px' }}>{v.name}</td>
+                        <td style={{ padding: '10px' }}>{v.room}</td>
+                        <td style={{ padding: '10px' }}>{v.patient}</td>
+                        <td style={{ padding: '10px' }}>{v.timeIn}</td>
+                        <td style={{ padding: '10px' }}>{v.timeOut || 'N/A'}</td>
+                        <td style={{ padding: '10px' }}>
+                          <span style={{ 
+                            padding: '4px 12px', 
+                            borderRadius: '12px', 
+                            fontSize: '0.85em',
+                            fontWeight: 'bold',
+                            background: v.status === 'active' ? '#d4edda' : '#f8d7da',
+                            color: v.status === 'active' ? '#155724' : '#721c24'
+                          }}>
+                            {v.status === 'active' ? 'ACTIVE' : 'DISCHARGED'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px' }}>
+                          {v.status === 'active' ? (
+                            <button 
+                              onClick={() => handleDischarge(v.id)}
+                              style={{ 
+                                padding: '6px 16px', 
+                                background: '#dc3545', 
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '6px', 
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                fontSize: '0.9em'
+                              }}
+                            >
+                              Discharge
+                            </button>
+                          ) : (
+                            <span style={{ color: '#999', fontSize: '0.9em' }}>Completed</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -478,8 +733,9 @@ export default function Dashboard({ onLogout }) {
         <div style={{ width: 260, background: 'white', borderRadius: 10, padding: 16, boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
           <div onClick={() => showView('dashboard')} style={{ fontSize: 28, textAlign: 'center', marginBottom: 12, cursor: 'pointer' }}></div>
           <div onClick={() => showView('dashboard')} style={{ padding: 10, marginBottom: 8, background: currentView === 'dashboard' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'dashboard' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Dashboard</div>
-          <div onClick={() => showView('visitorInfo')} style={{ padding: 10, marginBottom: 8, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Visitor's Information</div>
+          <div onClick={() => showView('visitorInfo')} style={{ padding: 10, marginBottom: 8, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>List of Visitors</div>
           <div onClick={() => showView('registered')} style={{ padding: 10, marginBottom: 8, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Registered Visitor</div>
+          <div onClick={() => showView('monitoring')} style={{ padding: 10, marginBottom: 8, background: currentView === 'monitoring' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'monitoring' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Monitoring</div>
           <div onClick={() => showView('history')} style={{ padding: 10, marginBottom: 8, background: currentView === 'history' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'history' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Visitor's History</div>
           <div onClick={() => showView('attendance')} style={{ padding: 10, marginBottom: 16, background: currentView === 'attendance' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'attendance' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Attendance</div>
           <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold' }}>REGISTER</button>
