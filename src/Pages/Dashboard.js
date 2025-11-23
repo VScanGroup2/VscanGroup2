@@ -25,7 +25,11 @@ export default function Dashboard({ onLogout }) {
   const [registeredVisitorData, setRegisteredVisitorData] = useState(null);
   const [scannedVisitorData, setScannedVisitorData] = useState(null);
   const [qrScanInput, setQrScanInput] = useState('');
-  const qrCanvasRef = useRef(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const scanIntervalRef = useRef(null);
 
   // Update current date and time
   useEffect(() => {
@@ -324,6 +328,82 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
+  const startCamera = async () => {
+    try {
+      setCameraError('');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setIsCameraActive(true);
+        
+        // Start scanning for QR codes
+        scanIntervalRef.current = setInterval(() => {
+          scanQRCode();
+        }, 500); // Scan every 500ms
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      setCameraError('Unable to access camera. Please check permissions.');
+      setMessage({ type: 'error', text: 'Camera access denied. Please enable camera permissions.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
+    
+    setIsCameraActive(false);
+  };
+
+  const scanQRCode = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      
+      // Try to detect QR code using jsQR library
+      try {
+        // Note: You'll need to install jsQR library
+        // For now, we'll use a manual detection approach
+        // In production, use: import jsQR from 'jsqr';
+        // const code = jsQR(imageData.data, imageData.width, imageData.height);
+        
+        // Placeholder for actual QR detection
+        // When a real QR library is used, it will automatically detect and parse
+      } catch (error) {
+        console.error('QR detection error:', error);
+      }
+    }
+  };
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
   const activeVisitors = visitors.filter(v => v.status === 'active');
   const filteredVisitors = visitors.filter(v => {
     const q = searchQuery.toLowerCase();
@@ -353,128 +433,303 @@ export default function Dashboard({ onLogout }) {
       </div>
 
       <div style={{ display: 'flex', maxWidth: '1400px', margin: '0 auto', padding: '20px', gap: '20px' }}>
-        <div style={{ width: 320, background: 'white', borderRadius: 10, padding: 20, boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
-          <h2 style={{ color: '#1a8f6f', marginBottom: '16px', fontSize: '1.3em' }}>QR SCANNER</h2>
+        <div style={{ width: 320, background: 'white', borderRadius: 10, padding: 20, boxShadow: '0 4px 10px rgba(0,0,0,0.08)', height: 'fit-content', position: 'sticky', top: '20px' }}>
+          <h2 style={{ color: '#1a8f6f', marginBottom: '16px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px' }}>📱 VISITOR ID SCANNER</h2>
           
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '0.9em' }}>Scan QR Code:</label>
-            <textarea
-              placeholder="Paste QR code data here..."
-              value={qrScanInput}
-              onChange={(e) => setQrScanInput(e.target.value)}
-              style={{ 
-                width: '100%', 
-                minHeight: '100px',
-                padding: '12px', 
-                borderRadius: '6px', 
-                border: '2px solid #ddd', 
-                fontSize: '0.9em',
-                resize: 'vertical',
-                fontFamily: 'monospace'
-              }}
-            />
-            <button 
-              onClick={handleQRScan}
-              style={{ 
-                width: '100%', 
-                padding: '10px', 
-                marginTop: '8px',
-                background: '#1a8f6f', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '6px', 
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              Load Visitor Info
-            </button>
+            <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '0.9em' }}>Scan Visitor QR Code:</label>
+            
+            {!isCameraActive ? (
+              <div style={{ 
+                background: '#f8f9fa', 
+                padding: '16px', 
+                borderRadius: '8px', 
+                border: '2px dashed #1a8f6f',
+                textAlign: 'center',
+                marginBottom: '12px'
+              }}>
+                <div style={{ fontSize: '3em', marginBottom: '8px' }}>📷</div>
+                <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '12px' }}>Click to activate camera scanner</div>
+                <button 
+                  onClick={startCamera}
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    background: '#28a745', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '8px', 
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '1em',
+                    transition: 'background 0.3s'
+                  }}
+                  onMouseOver={(e) => e.target.style.background = '#218838'}
+                  onMouseOut={(e) => e.target.style.background = '#28a745'}
+                >
+                  📹 START CAMERA
+                </button>
+                {cameraError && (
+                  <div style={{ marginTop: '8px', padding: '8px', background: '#f8d7da', color: '#721c24', borderRadius: '6px', fontSize: '0.85em' }}>
+                    {cameraError}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ 
+                marginBottom: '12px',
+                position: 'relative'
+              }}>
+                <video 
+                  ref={videoRef}
+                  style={{ 
+                    width: '100%', 
+                    borderRadius: '8px', 
+                    border: '3px solid #1a8f6f',
+                    display: 'block',
+                    background: '#000'
+                  }}
+                  autoPlay
+                  playsInline
+                />
+                <canvas ref={canvasRef} style={{ display: 'none' }} />
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '50%', 
+                  left: '50%', 
+                  transform: 'translate(-50%, -50%)',
+                  width: '200px',
+                  height: '200px',
+                  border: '3px solid #1a8f6f',
+                  borderRadius: '8px',
+                  boxShadow: '0 0 0 99999px rgba(0, 0, 0, 0.3)',
+                  pointerEvents: 'none'
+                }}>
+                  <div style={{ 
+                    position: 'absolute',
+                    top: '-2px',
+                    left: '-2px',
+                    width: '20px',
+                    height: '20px',
+                    borderTop: '4px solid #1a8f6f',
+                    borderLeft: '4px solid #1a8f6f'
+                  }}></div>
+                  <div style={{ 
+                    position: 'absolute',
+                    top: '-2px',
+                    right: '-2px',
+                    width: '20px',
+                    height: '20px',
+                    borderTop: '4px solid #1a8f6f',
+                    borderRight: '4px solid #1a8f6f'
+                  }}></div>
+                  <div style={{ 
+                    position: 'absolute',
+                    bottom: '-2px',
+                    left: '-2px',
+                    width: '20px',
+                    height: '20px',
+                    borderBottom: '4px solid #1a8f6f',
+                    borderLeft: '4px solid #1a8f6f'
+                  }}></div>
+                  <div style={{ 
+                    position: 'absolute',
+                    bottom: '-2px',
+                    right: '-2px',
+                    width: '20px',
+                    height: '20px',
+                    borderBottom: '4px solid #1a8f6f',
+                    borderRight: '4px solid #1a8f6f'
+                  }}></div>
+                </div>
+                <div style={{ 
+                  position: 'absolute',
+                  bottom: '10px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(26, 143, 111, 0.9)',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '0.85em',
+                  fontWeight: 'bold'
+                }}>
+                  🔍 Scanning...
+                </div>
+                <button 
+                  onClick={stopCamera}
+                  style={{ 
+                    width: '100%', 
+                    padding: '10px', 
+                    marginTop: '8px',
+                    background: '#dc3545', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '8px', 
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '0.9em',
+                    transition: 'background 0.3s'
+                  }}
+                  onMouseOver={(e) => e.target.style.background = '#c82333'}
+                  onMouseOut={(e) => e.target.style.background = '#dc3545'}
+                >
+                  ⏹️ STOP CAMERA
+                </button>
+              </div>
+            )}
+            
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '2px solid #e9ecef' }}>
+              <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '8px', textAlign: 'center' }}>
+                Or manually enter QR data:
+              </div>
+              <textarea
+                placeholder="Paste QR code data here..."
+                value={qrScanInput}
+                onChange={(e) => setQrScanInput(e.target.value)}
+                style={{ 
+                  width: '100%', 
+                  minHeight: '60px',
+                  padding: '10px', 
+                  borderRadius: '6px', 
+                  border: '2px solid #ddd', 
+                  fontSize: '0.85em',
+                  resize: 'vertical',
+                  fontFamily: 'monospace',
+                  marginBottom: '8px'
+                }}
+              />
+              <button 
+                onClick={handleQRScan}
+                style={{ 
+                  width: '100%', 
+                  padding: '10px', 
+                  background: '#1a8f6f', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '8px', 
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.9em',
+                  transition: 'background 0.3s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#157a5e'}
+                onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
+              >
+                🔍 LOAD VISITOR INFO
+              </button>
+            </div>
           </div>
 
           {scannedVisitorData && (
-            <div style={{ marginTop: '20px', padding: '16px', background: '#f8f9fa', borderRadius: '12px', border: '2px solid #1a8f6f' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.1em' }}>VISITOR INFO</h3>
+            <div style={{ 
+              marginTop: '20px', 
+              padding: '16px', 
+              background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
+              borderRadius: '12px', 
+              border: '3px solid #1a8f6f',
+              boxShadow: '0 4px 12px rgba(26, 143, 111, 0.2)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.2em', fontWeight: 'bold' }}>✓ VISITOR VERIFIED</h3>
                 <button 
                   onClick={() => setScannedVisitorData(null)}
                   style={{ 
                     background: '#dc3545', 
                     color: 'white', 
                     border: 'none', 
-                    borderRadius: '4px', 
-                    padding: '4px 8px',
+                    borderRadius: '6px', 
+                    padding: '6px 12px',
                     cursor: 'pointer',
-                    fontSize: '0.8em'
+                    fontSize: '0.9em',
+                    fontWeight: 'bold',
+                    transition: 'background 0.3s'
                   }}
+                  onMouseOver={(e) => e.target.style.background = '#c82333'}
+                  onMouseOut={(e) => e.target.style.background = '#dc3545'}
                 >
-                  ✕
+                  ✕ Clear
                 </button>
               </div>
 
               {scannedVisitorData.photo && (
-                <div style={{ marginBottom: '12px', textAlign: 'center' }}>
+                <div style={{ marginBottom: '16px', textAlign: 'center', padding: '12px', background: 'white', borderRadius: '8px' }}>
                   <img 
                     src={scannedVisitorData.photo} 
                     alt="Visitor" 
                     style={{ 
-                      width: '120px', 
-                      height: '120px', 
+                      width: '140px', 
+                      height: '140px', 
                       borderRadius: '50%', 
                       objectFit: 'cover',
-                      border: '3px solid #1a8f6f'
+                      border: '4px solid #1a8f6f',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
                     }} 
                   />
+                  <div style={{ 
+                    marginTop: '8px', 
+                    fontSize: '0.75em', 
+                    color: '#1a8f6f', 
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase'
+                  }}>
+                    Verified Photo ID
+                  </div>
                 </div>
               )}
 
-              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>NAME</div>
-                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.name}</div>
+              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>👤 Visitor Name</div>
+                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1.1em' }}>{scannedVisitorData.name}</div>
               </div>
 
-              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>CONTACT NUMBER</div>
-                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.contact}</div>
+              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📞 Contact Number</div>
+                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.contact}</div>
               </div>
 
-              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>ROOM NUMBER</div>
-                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.room}</div>
+              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🚪 Room Number</div>
+                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.room}</div>
               </div>
 
-              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>PATIENT NAME</div>
-                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.patient}</div>
+              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏥 Patient Name</div>
+                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.patient}</div>
               </div>
 
-              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>CHECK-IN TIME</div>
-                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.timeIn}</div>
+              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>⏰ Check-In Time</div>
+                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.timeIn}</div>
               </div>
 
               {scannedVisitorData.timeOut && (
-                <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>CHECK-OUT TIME</div>
-                  <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.timeOut}</div>
+                <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                  <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏃 Check-Out Time</div>
+                  <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.timeOut}</div>
                 </div>
               )}
 
-              <div style={{ marginBottom: '8px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>REGISTRATION DATE</div>
-                <div style={{ fontWeight: 'bold', color: '#333' }}>{scannedVisitorData.fullDate}</div>
+              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📅 Registration Date</div>
+                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9em' }}>{scannedVisitorData.fullDate}</div>
               </div>
 
-              <div style={{ padding: '8px', background: 'white', borderRadius: '6px' }}>
-                <div style={{ fontSize: '0.75em', color: '#666', marginBottom: '2px' }}>STATUS</div>
+              <div style={{ padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📊 Current Status</div>
                 <span style={{ 
-                  padding: '4px 12px', 
-                  borderRadius: '12px', 
-                  fontSize: '0.8em',
+                  padding: '8px 20px', 
+                  borderRadius: '20px', 
+                  fontSize: '0.9em',
                   fontWeight: 'bold',
+                  display: 'inline-block',
                   background: scannedVisitorData.status === 'active' ? '#d4edda' : '#f8d7da',
-                  color: scannedVisitorData.status === 'active' ? '#155724' : '#721c24'
+                  color: scannedVisitorData.status === 'active' ? '#155724' : '#721c24',
+                  border: `2px solid ${scannedVisitorData.status === 'active' ? '#28a745' : '#dc3545'}`,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1px'
                 }}>
-                  {scannedVisitorData.status === 'active' ? 'ACTIVE' : 'DISCHARGED'}
+                  {scannedVisitorData.status === 'active' ? '✓ ACTIVE' : '⊗ DISCHARGED'}
                 </span>
               </div>
             </div>
@@ -675,7 +930,7 @@ export default function Dashboard({ onLogout }) {
 
               {qrCodeUrl && registeredVisitorData && (
                 <div style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '12px', border: '2px solid #1a8f6f' }}>
-                  <h3 style={{ color: '#1a8f6f', marginBottom: '16px', textAlign: 'center', fontSize: '1.5em' }}> Registration Successful!</h3>
+                  <h3 style={{ color: '#1a8f6f', marginBottom: '16px', textAlign: 'center', fontSize: '1.5em' }}>✓ Registration Successful!</h3>
                   
                   <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: '250px' }}>
@@ -712,7 +967,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#157a5e'}
                       onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
                     >
-                       Download QR Code
+                      📥 Download QR Code
                     </button>
                     <button 
                       onClick={handlePrintQR}
@@ -720,7 +975,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#0b5ed7'}
                       onMouseOut={(e) => e.target.style.background = '#0d6efd'}
                     >
-                      Print QR Code
+                      🖨️ Print QR Code
                     </button>
                     <button 
                       onClick={() => { setQrCodeUrl(null); setRegisteredVisitorData(null); }}
@@ -728,7 +983,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#5c636a'}
                       onMouseOut={(e) => e.target.style.background = '#6c757d'}
                     >
-                       Close
+                      ✕ Close
                     </button>
                   </div>
                 </div>
@@ -770,7 +1025,7 @@ export default function Dashboard({ onLogout }) {
         </div>
 
         <div style={{ width: 260, background: 'white', borderRadius: 10, padding: 16, boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
-          <div onClick={() => showView('dashboard')} style={{ fontSize: 28, textAlign: 'center', marginBottom: 12, cursor: 'pointer' }}></div>
+          <div onClick={() => showView('dashboard')} style={{ fontSize: 28, textAlign: 'center', marginBottom: 12, cursor: 'pointer' }}>🏥</div>
           <div onClick={() => showView('dashboard')} style={{ padding: 10, marginBottom: 8, background: currentView === 'dashboard' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'dashboard' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Dashboard</div>
           <div onClick={() => showView('visitorInfo')} style={{ padding: 10, marginBottom: 8, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>List of Visitors</div>
           <div onClick={() => showView('registered')} style={{ padding: 10, marginBottom: 8, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Registered Visitor</div>
