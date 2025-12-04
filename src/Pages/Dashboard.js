@@ -3,6 +3,7 @@ import bgImage from '../Styles/bg.png';
 import { listenVisitorsRealtime, addVisitor as addVisitorDoc, updateVisitor } from '../lib/firestore';
 import uploadImageToCloudinary from '../lib/cloudinary';
 import QRCode from 'qrcode';
+import jsQR from 'jsqr';
 
 export default function Dashboard({ onLogout }) {
   const [visitors, setVisitors] = useState([]);
