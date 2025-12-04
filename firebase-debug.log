@@ -1,0 +1,103 @@
+[debug] [2025-12-04T05:51:07.549Z] ----------------------------------------------------------------------
+[debug] [2025-12-04T05:51:07.552Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\reyfr\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2025-12-04T05:51:07.553Z] CLI Version:   14.27.0
+[debug] [2025-12-04T05:51:07.553Z] Platform:      win32
+[debug] [2025-12-04T05:51:07.553Z] Node Version:  v20.19.5
+[debug] [2025-12-04T05:51:07.553Z] Time:          Thu Dec 04 2025 13:51:07 GMT+0800 (Philippine Standard Time)
+[debug] [2025-12-04T05:51:07.553Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-12-04T05:51:07.878Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-12-04T05:51:07.879Z] > authorizing via signed-in user (vscangroup@gmail.com)
+[debug] [2025-12-04T05:51:07.879Z] [iam] checking project vscan-fbbb6 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-12-04T05:51:07.881Z] Checked if tokens are valid: false, expires at: 1764828258592
+[debug] [2025-12-04T05:51:07.881Z] Checked if tokens are valid: false, expires at: 1764828258592
+[debug] [2025-12-04T05:51:07.881Z] > refreshing access token with scopes: []
+[debug] [2025-12-04T05:51:07.884Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-12-04T05:51:07.884Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-12-04T05:51:28.395Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-12-04T05:51:28.395Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-12-04T05:51:28.420Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/vscan-fbbb6:testIamPermissions [none]
+[debug] [2025-12-04T05:51:28.421Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/vscan-fbbb6:testIamPermissions x-goog-quota-user=projects/vscan-fbbb6
+[debug] [2025-12-04T05:51:28.421Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/vscan-fbbb6:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-12-04T05:51:36.171Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/vscan-fbbb6:testIamPermissions 200
+[debug] [2025-12-04T05:51:36.172Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/vscan-fbbb6:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-12-04T05:51:36.174Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:36.174Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:36.175Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/vscan-fbbb6 [none]
+[debug] [2025-12-04T05:51:37.614Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/vscan-fbbb6 200
+[debug] [2025-12-04T05:51:37.614Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/vscan-fbbb6 {"projectId":"vscan-fbbb6","projectNumber":"1088300905840","displayName":"VScan","name":"projects/vscan-fbbb6","resources":{"hostingSite":"vscan-fbbb6"},"state":"ACTIVE","etag":"1_c647cbd6-aa5b-40c9-aa41-cfe49e90edad"}
+[info] 
+[info] === Deploying to 'vscan-fbbb6'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2025-12-04T05:51:37.630Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:37.630Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:37.631Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/versions [none]
+[debug] [2025-12-04T05:51:37.631Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2025-12-04T05:51:43.055Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/versions 200
+[debug] [2025-12-04T05:51:43.055Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/versions {"name":"projects/1088300905840/sites/vscan-fbbb6/versions/8a92cd71f629b4c6","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[info] i  hosting[vscan-fbbb6]: beginning deploy... 
+[info] i  hosting[vscan-fbbb6]: found 16 files in build 
+[debug] [2025-12-04T05:51:43.113Z] [hosting] uploading with 200 concurrency
+[debug] [2025-12-04T05:51:43.146Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:43.146Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:43.151Z] [hosting] hash cache [YnVpbGQ] stored for 16 files
+[debug] [2025-12-04T05:51:43.152Z] [hosting][hash queue][FINAL] {"max":15,"min":2,"avg":2,"active":0,"complete":16,"success":16,"errored":0,"retried":0,"total":16,"elapsed":23}
+[debug] [2025-12-04T05:51:43.154Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/1088300905840/sites/vscan-fbbb6/versions/8a92cd71f629b4c6:populateFiles [none]
+[debug] [2025-12-04T05:51:43.154Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/1088300905840/sites/vscan-fbbb6/versions/8a92cd71f629b4c6:populateFiles {"files":{"/robots.txt":"b2090cf9761ef60aa06e4fab97679bd43dfa5e5df073701ead5879d7c68f1ec5","/manifest.json":"4368aeaf848ae2e048765562c289452f33ad2a175c4b1951ea8bdf2ada0d5b10","/logo512.png":"212b102aa09e51b3b3e06647e81f7801a61333e171f6582e8124379aabccb41d","/logo192.png":"79e2b749561016bc8af300ea19f48347ceed3cb1a54f48ae456172eca45e08f0","/index.html":"db3061102f92f5341fd9771a586c6b55a48c3b275b9562543b03f06ff442bdfd","/favicon.ico":"27edce7be5922cf0bef7d4136f69b5bfbdd5bf8c13c7b026f71187d41a00aa7d","/asset-manifest.json":"17fb09e6c4fdbcbeab51e26cb41e3b495e923c23dd519120e7068d69796622b5","/App.js":"40c5d7beb123557b9f132deba52f148dd65aaae2370b96296c0b2b86bda45fa9","/static/media/bg.3278830d56146577e876.png":"aad71f773dc41b75e8d1d2806df86fed29745a471cb29123b7751e10199fb17d","/static/js/main.114a4bf9.js.map":"1c3eb5b831c5c211f02597dfb9a4902fd7322408881ff52308bde129c83bd007","/static/js/main.114a4bf9.js.LICENSE.txt":"bb0c38d48b302ce36164a978579cfdb49fc3a99884adb52cc3babc3304e6e0e1","/static/js/main.114a4bf9.js":"d484b88e26cc68159cb9fcb5217913f529de8052093d254b4dd0ce4020715f7e","/static/js/453.55735264.chunk.js.map":"14d8d81c801ba67d092aec597b2dcb63f8bd0d9ec88169f22b7ca334c16cea14","/static/js/453.55735264.chunk.js":"bf3c89426ab81af02a04387a2baa8223f8ffbd46f0b47dfde20fbcdf448d46fd","/static/css/main.6b38ee6d.css.map":"78042f0304d84416629c49178032fa83082589826b283a284fa2b787b3b86794","/static/css/main.6b38ee6d.css":"7f3e8b0bc1a2b128727876f6bb6b523f3f14a6a2d48d9cfca4694d7781a10463"}}
+[debug] [2025-12-04T05:51:45.284Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/1088300905840/sites/vscan-fbbb6/versions/8a92cd71f629b4c6:populateFiles 200
+[debug] [2025-12-04T05:51:45.284Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/1088300905840/sites/vscan-fbbb6/versions/8a92cd71f629b4c6:populateFiles {"uploadUrl":"https://upload-firebasehosting.googleapis.com/upload/sites/vscan-fbbb6/versions/8a92cd71f629b4c6/files"}
+[debug] [2025-12-04T05:51:45.285Z] [hosting][populate queue][FINAL] {"max":2139,"min":2139,"avg":2139,"active":0,"complete":1,"success":1,"errored":0,"retried":0,"total":1,"elapsed":2139}
+[debug] [2025-12-04T05:51:45.285Z] [hosting] uploads queued: 0
+[debug] [2025-12-04T05:51:45.286Z] [hosting][upload queue][FINAL] {"max":0,"min":9999999999,"avg":0,"active":0,"complete":0,"success":0,"errored":0,"retried":0,"total":0,"elapsed":1764827505286}
+[info] +  hosting[vscan-fbbb6]: file upload complete 
+[debug] [2025-12-04T05:51:45.289Z] [hosting] deploy completed after 2226ms
+[debug] [2025-12-04T05:51:45.290Z] [
+  {
+    "config": {
+      "public": "build",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "site": "vscan-fbbb6"
+    },
+    "version": "projects/1088300905840/sites/vscan-fbbb6/versions/8a92cd71f629b4c6"
+  }
+]
+[info] i  hosting[vscan-fbbb6]: finalizing version... 
+[debug] [2025-12-04T05:51:45.302Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:45.303Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:45.305Z] >>> [apiv2][query] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/versions/8a92cd71f629b4c6 updateMask=status%2Cconfig
+[debug] [2025-12-04T05:51:45.305Z] >>> [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/versions/8a92cd71f629b4c6 {"status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]}}
+[debug] [2025-12-04T05:51:46.424Z] <<< [apiv2][status] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/versions/8a92cd71f629b4c6 200
+[debug] [2025-12-04T05:51:46.425Z] <<< [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/versions/8a92cd71f629b4c6 {"name":"projects/1088300905840/sites/vscan-fbbb6/versions/8a92cd71f629b4c6","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2025-12-04T05:51:41.832785Z","createUser":{"email":"vscangroup@gmail.com"},"finalizeTime":"2025-12-04T05:51:45.419352Z","finalizeUser":{"email":"vscangroup@gmail.com"}}
+[debug] [2025-12-04T05:51:46.426Z] [hosting] finalized version for vscan-fbbb6:[object Object]
+[info] +  hosting[vscan-fbbb6]: version finalized 
+[info] i  hosting[vscan-fbbb6]: releasing new version... 
+[debug] [2025-12-04T05:51:46.430Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:46.431Z] Checked if tokens are valid: true, expires at: 1764831087395
+[debug] [2025-12-04T05:51:46.432Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/channels/live/releases versionName=projects%2F1088300905840%2Fsites%2Fvscan-fbbb6%2Fversions%2F8a92cd71f629b4c6
+[debug] [2025-12-04T05:51:46.432Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/channels/live/releases {}
+[debug] [2025-12-04T05:52:02.625Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/channels/live/releases 200
+[debug] [2025-12-04T05:52:02.626Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/vscan-fbbb6/channels/live/releases {"name":"projects/1088300905840/sites/vscan-fbbb6/channels/live/releases/1764827505948000","version":{"name":"projects/1088300905840/sites/vscan-fbbb6/versions/8a92cd71f629b4c6","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2025-12-04T05:51:41.832785Z","createUser":{"email":"vscangroup@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocJYKuDwX-5s4Uz5Md4b9ZNSvDDCoL646qCHrpksZahvn1RTkQ=mo"},"finalizeTime":"2025-12-04T05:51:45.419352Z","finalizeUser":{"email":"vscangroup@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocJYKuDwX-5s4Uz5Md4b9ZNSvDDCoL646qCHrpksZahvn1RTkQ=mo"}},"type":"DEPLOY","releaseTime":"2025-12-04T05:51:45.948Z","releaseUser":{"email":"vscangroup@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocJYKuDwX-5s4Uz5Md4b9ZNSvDDCoL646qCHrpksZahvn1RTkQ=mo"}}
+[debug] [2025-12-04T05:52:02.627Z] [hosting] release: {"name":"projects/1088300905840/sites/vscan-fbbb6/channels/live/releases/1764827505948000","version":{"name":"projects/1088300905840/sites/vscan-fbbb6/versions/8a92cd71f629b4c6","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2025-12-04T05:51:41.832785Z","createUser":{"email":"vscangroup@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocJYKuDwX-5s4Uz5Md4b9ZNSvDDCoL646qCHrpksZahvn1RTkQ=mo"},"finalizeTime":"2025-12-04T05:51:45.419352Z","finalizeUser":{"email":"vscangroup@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocJYKuDwX-5s4Uz5Md4b9ZNSvDDCoL646qCHrpksZahvn1RTkQ=mo"}},"type":"DEPLOY","releaseTime":"2025-12-04T05:51:45.948Z","releaseUser":{"email":"vscangroup@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocJYKuDwX-5s4Uz5Md4b9ZNSvDDCoL646qCHrpksZahvn1RTkQ=mo"}}
+[info] +  hosting[vscan-fbbb6]: release complete 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/vscan-fbbb6/overview
+[info] Hosting URL: https://vscan-fbbb6.web.app
+[debug] [2025-12-04T05:52:11.350Z] Error: Timed out.
+    at Timeout.<anonymous> (C:\Users\reyfr\AppData\Roaming\npm\node_modules\firebase-tools\lib\utils.js:275:49)
+    at listOnTimeout (node:internal/timers:581:17)
+    at process.processTimers (node:internal/timers:519:7)
+[error] 
+[error] Error: An unexpected error has occurred.
