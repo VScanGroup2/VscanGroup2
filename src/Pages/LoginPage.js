@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import '../Styles/LoginPage.css';
 import bg from '../Styles/bg.png';
 import Dashboard from './Dashboard';
+import { signIn } from '../lib/auth';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -23,7 +24,7 @@ function LoginPage({ onLogin }) {
 
   const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setMessage('');
     setMessageType('');
 
@@ -41,12 +42,17 @@ function LoginPage({ onLogin }) {
 
     setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await signIn(email, password);
       setMessage('Login successful!');
       setMessageType('success');
       setTimeout(() => onLogin(), 1000);
-    }, 1500);
+    } catch (error) {
+      setMessage(error.message);
+      setMessageType('error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleKeyPress = (e) => {
