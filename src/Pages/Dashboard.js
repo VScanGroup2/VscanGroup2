@@ -31,6 +31,7 @@ export default function Dashboard({ onLogout }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanIntervalRef = useRef(null);
+  
 
   // Update current date and time
   useEffect(() => {
@@ -435,7 +436,7 @@ export default function Dashboard({ onLogout }) {
 
       <div style={{ display: 'flex', maxWidth: '1400px', margin: '0 auto', padding: '20px', gap: '20px' }}>
         <div style={{ width: 320, background: 'white', borderRadius: 10, padding: 20, boxShadow: '0 4px 10px rgba(0,0,0,0.08)', height: 'fit-content', position: 'sticky', top: '20px' }}>
-          <h2 style={{ color: '#1a8f6f', marginBottom: '16px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px' }}>📱 VISITOR ID SCANNER</h2>
+          <h2 style={{ color: '#1a8f6f', marginBottom: '16px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px' }}>VISITOR ID SCANNER</h2>
           
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '0.9em' }}>Scan Visitor QR Code:</label>
@@ -449,7 +450,7 @@ export default function Dashboard({ onLogout }) {
                 textAlign: 'center',
                 marginBottom: '12px'
               }}>
-                <div style={{ fontSize: '3em', marginBottom: '8px' }}>📷</div>
+                <div style={{ fontSize: '3em', marginBottom: '8px' }}></div>
                 <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '12px' }}>Click to activate camera scanner</div>
                 <button 
                   onClick={startCamera}
@@ -468,7 +469,7 @@ export default function Dashboard({ onLogout }) {
                   onMouseOver={(e) => e.target.style.background = '#218838'}
                   onMouseOut={(e) => e.target.style.background = '#28a745'}
                 >
-                  📹 START CAMERA
+                  START CAMERA
                 </button>
                 {cameraError && (
                   <div style={{ marginTop: '8px', padding: '8px', background: '#f8d7da', color: '#721c24', borderRadius: '6px', fontSize: '0.85em' }}>
@@ -555,7 +556,7 @@ export default function Dashboard({ onLogout }) {
                   fontSize: '0.85em',
                   fontWeight: 'bold'
                 }}>
-                  🔍 Scanning...
+                  Scanning...
                 </div>
                 <button 
                   onClick={stopCamera}
@@ -575,7 +576,7 @@ export default function Dashboard({ onLogout }) {
                   onMouseOver={(e) => e.target.style.background = '#c82333'}
                   onMouseOut={(e) => e.target.style.background = '#dc3545'}
                 >
-                  ⏹️ STOP CAMERA
+                  STOP CAMERA
                 </button>
               </div>
             )}
@@ -617,7 +618,7 @@ export default function Dashboard({ onLogout }) {
                 onMouseOver={(e) => e.target.style.background = '#157a5e'}
                 onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
               >
-                🔍 LOAD VISITOR INFO
+                LOAD VISITOR INFO
               </button>
             </div>
           </div>
@@ -632,7 +633,7 @@ export default function Dashboard({ onLogout }) {
               boxShadow: '0 4px 12px rgba(26, 143, 111, 0.2)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.2em', fontWeight: 'bold' }}>✓ VISITOR VERIFIED</h3>
+                <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.2em', fontWeight: 'bold' }}> VISITOR VERIFIED</h3>
                 <button 
                   onClick={() => setScannedVisitorData(null)}
                   style={{ 
@@ -680,44 +681,44 @@ export default function Dashboard({ onLogout }) {
               )}
 
               <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>👤 Visitor Name</div>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Visitor Name</div>
                 <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1.1em' }}>{scannedVisitorData.name}</div>
               </div>
 
               <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📞 Contact Number</div>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Contact Number</div>
                 <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.contact}</div>
               </div>
 
               <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🚪 Room Number</div>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Room Number</div>
                 <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.room}</div>
               </div>
 
               <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏥 Patient Name</div>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Patient Name</div>
                 <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.patient}</div>
               </div>
 
               <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>⏰ Check-In Time</div>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Check-In Time</div>
                 <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.timeIn}</div>
               </div>
 
               {scannedVisitorData.timeOut && (
                 <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                  <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏃 Check-Out Time</div>
+                  <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Check-Out Time</div>
                   <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.timeOut}</div>
                 </div>
               )}
 
               <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📅 Registration Date</div>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Registration Date</div>
                 <div style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9em' }}>{scannedVisitorData.fullDate}</div>
               </div>
 
               <div style={{ padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📊 Current Status</div>
+                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Current Status</div>
                 <span style={{ 
                   padding: '8px 20px', 
                   borderRadius: '20px', 
@@ -931,7 +932,7 @@ export default function Dashboard({ onLogout }) {
 
               {qrCodeUrl && registeredVisitorData && (
                 <div style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '12px', border: '2px solid #1a8f6f' }}>
-                  <h3 style={{ color: '#1a8f6f', marginBottom: '16px', textAlign: 'center', fontSize: '1.5em' }}>✓ Registration Successful!</h3>
+                  <h3 style={{ color: '#1a8f6f', marginBottom: '16px', textAlign: 'center', fontSize: '1.5em' }}> Registration Successful!</h3>
                   
                   <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                     <div style={{ flex: 1, minWidth: '250px' }}>
@@ -968,7 +969,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#157a5e'}
                       onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
                     >
-                      📥 Download QR Code
+                       Download QR Code
                     </button>
                     <button 
                       onClick={handlePrintQR}
@@ -976,7 +977,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#0b5ed7'}
                       onMouseOut={(e) => e.target.style.background = '#0d6efd'}
                     >
-                      🖨️ Print QR Code
+                       Print QR Code
                     </button>
                     <button 
                       onClick={() => { setQrCodeUrl(null); setRegisteredVisitorData(null); }}
@@ -1026,7 +1027,7 @@ export default function Dashboard({ onLogout }) {
         </div>
 
         <div style={{ width: 260, background: 'white', borderRadius: 10, padding: 16, boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
-          <div onClick={() => showView('dashboard')} style={{ fontSize: 28, textAlign: 'center', marginBottom: 12, cursor: 'pointer' }}>🏥</div>
+          <div onClick={() => showView('dashboard')} style={{ fontSize: 28, textAlign: 'center', marginBottom: 12, cursor: 'pointer' }}></div>
           <div onClick={() => showView('dashboard')} style={{ padding: 10, marginBottom: 8, background: currentView === 'dashboard' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'dashboard' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Dashboard</div>
           <div onClick={() => showView('visitorInfo')} style={{ padding: 10, marginBottom: 8, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>List of Visitors</div>
           <div onClick={() => showView('registered')} style={{ padding: 10, marginBottom: 8, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Registered Visitor</div>
