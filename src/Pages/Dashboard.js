@@ -31,6 +31,10 @@ export default function Dashboard({ onLogout }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanIntervalRef = useRef(null);
+  // USB scanner (keyboard-wedge) support
+  const [scannerBuffer, setScannerBuffer] = useState('');
+  const scannerInputRef = useRef(null);
+  const [scannerActive, setScannerActive] = useState(false);
   
 
   // Update current date and time
@@ -330,6 +334,81 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
+  // Parse QR/string from scanner and load visitor info (shared logic)
+  const parseQrString = (raw) => {
+    try {
+      if (!raw || !raw.trim()) return false;
+      const trimmed = raw.trim();
+      let qrData;
+      try {
+        qrData = JSON.parse(trimmed);
+      } catch (e) {
+        // Not JSON — treat as ID lookup
+        const visitor = visitors.find(v => v.id === trimmed || v.id === trimmed.replace(/\r|\n/g, ''));
+        if (visitor) {
+          setScannedVisitorData(visitor);
+          setMessage({ type: 'success', text: 'Visitor loaded from scanner input.' });
+          setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          return true;
+        }
+        // nothing found
+        setMessage({ type: 'error', text: 'Scanned ID not found.' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        return false;
+      }
+
+      if (qrData && (qrData.id || qrData.name)) {
+        const visitor = visitors.find(v => v.id === qrData.id) || null;
+        if (visitor) {
+          setScannedVisitorData(visitor);
+        } else {
+          const scannedData = {
+            id: qrData.id || 'N/A',
+            name: qrData.name || 'N/A',
+            room: qrData.room || 'N/A',
+            patient: qrData.patient || 'N/A',
+            contact: qrData.contact || 'N/A',
+            timeIn: qrData.checkIn || '',
+            timeOut: null,
+            date: qrData.date || '',
+            fullDate: qrData.fullDateTime || '',
+            status: 'active',
+            photo: null
+          };
+          setScannedVisitorData(scannedData);
+        }
+
+        setMessage({ type: 'success', text: 'Visitor information loaded from scanner.' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        return true;
+      }
+    } catch (err) {
+      console.error('parseQrString error', err);
+    }
+    setMessage({ type: 'error', text: 'Unable to parse scanned data.' });
+    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    return false;
+  };
+
+  const activateUsbScanner = () => {
+    setScannerBuffer('');
+    setScannerActive(true);
+    setTimeout(() => scannerInputRef.current && scannerInputRef.current.focus(), 50);
+    setMessage({ type: 'success', text: 'USB scanner activated — ready to scan.' });
+    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+  };
+
+  const handleScannerKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const data = scannerBuffer;
+      setScannerBuffer('');
+      parseQrString(data);
+      // keep input focused for next scan
+      setTimeout(() => scannerInputRef.current && scannerInputRef.current.focus(), 50);
+    }
+  };
+
   const startCamera = async () => {
     try {
       setCameraError('');
@@ -428,13 +507,22 @@ export default function Dashboard({ onLogout }) {
   const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '2px solid #ddd', fontSize: '1em', outline: 'none', transition: 'border-color 0.3s', backgroundColor: 'white' };
 
   return (
-    <div style={{ fontFamily: 'Arial, sans-serif', minHeight: '100vh', backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
+    <div style={{ fontFamily: 'Arial, sans-serif', height: '100vh', display: 'flex', flexDirection: 'column', backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
       <div style={{ background: '#1a8f6f', color: 'white', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ textAlign: 'center', flex: 1, fontSize: '2em', fontWeight: 'bold', letterSpacing: '2px' }}>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</div>
         <button onClick={onLogout} style={{ padding: '10px 25px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1em', fontWeight: 'bold', cursor: 'pointer' }}>Logout</button>
       </div>
 
-      <div style={{ display: 'flex', maxWidth: '1400px', margin: '0 auto', padding: '20px', gap: '20px' }}>
+      <div style={{ display: 'flex', flex: 1, width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '20px', gap: '20px', overflow: 'hidden' }}>
+        {/* Hidden input to receive USB scanner keyboard-wedge input */}
+        <input
+          ref={scannerInputRef}
+          value={scannerBuffer}
+          onChange={(e) => setScannerBuffer(e.target.value)}
+          onKeyDown={handleScannerKeyDown}
+          style={{ position: 'absolute', left: -9999, top: 'auto' }}
+          aria-hidden="true"
+        />
         <div style={{ width: 320, background: 'white', borderRadius: 10, padding: 20, boxShadow: '0 4px 10px rgba(0,0,0,0.08)', height: 'fit-content', position: 'sticky', top: '20px' }}>
           <h2 style={{ color: '#1a8f6f', marginBottom: '16px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px' }}>VISITOR ID SCANNER</h2>
           
@@ -470,6 +558,26 @@ export default function Dashboard({ onLogout }) {
                   onMouseOut={(e) => e.target.style.background = '#28a745'}
                 >
                   START CAMERA
+                </button>
+                <button 
+                  onClick={activateUsbScanner}
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    marginTop: '8px',
+                    background: '#007bff', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '8px', 
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '1em',
+                    transition: 'background 0.3s'
+                  }}
+                  onMouseOver={(e) => e.target.style.background = '#0069d9'}
+                  onMouseOut={(e) => e.target.style.background = '#007bff'}
+                >
+                  ACTIVATE USB SCANNER
                 </button>
                 {cameraError && (
                   <div style={{ marginTop: '8px', padding: '8px', background: '#f8d7da', color: '#721c24', borderRadius: '6px', fontSize: '0.85em' }}>
@@ -738,7 +846,7 @@ export default function Dashboard({ onLogout }) {
           )}
         </div>
         
-        <div style={{ flex: 1, background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflow: 'auto' }}>
           <h1 style={{ color: '#1a8f6f', marginBottom: '20px' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'history' ? "VISITOR'S HISTORY" : currentView === 'attendance' ? 'ATTENDANCE' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
 
           {currentView === 'dashboard' && (
