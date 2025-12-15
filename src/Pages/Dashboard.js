@@ -539,32 +539,12 @@ export default function Dashboard({ onLogout }) {
                 marginBottom: '12px'
               }}>
                 <div style={{ fontSize: '3em', marginBottom: '8px' }}></div>
-                <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '12px' }}>Click to activate camera scanner</div>
-                <button 
-                  onClick={startCamera}
-                  style={{ 
-                    width: '100%', 
-                    padding: '12px', 
-                    background: '#28a745', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '8px', 
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    fontSize: '1em',
-                    transition: 'background 0.3s'
-                  }}
-                  onMouseOver={(e) => e.target.style.background = '#218838'}
-                  onMouseOut={(e) => e.target.style.background = '#28a745'}
-                >
-                  START CAMERA
-                </button>
+                <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '12px' }}>Use your USB scanner or click the button below to activate keyboard-scanner input.</div>
                 <button 
                   onClick={activateUsbScanner}
                   style={{ 
                     width: '100%', 
                     padding: '12px', 
-                    marginTop: '8px',
                     background: '#007bff', 
                     color: 'white', 
                     border: 'none', 
@@ -579,11 +559,7 @@ export default function Dashboard({ onLogout }) {
                 >
                   ACTIVATE USB SCANNER
                 </button>
-                {cameraError && (
-                  <div style={{ marginTop: '8px', padding: '8px', background: '#f8d7da', color: '#721c24', borderRadius: '6px', fontSize: '0.85em' }}>
-                    {cameraError}
-                  </div>
-                )}
+
               </div>
             ) : (
               <div style={{ 
