@@ -554,7 +554,7 @@ function Home({ onLogout }) {
           <div onClick={() => showView('attendance')} style={{ padding: '15px', marginBottom: '25px', background: currentView === 'attendance' ? '#1a8f6f' : '#f8f9fa', color: currentView === 'attendance' ? 'white' : '#333', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.3s' }}>Attendance</div>
           
           <button onClick={() => showView('register')} style={{ width: '100%', padding: '20px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '50px', fontSize: '1.3em', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', transition: 'all 0.3s', boxShadow: '0 4px 15px rgba(26,143,111,0.3)' }} onMouseOver={(e) => { e.target.style.background = '#157a5f'; e.target.style.transform = 'scale(1.05)'; }} onMouseOut={(e) => { e.target.style.background = '#1a8f6f'; e.target.style.transform = 'scale(1)'; }}>
-            REGISTER <span style={{ fontSize: '1.2em' }}>👆</span>
+            REGISTER <span style={{ fontSize: '1.2em' }}></span>
           </button>
         </div>
       </div>
