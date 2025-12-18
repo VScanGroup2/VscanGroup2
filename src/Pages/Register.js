@@ -16,7 +16,9 @@ export default function VisitorRegistration() {
 
   useEffect(() => {
     const unsub = listenVisitorsRealtime((data) => setVisitors(data));
-    return () => unsub && typeof unsub === 'function' ? unsub() : undefined;
+    return () => {
+      if (unsub && typeof unsub === 'function') unsub();
+    };
   }, []);
 
   const handleInputChange = (e) => {
