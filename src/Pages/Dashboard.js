@@ -64,26 +64,64 @@ export default function Dashboard({ onLogout }) {
   }, []);
 
   useEffect(() => {
+    console.log('[Dashboard] Setting up Firestore listener on mount...');
     // subscribe to Firestore visitors collection
     const unsub = listenVisitorsRealtime((data) => {
-      // normalize Firestore fields to match UI expectations
-      const normalized = data.map(v => ({
-        id: v.id,
-        name: v.visitorName || '',
-        room: v.roomNumber || 'N/A',
-        patient: v.patientName || 'N/A',
-        timeIn: v.checkInTime || '',
-        timeOut: v.checkOutTime || null,
-        contact: v.contactNumber || 'N/A',
-        date: v.registrationDate || new Date(v.timestamp).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }),
-        fullDate: v.registrationFullDate || new Date(v.timestamp).toLocaleString(),
-        status: v.status === 'checked-in' ? 'active' : 'inactive',
-        photo: v.photoUrl || null
-      }));
+      console.log('[Dashboard] Received visitors data from Firestore:', data);
+      console.log('[Dashboard] Number of visitors received:', data.length);
+      // normalize Firestore fields to match UI expectations, including legacy docs
+      const normalized = data.map(v => {
+        // date and datetime fallbacks
+        let date = v.registrationDate || '';
+        if (!date && v.timestamp) {
+          date = new Date(v.timestamp).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+        }
+        if (!date && v.fullDate) {
+          date = new Date(v.fullDate).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+        }
+        if (!date) {
+          date = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+        }
+
+        let fullDate = v.registrationFullDate || '';
+        if (!fullDate && v.timestamp) {
+          fullDate = new Date(v.timestamp).toLocaleString();
+        }
+        if (!fullDate && v.fullDate) {
+          fullDate = v.fullDate;
+        }
+        if (!fullDate) {
+          fullDate = new Date().toLocaleString();
+        }
+
+        // status normalization: support legacy values
+        const statusRaw = (v.status || '').toLowerCase();
+        const status = statusRaw === 'checked-in' || statusRaw === 'active' ? 'active'
+          : statusRaw === 'discharged' || statusRaw === 'checked-out' ? 'inactive'
+          : 'inactive';
+
+        return {
+          id: v.id,
+          name: v.visitorName || v.name || '',
+          room: v.roomNumber || v.room || 'N/A',
+          patient: v.patientName || v.patient || 'N/A',
+          timeIn: v.checkInTime || v.timeIn || '',
+          timeOut: v.checkOutTime || v.timeOut || null,
+          contact: v.contactNumber || v.contact || 'N/A',
+          date,
+          fullDate,
+          status,
+          photo: v.photoUrl || v.photo || null
+        };
+      });
+      console.log('[Dashboard] Normalized visitors:', normalized);
       setVisitors(normalized);
     });
 
-    return () => unsub && typeof unsub === 'function' ? unsub() : undefined;
+    return () => {
+      console.log('[Dashboard] Cleaning up Firestore listener on unmount...');
+      if (unsub && typeof unsub === 'function') unsub();
+    };
   }, []);
 
   const showView = (view) => setCurrentView(view);
@@ -502,7 +540,13 @@ export default function Dashboard({ onLogout }) {
     const q = monitoringSearchQuery.toLowerCase();
     return v.name.toLowerCase().includes(q) || v.room.toLowerCase().includes(q) || v.patient.toLowerCase().includes(q);
   });
-  const attendanceVisitors = attendanceDate ? visitors.filter(v => v.date === attendanceDate) : visitors;
+  const attendanceVisitors = attendanceDate ? visitors.filter(v => {
+    // Convert attendanceDate from YYYY-MM-DD to MM-DD-YY format to match v.date
+    if (!attendanceDate) return false;
+    const [year, month, day] = attendanceDate.split('-');
+    const formattedDate = `${month}-${day}-${year.slice(-2)}`;
+    return v.date === formattedDate;
+  }) : visitors;
 
   const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '2px solid #ddd', fontSize: '1em', outline: 'none', transition: 'border-color 0.3s', backgroundColor: 'white' };
 
