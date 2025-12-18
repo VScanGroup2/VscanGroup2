@@ -1,20 +1,9 @@
 import React, { useState } from 'react';
 import '../Styles/LoginPage.css';
 import bg from '../Styles/bg.png';
-import Dashboard from './Dashboard';
 import { signIn } from '../lib/auth';
 
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  if (isLoggedIn) {
-    return <Dashboard onLogout={() => setIsLoggedIn(false)} />;
-  }
-
-  return <LoginPage onLogin={() => setIsLoggedIn(true)} />;
-}
-
-function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,10 +32,10 @@ function LoginPage({ onLogin }) {
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      const user = await signIn(email, password);
       setMessage('Login successful!');
       setMessageType('success');
-      setTimeout(() => onLogin(), 1000);
+      setTimeout(() => onLogin(user), 1000);
     } catch (error) {
       setMessage(error.message);
       setMessageType('error');
