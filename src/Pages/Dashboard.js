@@ -370,23 +370,31 @@ export default function Dashboard({ onLogout }) {
       if (visitor) {
         // Check if visitor is already checked-in (active)
         if (visitor.status === 'checked-in' || visitor.status === 'active') {
-          // Second scan - record as time-out but keep active status
-          const now = new Date();
-          const checkOutTime = now.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit', 
-            second: '2-digit',
-            hour12: true 
-          });
-          
-          updateVisitor(visitor.id, {
-            checkOutTime: checkOutTime
-          });
-          
-          const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
-          setScannedVisitorData(updatedVisitor);
-          setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
-          setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          // Check if this is a second scan (already has checkOutTime) or first scan (no checkOutTime)
+          if (visitor.timeOut) {
+            // Already has time-out recorded, just show info
+            setScannedVisitorData(visitor);
+            setMessage({ type: 'info', text: `${visitor.name} already timed out at ${visitor.timeOut}` });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          } else {
+            // First scan after check-in - record as time-out on second scan
+            const now = new Date();
+            const checkOutTime = now.toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              second: '2-digit',
+              hour12: true 
+            });
+            
+            updateVisitor(visitor.id, {
+              checkOutTime: checkOutTime
+            });
+            
+            const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
+            setScannedVisitorData(updatedVisitor);
+            setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          }
         } else {
           // Visitor already discharged - show their info
           setScannedVisitorData(visitor);
@@ -438,23 +446,31 @@ export default function Dashboard({ onLogout }) {
         if (visitor) {
           // Check if visitor is already checked-in (active)
           if (visitor.status === 'checked-in' || visitor.status === 'active') {
-            // Second scan - record as time-out but keep active status
-            const now = new Date();
-            const checkOutTime = now.toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit', 
-              second: '2-digit',
-              hour12: true 
-            });
-            
-            updateVisitor(visitor.id, {
-              checkOutTime: checkOutTime
-            });
-            
-            const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
-            setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            // Check if this is a second scan (already has checkOutTime) or first scan (no checkOutTime)
+            if (visitor.timeOut) {
+              // Already has time-out recorded, just show info
+              setScannedVisitorData(visitor);
+              setMessage({ type: 'info', text: `${visitor.name} already timed out at ${visitor.timeOut}` });
+              setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            } else {
+              // Second scan - record as time-out but keep active status
+              const now = new Date();
+              const checkOutTime = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: true 
+              });
+              
+              updateVisitor(visitor.id, {
+                checkOutTime: checkOutTime
+              });
+              
+              const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
+              setScannedVisitorData(updatedVisitor);
+              setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
+              setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            }
           } else {
             setScannedVisitorData(visitor);
             setMessage({ type: 'info', text: 'Visitor status: ' + visitor.status });
@@ -473,23 +489,31 @@ export default function Dashboard({ onLogout }) {
         if (visitor) {
           // Check if visitor is already checked-in (active)
           if (visitor.status === 'checked-in' || visitor.status === 'active') {
-            // Second scan - record as time-out but keep active status
-            const now = new Date();
-            const checkOutTime = now.toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit', 
-              second: '2-digit',
-              hour12: true 
-            });
-            
-            updateVisitor(visitor.id, {
-              checkOutTime: checkOutTime
-            });
-            
-            const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
-            setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            // Check if this is a second scan (already has checkOutTime) or first scan (no checkOutTime)
+            if (visitor.timeOut) {
+              // Already has time-out recorded, just show info
+              setScannedVisitorData(visitor);
+              setMessage({ type: 'info', text: `${visitor.name} already timed out at ${visitor.timeOut}` });
+              setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            } else {
+              // Second scan - record as time-out but keep active status
+              const now = new Date();
+              const checkOutTime = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: true 
+              });
+              
+              updateVisitor(visitor.id, {
+                checkOutTime: checkOutTime
+              });
+              
+              const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
+              setScannedVisitorData(updatedVisitor);
+              setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
+              setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            }
           } else {
             setScannedVisitorData(visitor);
             setMessage({ type: 'info', text: 'Visitor status: ' + visitor.status });
