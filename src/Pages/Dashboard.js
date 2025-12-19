@@ -124,6 +124,19 @@ export default function Dashboard({ onLogout }) {
     };
   }, []);
 
+  // Auto-activate USB scanner on mount
+  useEffect(() => {
+    console.log('[Dashboard] Auto-activating USB scanner on mount...');
+    setScannerBuffer('');
+    setScannerActive(true);
+    setTimeout(() => {
+      if (scannerInputRef.current) {
+        scannerInputRef.current.focus();
+        console.log('[Dashboard] USB scanner input focused');
+      }
+    }, 100);
+  }, []);
+
   const showView = (view) => setCurrentView(view);
 
   const handleInputChange = (e) => {
@@ -567,6 +580,7 @@ export default function Dashboard({ onLogout }) {
           style={{ position: 'absolute', left: -9999, top: 'auto' }}
           aria-hidden="true"
         />
+        {currentView === 'monitoring' && (
         <div style={{ width: 320, background: 'white', borderRadius: 10, padding: 20, boxShadow: '0 4px 10px rgba(0,0,0,0.08)', height: 'fit-content', position: 'sticky', top: '20px' }}>
           <h2 style={{ color: '#1a8f6f', marginBottom: '16px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px' }}>VISITOR ID SCANNER</h2>
           
@@ -708,47 +722,6 @@ export default function Dashboard({ onLogout }) {
                 </button>
               </div>
             )}
-            
-            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '2px solid #e9ecef' }}>
-              <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '8px', textAlign: 'center' }}>
-                Or manually enter QR data:
-              </div>
-              <textarea
-                placeholder="Paste QR code data here..."
-                value={qrScanInput}
-                onChange={(e) => setQrScanInput(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  minHeight: '60px',
-                  padding: '10px', 
-                  borderRadius: '6px', 
-                  border: '2px solid #ddd', 
-                  fontSize: '0.85em',
-                  resize: 'vertical',
-                  fontFamily: 'monospace',
-                  marginBottom: '8px'
-                }}
-              />
-              <button 
-                onClick={handleQRScan}
-                style={{ 
-                  width: '100%', 
-                  padding: '10px', 
-                  background: '#1a8f6f', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '8px', 
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '0.9em',
-                  transition: 'background 0.3s'
-                }}
-                onMouseOver={(e) => e.target.style.background = '#157a5e'}
-                onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
-              >
-                LOAD VISITOR INFO
-              </button>
-            </div>
           </div>
 
           {scannedVisitorData && (
@@ -758,7 +731,12 @@ export default function Dashboard({ onLogout }) {
               background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
               borderRadius: '12px', 
               border: '3px solid #1a8f6f',
-              boxShadow: '0 4px 12px rgba(26, 143, 111, 0.2)'
+              boxShadow: '0 4px 12px rgba(26, 143, 111, 0.2)',
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              scrollbarGutter: 'stable',
+              maxHeight: 'calc(100vh - 200px)',
+              minWidth: 280
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.2em', fontWeight: 'bold' }}> VISITOR VERIFIED</h3>
@@ -865,8 +843,9 @@ export default function Dashboard({ onLogout }) {
             </div>
           )}
         </div>
+        )}
         
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflow: 'auto' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' }}>
           <h1 style={{ color: '#1a8f6f', marginBottom: '20px' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'history' ? "VISITOR'S HISTORY" : currentView === 'attendance' ? 'ATTENDANCE' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
 
           {currentView === 'dashboard' && (
@@ -882,8 +861,8 @@ export default function Dashboard({ onLogout }) {
                 </div>
               </div>
 
-              <div style={{ overflow: 'auto', borderRadius: '8px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)', minWidth: 0 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
                   <thead style={{ background: '#f1f1f1' }}>
                     <tr>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
@@ -910,8 +889,8 @@ export default function Dashboard({ onLogout }) {
           {currentView === 'visitorInfo' && (
             <div>
               <input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div style={{ overflow: 'auto', borderRadius: '8px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)', minWidth: 0 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                   <thead style={{ background: '#f1f1f1' }}>
                     <tr>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
@@ -977,7 +956,7 @@ export default function Dashboard({ onLogout }) {
           {currentView === 'registered' && (
             <div>
               <input placeholder="Search registered..." value={registeredSearchQuery} onChange={(e) => setRegisteredSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div>{filteredRegisteredVisitors.map(v => (
+              <div style={{ overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)' }}>{filteredRegisteredVisitors.map(v => (
                 <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
                   <div style={{ fontWeight: 700 }}>{v.name}</div>
                   <div style={{ color: '#666' }}>{v.room} — {v.patient}</div>
@@ -995,8 +974,8 @@ export default function Dashboard({ onLogout }) {
                 </div>
               )}
               <input placeholder="Search monitoring..." value={monitoringSearchQuery} onChange={(e) => setMonitoringSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div style={{ overflow: 'auto', borderRadius: '8px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)', minWidth: 0 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
                   <thead style={{ background: '#f1f1f1' }}>
                     <tr>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
@@ -1025,7 +1004,7 @@ export default function Dashboard({ onLogout }) {
           {currentView === 'history' && (
             <div>
               <input placeholder="Search history..." value={historySearchQuery} onChange={(e) => setHistorySearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div>{filteredHistoryVisitors.map(v => (
+              <div style={{ overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)' }}>{filteredHistoryVisitors.map(v => (
                 <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
                   <div style={{ fontWeight: 700 }}>{v.name}</div>
                   <div style={{ color: '#666' }}>{v.room} — {v.patient}</div>
@@ -1040,7 +1019,7 @@ export default function Dashboard({ onLogout }) {
               <label style={{ display: 'block', marginBottom: '8px' }}>Select Date</label>
               <input type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} />
 
-              <div style={{ marginTop: '12px' }}>{attendanceVisitors.map(v => (
+              <div style={{ marginTop: '12px', overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)' }}>{attendanceVisitors.map(v => (
                 <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
                   <div style={{ fontWeight: 700 }}>{v.name}</div>
                   <div style={{ color: '#666' }}>{v.room} — {v.timeIn} — {v.status}</div>
