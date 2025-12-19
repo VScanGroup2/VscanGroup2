@@ -23,7 +23,13 @@ export default function VisitorRegistration() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((p) => ({ ...p, [name]: value }));
+    // For contact number, only allow digits and limit to 11
+    if (name === 'contactNumber') {
+      const digitsOnly = value.replace(/\D/g, '').slice(0, 11);
+      setFormData((p) => ({ ...p, [name]: digitsOnly }));
+    } else {
+      setFormData((p) => ({ ...p, [name]: value }));
+    }
   };
 
   const handleFileChange = (e) => {
@@ -35,6 +41,13 @@ export default function VisitorRegistration() {
   const handleRegister = async () => {
     if (!formData.visitorName || !formData.roomNumber || !formData.patientName || !formData.contactNumber) {
       setMessage({ type: 'error', text: 'Please fill in all fields' });
+      return;
+    }
+
+    // Validate contact number must be exactly 11 digits
+    const contactNumberDigits = formData.contactNumber.replace(/\D/g, '');
+    if (contactNumberDigits.length !== 11) {
+      setMessage({ type: 'error', text: 'Contact number must consist of exactly 11 digits' });
       return;
     }
 
@@ -144,7 +157,7 @@ export default function VisitorRegistration() {
         </div>
         <div style={{ marginBottom: 8 }}>
           <label>Contact Number</label>
-          <input name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} style={{ width: '100%', padding: 8 }} />
+          <input name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} maxLength="11" placeholder="11 digits only" style={{ width: '100%', padding: 8 }} />
         </div>
 
         <div style={{ marginBottom: 8 }}>
