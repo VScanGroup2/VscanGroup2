@@ -368,11 +368,32 @@ export default function Dashboard({ onLogout }) {
       const visitor = visitors.find(v => v.id === qrData.id);
       
       if (visitor) {
-        // Use visitor from database for most current info
-        setScannedVisitorData(visitor);
+        // Check if visitor is already checked-in (active)
+        if (visitor.status === 'checked-in' || visitor.status === 'active') {
+          // Second scan - record as time-out but keep active status
+          const now = new Date();
+          const checkOutTime = now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            hour12: true 
+          });
+          
+          updateVisitor(visitor.id, {
+            checkOutTime: checkOutTime
+          });
+          
+          const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
+          setScannedVisitorData(updatedVisitor);
+          setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
+          setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        } else {
+          // Visitor already discharged - show their info
+          setScannedVisitorData(visitor);
+          setMessage({ type: 'info', text: 'Visitor status: ' + visitor.status });
+          setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        }
         setQrScanInput('');
-        setMessage({ type: 'success', text: 'Visitor information loaded!' });
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       } else if (qrData.id && qrData.name) {
         // Use QR data directly if visitor not in database
         const scannedData = {
@@ -415,9 +436,30 @@ export default function Dashboard({ onLogout }) {
         // Not JSON — treat as ID lookup
         const visitor = visitors.find(v => v.id === trimmed || v.id === trimmed.replace(/\r|\n/g, ''));
         if (visitor) {
-          setScannedVisitorData(visitor);
-          setMessage({ type: 'success', text: 'Visitor loaded from scanner input.' });
-          setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          // Check if visitor is already checked-in (active)
+          if (visitor.status === 'checked-in' || visitor.status === 'active') {
+            // Second scan - record as time-out but keep active status
+            const now = new Date();
+            const checkOutTime = now.toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              second: '2-digit',
+              hour12: true 
+            });
+            
+            updateVisitor(visitor.id, {
+              checkOutTime: checkOutTime
+            });
+            
+            const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
+            setScannedVisitorData(updatedVisitor);
+            setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          } else {
+            setScannedVisitorData(visitor);
+            setMessage({ type: 'info', text: 'Visitor status: ' + visitor.status });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          }
           return true;
         }
         // nothing found
@@ -429,7 +471,30 @@ export default function Dashboard({ onLogout }) {
       if (qrData && (qrData.id || qrData.name)) {
         const visitor = visitors.find(v => v.id === qrData.id) || null;
         if (visitor) {
-          setScannedVisitorData(visitor);
+          // Check if visitor is already checked-in (active)
+          if (visitor.status === 'checked-in' || visitor.status === 'active') {
+            // Second scan - record as time-out but keep active status
+            const now = new Date();
+            const checkOutTime = now.toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              second: '2-digit',
+              hour12: true 
+            });
+            
+            updateVisitor(visitor.id, {
+              checkOutTime: checkOutTime
+            });
+            
+            const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
+            setScannedVisitorData(updatedVisitor);
+            setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          } else {
+            setScannedVisitorData(visitor);
+            setMessage({ type: 'info', text: 'Visitor status: ' + visitor.status });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          }
         } else {
           const scannedData = {
             id: qrData.id || 'N/A',
@@ -445,10 +510,9 @@ export default function Dashboard({ onLogout }) {
             photo: null
           };
           setScannedVisitorData(scannedData);
+          setMessage({ type: 'success', text: 'Visitor information loaded from scanner.' });
+          setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         }
-
-        setMessage({ type: 'success', text: 'Visitor information loaded from scanner.' });
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         return true;
       }
     } catch (err) {
@@ -992,29 +1056,69 @@ export default function Dashboard({ onLogout }) {
                 </div>
               )}
               <input placeholder="Search monitoring..." value={monitoringSearchQuery} onChange={(e) => setMonitoringSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)', minWidth: 0 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
-                  <thead style={{ background: '#f1f1f1' }}>
-                    <tr>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Time Out</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredMonitoringVisitors.map((v) => (
-                      <tr key={v.id}>
-                        <td style={{ padding: '10px' }}>{v.name}</td>
-                        <td style={{ padding: '10px' }}>{v.room}</td>
-                        <td style={{ padding: '10px' }}>{v.patient}</td>
-                        <td style={{ padding: '10px' }}>{v.timeIn}</td>
-                        <td style={{ padding: '10px' }}>{v.timeOut || 'N/A'}</td>
+              
+              {/* Active Visitors Table */}
+              <div style={{ marginBottom: '30px' }}>
+                <h2 style={{ color: '#1a8f6f', fontSize: '1.3em', marginBottom: '12px', borderBottom: '2px solid #1a8f6f', paddingBottom: '8px' }}>Active Visitors</h2>
+                <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(50vh - 150px)', minWidth: 0 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+                    <thead style={{ background: '#d4edda' }}>
+                      <tr>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Time Out</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredMonitoringVisitors.filter(v => v.status === 'active').map((v) => (
+                        <tr key={v.id}>
+                          <td style={{ padding: '10px' }}>{v.name}</td>
+                          <td style={{ padding: '10px' }}>{v.room}</td>
+                          <td style={{ padding: '10px' }}>{v.patient}</td>
+                          <td style={{ padding: '10px' }}>{v.timeIn}</td>
+                          <td style={{ padding: '10px' }}>{v.timeOut || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {filteredMonitoringVisitors.filter(v => v.status === 'active').length === 0 && (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No active visitors</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Discharged Visitors Table */}
+              <div>
+                <h2 style={{ color: '#dc3545', fontSize: '1.3em', marginBottom: '12px', borderBottom: '2px solid #dc3545', paddingBottom: '8px' }}>Discharged</h2>
+                <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(33vh - 120px)', minWidth: 0 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+                    <thead style={{ background: '#f8d7da' }}>
+                      <tr>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
+                        <th style={{ padding: '10px', textAlign: 'left' }}>Discharge</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredMonitoringVisitors.filter(v => v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive').map((v) => (
+                        <tr key={v.id}>
+                          <td style={{ padding: '10px' }}>{v.name}</td>
+                          <td style={{ padding: '10px' }}>{v.room}</td>
+                          <td style={{ padding: '10px' }}>{v.patient}</td>
+                          <td style={{ padding: '10px' }}>{v.timeIn}</td>
+                          <td style={{ padding: '10px' }}>{v.timeOut || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {filteredMonitoringVisitors.filter(v => v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive').length === 0 && (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No discharged visitors</div>
+                  )}
+                </div>
               </div>
             </div>
           )}
