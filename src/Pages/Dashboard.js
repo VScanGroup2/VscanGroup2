@@ -141,6 +141,16 @@ export default function Dashboard({ onLogout }) {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Limit contact number to 11 digits only
+    if (name === 'contactNumber') {
+      const digitsOnly = value.replace(/\D/g, ''); // Remove all non-digits
+      if (digitsOnly.length <= 11) {
+        setFormData(prev => ({ ...prev, [name]: digitsOnly }));
+      }
+      return;
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -154,6 +164,14 @@ export default function Dashboard({ onLogout }) {
   const handleRegister = async () => {
     if (!formData.visitorName || !formData.roomNumber || !formData.patientName || !formData.contactNumber) {
       setMessage({ type: 'error', text: 'Please fill in all fields!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
+    // Validate contact number has exactly 11 digits
+    const contactNumberDigits = formData.contactNumber.replace(/\D/g, '');
+    if (contactNumberDigits.length !== 11) {
+      setMessage({ type: 'error', text: 'Contact number must consist of exactly 11 digits!' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       return;
     }
@@ -1116,7 +1134,8 @@ export default function Dashboard({ onLogout }) {
 
                 <div>
                   <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Contact Number:</label>
-                  <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter contact number" />
+                  <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '4px' }} placeholder="Enter 11-digit contact number" />
+                  <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '16px' }}>Must be 11 digits</div>
                 </div>
               </div>
 
