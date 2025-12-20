@@ -105,4 +105,94 @@ export async function deleteVisitor(id) {
   await deleteDoc(ref);
 }
 
+// Record visitor attendance (scan-in event)
+export async function recordAttendance(visitorId, visitorName, scanDate, scanTime) {
+  const col = collection(db, 'attendance');
+  try {
+    console.log('[Firestore] Recording attendance for:', visitorId, visitorName, scanDate, scanTime);
+    const attendanceRecord = {
+      visitorId: visitorId,
+      visitorName: visitorName,
+      scanDate: scanDate, // Format: MM-DD-YY
+      scanTime: scanTime, // Format: HH:MM:SS AM/PM
+      timestamp: new Date().toISOString(),
+      recordedAt: new Date()
+    };
+    
+    const docRef = await addDoc(col, attendanceRecord);
+    console.log('[Firestore] Attendance recorded successfully:', docRef.id);
+    return docRef.id;
+  } catch (err) {
+    console.error('[Firestore] Error recording attendance:', err);
+    throw err;
+  }
+}
+
+// Get attendance records for a specific date
+export async function getAttendanceByDate(date) {
+  try {
+    console.log('[Firestore] Fetching attendance records for date:', date);
+    const q = query(
+      collection(db, 'attendance'),
+      orderBy('scanTime', 'asc')
+    );
+    const snap = await getDocs(q);
+    
+    // Filter records by date
+    const recordsForDate = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(record => record.scanDate === date);
+    
+    console.log('[Firestore] Found', recordsForDate.length, 'attendance records for date:', date);
+    return recordsForDate;
+  } catch (err) {
+    console.warn('[Firestore] Error fetching attendance records:', err.message);
+    // Fallback: fetch all without orderBy
+    try {
+      const snap = await getDocs(collection(db, 'attendance'));
+      const recordsForDate = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(record => record.scanDate === date)
+        .sort((a, b) => {
+          const timeA = a.scanTime || '';
+          const timeB = b.scanTime || '';
+          return timeA.localeCompare(timeB);
+        });
+      console.log('[Firestore] Fallback: Found', recordsForDate.length, 'attendance records for date:', date);
+      return recordsForDate;
+    } catch (fallbackErr) {
+      console.error('[Firestore] Failed to fetch attendance records:', fallbackErr);
+      return [];
+    }
+  }
+}
+
+// Get all attendance records
+export async function getAllAttendance() {
+  try {
+    console.log('[Firestore] Fetching all attendance records...');
+    const q = query(collection(db, 'attendance'), orderBy('recordedAt', 'desc'));
+    const snap = await getDocs(q);
+    console.log('[Firestore] Found', snap.docs.length, 'total attendance records');
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    console.warn('[Firestore] orderBy failed, trying fallback:', err.message);
+    try {
+      const snap = await getDocs(collection(db, 'attendance'));
+      const sorted = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => {
+          const timeA = a.recordedAt ? new Date(a.recordedAt).getTime() : 0;
+          const timeB = b.recordedAt ? new Date(b.recordedAt).getTime() : 0;
+          return timeB - timeA;
+        });
+      console.log('[Firestore] Fallback: Found', sorted.length, 'total attendance records');
+      return sorted;
+    } catch (fallbackErr) {
+      console.error('[Firestore] Failed to fetch all attendance records:', fallbackErr);
+      return [];
+    }
+  }
+}
+
 export default null;
