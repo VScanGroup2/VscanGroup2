@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import bgImage from '../Styles/bg.png';
-import { listenVisitorsRealtime, addVisitor as addVisitorDoc, updateVisitor } from '../lib/firestore';
+import { listenVisitorsRealtime, addVisitor as addVisitorDoc, updateVisitor, recordAttendance, getAttendanceByDate } from '../lib/firestore';
 import uploadImageToCloudinary from '../lib/cloudinary';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
@@ -15,6 +15,7 @@ export default function Dashboard({ onLogout }) {
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [monitoringSearchQuery, setMonitoringSearchQuery] = useState('');
   const [attendanceDate, setAttendanceDate] = useState('');
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
   // Registration form state
   const [formData, setFormData] = useState({ visitorName: '', roomNumber: '', patientName: '', contactNumber: '' });
   const [selectedFile, setSelectedFile] = useState(null);
@@ -136,6 +137,28 @@ export default function Dashboard({ onLogout }) {
       }
     }, 100);
   }, []);
+
+  // Load attendance records when attendance date changes
+  useEffect(() => {
+    if (attendanceDate && currentView === 'attendance') {
+      const loadAttendance = async () => {
+        try {
+          // Convert from YYYY-MM-DD to MM-DD-YY format
+          const [year, month, day] = attendanceDate.split('-');
+          const formattedDate = `${month}-${day}-${year.slice(-2)}`;
+          
+          console.log('[Dashboard] Loading attendance for date:', formattedDate);
+          const records = await getAttendanceByDate(formattedDate);
+          setAttendanceRecords(records);
+          console.log('[Dashboard] Loaded', records.length, 'attendance records');
+        } catch (err) {
+          console.error('[Dashboard] Error loading attendance:', err);
+          setAttendanceRecords([]);
+        }
+      };
+      loadAttendance();
+    }
+  }, [attendanceDate, currentView]);
 
   const showView = (view) => setCurrentView(view);
 
@@ -432,6 +455,29 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
+  // Record attendance scan
+  const recordScan = async (visitorId, visitorName) => {
+    try {
+      const now = new Date();
+      const scanDate = now.toLocaleDateString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: '2-digit' 
+      });
+      const scanTime = now.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true 
+      });
+      
+      await recordAttendance(visitorId, visitorName, scanDate, scanTime);
+      console.log('[Dashboard] Attendance recorded for:', visitorName);
+    } catch (err) {
+      console.error('[Dashboard] Error recording attendance:', err);
+    }
+  };
+
   // Parse QR/string from scanner and load visitor info (shared logic)
   const parseQrString = (raw) => {
     try {
@@ -444,6 +490,9 @@ export default function Dashboard({ onLogout }) {
         // Not JSON — treat as ID lookup
         const visitor = visitors.find(v => v.id === trimmed || v.id === trimmed.replace(/\r|\n/g, ''));
         if (visitor) {
+          // Record attendance scan
+          recordScan(visitor.id, visitor.name);
+          
           // Check if visitor is already checked-in (active)
           if (visitor.status === 'checked-in' || visitor.status === 'active') {
             // Check if this is a second scan (already has checkOutTime) or first scan (no checkOutTime)
@@ -487,6 +536,9 @@ export default function Dashboard({ onLogout }) {
       if (qrData && (qrData.id || qrData.name)) {
         const visitor = visitors.find(v => v.id === qrData.id) || null;
         if (visitor) {
+          // Record attendance scan
+          recordScan(visitor.id, visitor.name);
+          
           // Check if visitor is already checked-in (active)
           if (visitor.status === 'checked-in' || visitor.status === 'active') {
             // Check if this is a second scan (already has checkOutTime) or first scan (no checkOutTime)
@@ -703,7 +755,7 @@ export default function Dashboard({ onLogout }) {
                 marginBottom: '12px'
               }}>
                 <div style={{ fontSize: '3em', marginBottom: '8px' }}></div>
-                <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '12px' }}>Use your USB scanner or click the button below to activate keyboard-scanner input.</div>
+                <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '12px' }}></div>
                 <button 
                   onClick={activateUsbScanner}
                   style={{ 
@@ -973,8 +1025,8 @@ export default function Dashboard({ onLogout }) {
                     <tr>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Contact</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Patient Name</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Contact Number</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1001,8 +1053,8 @@ export default function Dashboard({ onLogout }) {
                     <tr>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Contact</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Patient Name</th>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Contact Number</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Time Out</th>
                       <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
@@ -1162,16 +1214,47 @@ export default function Dashboard({ onLogout }) {
 
           {currentView === 'attendance' && (
             <div>
-              <label style={{ display: 'block', marginBottom: '8px' }}>Select Date</label>
-              <input type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} />
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Date</label>
+              <input type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '16px' }} />
 
-              <div style={{ marginTop: '12px', overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)' }}>{attendanceVisitors.map(v => (
-                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
-                  <div style={{ fontWeight: 700 }}>{v.name}</div>
-                  <div style={{ color: '#666' }}>{v.room} — {v.timeIn} — {v.status}</div>
-                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
+              {attendanceDate ? (
+                <div>
+                  <div style={{ marginBottom: '12px', padding: '10px', background: '#f0f0f0', borderRadius: '6px', fontWeight: 'bold', color: '#1a8f6f' }}>
+                    Total Scans for {attendanceDate}: <span style={{ fontSize: '1.2em' }}>{attendanceRecords.length}</span>
+                  </div>
+                  
+                  {attendanceRecords.length === 0 ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '1em' }}>
+                      No attendance records for this date
+                    </div>
+                  ) : (
+                    <div style={{ overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 400px)' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95em' }}>
+                        <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
+                          <tr>
+                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>#</th>
+                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Visitor Name</th>
+                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Scan Time</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {attendanceRecords.map((record, index) => (
+                            <tr key={record.id} style={{ borderBottom: '1px solid #eee', background: index % 2 === 0 ? '#f9f9f9' : 'white' }}>
+                              <td style={{ padding: '10px', color: '#666' }}>{index + 1}</td>
+                              <td style={{ padding: '10px', fontWeight: '500', color: '#333' }}>{record.visitorName}</td>
+                              <td style={{ padding: '10px', color: '#666' }}>{record.scanTime}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              ))}</div>
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '1em' }}>
+                  Please select a date to view attendance records
+                </div>
+              )}
             </div>
           )}
 
@@ -1199,10 +1282,10 @@ export default function Dashboard({ onLogout }) {
                         <strong style={{ color: '#1a8f6f' }}>Room:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.room}</span>
                       </div>
                       <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                        <strong style={{ color: '#1a8f6f' }}>Patient:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.patient}</span>
+                        <strong style={{ color: '#1a8f6f' }}>Patient Name:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.patient}</span>
                       </div>
                       <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                        <strong style={{ color: '#1a8f6f' }}>Contact:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.contact}</span>
+                        <strong style={{ color: '#1a8f6f' }}>Contact Number:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.contact}</span>
                       </div>
                       <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
                         <strong style={{ color: '#1a8f6f' }}>Registration:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.registrationDateTime}</span>
