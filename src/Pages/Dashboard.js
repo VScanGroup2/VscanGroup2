@@ -256,7 +256,7 @@ export default function Dashboard({ onLogout }) {
       const docId = await addVisitorDoc(visitorData);
       console.log('handleRegister: added visitor', docId);
       
-      // Generate QR Code
+      // Generate QR Code with photo included
       const qrData = JSON.stringify({
         id: docId,
         name: formData.visitorName,
@@ -265,7 +265,8 @@ export default function Dashboard({ onLogout }) {
         contact: formData.contactNumber,
         checkIn: visitorData.checkInTime,
         date: registrationDate,
-        fullDateTime: registrationDateTime
+        fullDateTime: registrationDateTime,
+        photo: photoUrl
       });
       
       const qrUrl = await QRCode.toDataURL(qrData, {
@@ -285,7 +286,8 @@ export default function Dashboard({ onLogout }) {
         patient: formData.patientName,
         contact: formData.contactNumber,
         checkIn: visitorData.checkInTime,
-        registrationDateTime: registrationDateTime
+        registrationDateTime: registrationDateTime,
+        photo: photoUrl
       });
       
       setMessage({ type: 'success', text: `Visitor registered successfully!` });
