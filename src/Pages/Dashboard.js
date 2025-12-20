@@ -14,6 +14,7 @@ export default function Dashboard({ onLogout }) {
   const [registeredSearchQuery, setRegisteredSearchQuery] = useState('');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [monitoringSearchQuery, setMonitoringSearchQuery] = useState('');
+  const [monitoringTab, setMonitoringTab] = useState('active');
   const [attendanceDate, setAttendanceDate] = useState('');
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   // Registration form state
@@ -741,41 +742,43 @@ export default function Dashboard({ onLogout }) {
           aria-hidden="true"
         />
         {currentView === 'monitoring' && (
-        <div style={{ width: 320, background: 'white', borderRadius: 10, padding: 20, boxShadow: '0 4px 10px rgba(0,0,0,0.08)', height: 'fit-content', position: 'sticky', top: '20px' }}>
-          <h2 style={{ color: '#1a8f6f', marginBottom: '16px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px' }}>VISITOR ID SCANNER</h2>
+        <div style={{ width: 360, background: 'white', borderRadius: 12, padding: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', position: 'sticky', top: '20px', height: 'calc(100vh - 60px)', maxHeight: '100vh' }}>
+          <h2 style={{ color: '#1a8f6f', marginBottom: '18px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px', fontWeight: '700' }}> SCANNER</h2>
           
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '0.9em' }}>Scan Visitor QR Code:</label>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', scrollbarGutter: 'stable' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontWeight: '600', color: '#333', marginBottom: '10px', fontSize: '0.9em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Scan QR:</label>
             
             {!isCameraActive ? (
               <div style={{ 
                 background: '#f8f9fa', 
-                padding: '16px', 
+                padding: '18px', 
                 borderRadius: '8px', 
                 border: '2px dashed #1a8f6f',
                 textAlign: 'center',
                 marginBottom: '12px'
               }}>
-                <div style={{ fontSize: '3em', marginBottom: '8px' }}></div>
-                <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '12px' }}></div>
+                <div style={{ fontSize: '3.2em', marginBottom: '8px' }}></div>
+                <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '12px', lineHeight: '1.4' }}>Ready to scan</div>
                 <button 
                   onClick={activateUsbScanner}
                   style={{ 
                     width: '100%', 
                     padding: '12px', 
-                    background: '#007bff', 
+                    background: '#1a8f6f', 
                     color: 'white', 
                     border: 'none', 
-                    borderRadius: '8px', 
+                    borderRadius: '6px', 
                     cursor: 'pointer',
-                    fontWeight: 'bold',
-                    fontSize: '1em',
-                    transition: 'background 0.3s'
+                    fontWeight: '700',
+                    fontSize: '0.95em',
+                    transition: 'all 0.3s',
+                    boxShadow: '0 2px 6px rgba(26, 143, 111, 0.2)'
                   }}
-                  onMouseOver={(e) => e.target.style.background = '#0069d9'}
-                  onMouseOut={(e) => e.target.style.background = '#007bff'}
+                  onMouseOver={(e) => e.target.style.background = '#158f6f'}
+                  onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
                 >
-                  ACTIVATE USB SCANNER
+                  ACTIVATE
                 </button>
 
               </div>
@@ -788,10 +791,13 @@ export default function Dashboard({ onLogout }) {
                   ref={videoRef}
                   style={{ 
                     width: '100%', 
+                    height: '280px',
                     borderRadius: '8px', 
                     border: '3px solid #1a8f6f',
                     display: 'block',
-                    background: '#000'
+                    background: '#000',
+                    objectFit: 'cover',
+                    boxShadow: '0 2px 8px rgba(26, 143, 111, 0.15)'
                   }}
                   autoPlay
                   playsInline
@@ -802,19 +808,19 @@ export default function Dashboard({ onLogout }) {
                   top: '50%', 
                   left: '50%', 
                   transform: 'translate(-50%, -50%)',
-                  width: '200px',
-                  height: '200px',
-                  border: '3px solid #1a8f6f',
-                  borderRadius: '8px',
-                  boxShadow: '0 0 0 99999px rgba(0, 0, 0, 0.3)',
+                  width: '220px',
+                  height: '220px',
+                  border: '4px solid #1a8f6f',
+                  borderRadius: '12px',
+                  boxShadow: '0 0 0 99999px rgba(0, 0, 0, 0.4)',
                   pointerEvents: 'none'
                 }}>
                   <div style={{ 
                     position: 'absolute',
                     top: '-2px',
                     left: '-2px',
-                    width: '20px',
-                    height: '20px',
+                    width: '22px',
+                    height: '22px',
                     borderTop: '4px solid #1a8f6f',
                     borderLeft: '4px solid #1a8f6f'
                   }}></div>
@@ -822,8 +828,8 @@ export default function Dashboard({ onLogout }) {
                     position: 'absolute',
                     top: '-2px',
                     right: '-2px',
-                    width: '20px',
-                    height: '20px',
+                    width: '22px',
+                    height: '22px',
                     borderTop: '4px solid #1a8f6f',
                     borderRight: '4px solid #1a8f6f'
                   }}></div>
@@ -831,8 +837,8 @@ export default function Dashboard({ onLogout }) {
                     position: 'absolute',
                     bottom: '-2px',
                     left: '-2px',
-                    width: '20px',
-                    height: '20px',
+                    width: '22px',
+                    height: '22px',
                     borderBottom: '4px solid #1a8f6f',
                     borderLeft: '4px solid #1a8f6f'
                   }}></div>
@@ -840,8 +846,8 @@ export default function Dashboard({ onLogout }) {
                     position: 'absolute',
                     bottom: '-2px',
                     right: '-2px',
-                    width: '20px',
-                    height: '20px',
+                    width: '22px',
+                    height: '22px',
                     borderBottom: '4px solid #1a8f6f',
                     borderRight: '4px solid #1a8f6f'
                   }}></div>
@@ -851,55 +857,60 @@ export default function Dashboard({ onLogout }) {
                   bottom: '10px',
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  background: 'rgba(26, 143, 111, 0.9)',
+                  background: 'rgba(26, 143, 111, 0.95)',
                   color: 'white',
                   padding: '8px 16px',
                   borderRadius: '20px',
-                  fontSize: '0.85em',
-                  fontWeight: 'bold'
+                  fontSize: '0.8em',
+                  fontWeight: '600',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                  whiteSpace: 'nowrap'
                 }}>
-                  Scanning...
+                  Scanning
                 </div>
                 <button 
                   onClick={stopCamera}
                   style={{ 
                     width: '100%', 
                     padding: '10px', 
-                    marginTop: '8px',
+                    marginTop: '10px',
                     background: '#dc3545', 
                     color: 'white', 
                     border: 'none', 
-                    borderRadius: '8px', 
+                    borderRadius: '6px', 
                     cursor: 'pointer',
-                    fontWeight: 'bold',
+                    fontWeight: '700',
                     fontSize: '0.9em',
-                    transition: 'background 0.3s'
+                    transition: 'all 0.3s',
+                    boxShadow: '0 2px 6px rgba(220, 53, 69, 0.2)'
                   }}
                   onMouseOver={(e) => e.target.style.background = '#c82333'}
                   onMouseOut={(e) => e.target.style.background = '#dc3545'}
                 >
-                  STOP CAMERA
+                  ⏹ STOP
                 </button>
               </div>
             )}
+            </div>
           </div>
 
           {scannedVisitorData && (
             <div style={{ 
-              marginTop: '20px', 
-              padding: '16px', 
+              marginTop: '24px', 
+              padding: '24px', 
               background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
-              borderRadius: '12px', 
+              borderRadius: '14px', 
               border: '3px solid #1a8f6f',
-              boxShadow: '0 4px 12px rgba(26, 143, 111, 0.2)',
+              boxShadow: '0 6px 16px rgba(26, 143, 111, 0.2)',
               overflowY: 'auto',
               overflowX: 'hidden',
               scrollbarGutter: 'stable',
-              maxHeight: 'calc(100vh - 200px)',
-              minWidth: 280
+              maxHeight: 'calc(100vh - 80px)',
+              minHeight: '300px',
+              flex: '1'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.2em', fontWeight: 'bold' }}> VISITOR VERIFIED</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid rgba(26, 143, 111, 0.2)' }}>
+                <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.4em', fontWeight: '700' }}>✓ VISITOR VERIFIED</h3>
                 <button 
                   onClick={() => setScannedVisitorData(null)}
                   style={{ 
@@ -907,11 +918,12 @@ export default function Dashboard({ onLogout }) {
                     color: 'white', 
                     border: 'none', 
                     borderRadius: '6px', 
-                    padding: '6px 12px',
+                    padding: '10px 16px',
                     cursor: 'pointer',
-                    fontSize: '0.9em',
-                    fontWeight: 'bold',
-                    transition: 'background 0.3s'
+                    fontSize: '0.95em',
+                    fontWeight: '700',
+                    transition: 'all 0.3s',
+                    boxShadow: '0 2px 6px rgba(220, 53, 69, 0.2)'
                   }}
                   onMouseOver={(e) => e.target.style.background = '#c82333'}
                   onMouseOut={(e) => e.target.style.background = '#dc3545'}
@@ -921,7 +933,7 @@ export default function Dashboard({ onLogout }) {
               </div>
 
               {scannedVisitorData.photo && (
-                <div style={{ marginBottom: '16px', textAlign: 'center', padding: '12px', background: 'white', borderRadius: '8px' }}>
+                <div style={{ marginBottom: '24px', textAlign: 'center', padding: '18px', background: 'white', borderRadius: '10px', boxShadow: '0 3px 8px rgba(0,0,0,0.1)' }}>
                   <img 
                     src={scannedVisitorData.photo} 
                     alt="Visitor" 
@@ -930,61 +942,62 @@ export default function Dashboard({ onLogout }) {
                       height: '140px', 
                       borderRadius: '50%', 
                       objectFit: 'cover',
-                      border: '4px solid #1a8f6f',
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                      border: '5px solid #1a8f6f',
+                      boxShadow: '0 6px 14px rgba(26, 143, 111, 0.25)',
+                      marginBottom: '10px'
                     }} 
                   />
                   <div style={{ 
-                    marginTop: '8px', 
-                    fontSize: '0.75em', 
+                    fontSize: '0.8em', 
                     color: '#1a8f6f', 
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase'
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: '1px'
                   }}>
                     Verified Photo ID
                   </div>
                 </div>
               )}
 
-              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Visitor Name</div>
-                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1.1em' }}>{scannedVisitorData.name}</div>
+              <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+                <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Visitor Name</div>
+                <div style={{ fontWeight: '700', color: '#1a8f6f', fontSize: '1.18em' }}>{scannedVisitorData.name}</div>
               </div>
 
-              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Contact Number</div>
-                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.contact}</div>
+              <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+                <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Contact Number</div>
+                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.contact}</div>
               </div>
 
-              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Room Number</div>
-                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.room}</div>
+              <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+                <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Room Number</div>
+                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.room}</div>
               </div>
 
-              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Patient Name</div>
-                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.patient}</div>
+              <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+                <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Patient Name</div>
+                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.patient}</div>
               </div>
 
-              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Check-In Time</div>
-                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.timeIn}</div>
+              <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+                <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Check-In Time</div>
+                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.timeIn}</div>
               </div>
 
               {scannedVisitorData.timeOut && (
-                <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                  <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Check-Out Time</div>
-                  <div style={{ fontWeight: 'bold', color: '#333', fontSize: '1em' }}>{scannedVisitorData.timeOut}</div>
+                <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+                  <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Check-Out Time</div>
+                  <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.timeOut}</div>
                 </div>
               )}
 
-              <div style={{ marginBottom: '8px', padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '4px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Registration Date</div>
-                <div style={{ fontWeight: 'bold', color: '#333', fontSize: '0.9em' }}>{scannedVisitorData.fullDate}</div>
+              <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
+                <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Registration Date</div>
+                <div style={{ fontWeight: '700', color: '#333', fontSize: '1em' }}>{scannedVisitorData.fullDate}</div>
               </div>
 
-              <div style={{ padding: '10px', background: 'white', borderRadius: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7em', color: '#666', marginBottom: '6px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}> Current Status</div>
+              <div style={{ padding: '16px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Current Status</div>
                 <span style={{ 
                   padding: '8px 20px', 
                   borderRadius: '20px', 
@@ -1133,74 +1146,128 @@ export default function Dashboard({ onLogout }) {
                   {message.text}
                 </div>
               )}
-              <input placeholder="Search monitoring..." value={monitoringSearchQuery} onChange={(e) => setMonitoringSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
+              <input placeholder="Search monitoring..." value={monitoringSearchQuery} onChange={(e) => setMonitoringSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '20px' }} />
               
-              {/* Active Visitors Table */}
-              <div style={{ marginBottom: '30px' }}>
-                <h2 style={{ color: '#1a8f6f', fontSize: '1.3em', marginBottom: '12px', borderBottom: '2px solid #1a8f6f', paddingBottom: '8px' }}>Active Visitors</h2>
-                <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(50vh - 150px)', minWidth: 0 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
-                    <thead style={{ background: '#d4edda' }}>
-                      <tr>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Time Out</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredMonitoringVisitors.filter(v => v.status === 'active').map((v) => (
-                        <tr key={v.id}>
-                          <td style={{ padding: '10px' }}>{v.name}</td>
-                          <td style={{ padding: '10px' }}>{v.room}</td>
-                          <td style={{ padding: '10px' }}>{v.patient}</td>
-                          <td style={{ padding: '10px' }}>{v.timeIn}</td>
-                          <td style={{ padding: '10px' }}>{v.timeOut || 'N/A'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {filteredMonitoringVisitors.filter(v => v.status === 'active').length === 0 && (
-                    <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No active visitors</div>
-                  )}
-                </div>
+              {/* Tab Navigation */}
+              <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderBottom: '2px solid #ddd' }}>
+                <button
+                  onClick={() => setMonitoringTab('active')}
+                  style={{
+                    flex: 1,
+                    padding: '14px 20px',
+                    fontSize: '1em',
+                    fontWeight: monitoringTab === 'active' ? '700' : '500',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    borderBottom: monitoringTab === 'active' ? '4px solid #1a8f6f' : 'none',
+                    color: monitoringTab === 'active' ? '#1a8f6f' : '#666',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  ✓ Active Visitors
+                </button>
+                <button
+                  onClick={() => setMonitoringTab('discharged')}
+                  style={{
+                    flex: 1,
+                    padding: '14px 20px',
+                    fontSize: '1em',
+                    fontWeight: monitoringTab === 'discharged' ? '700' : '500',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    borderBottom: monitoringTab === 'discharged' ? '4px solid #dc3545' : 'none',
+                    color: monitoringTab === 'discharged' ? '#dc3545' : '#666',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  ⊗ Discharged
+                </button>
               </div>
+
+              {/* Active Visitors Table */}
+              {monitoringTab === 'active' && (
+                <div style={{ animation: 'fadeInSlide 0.4s ease-in' }}>
+                  <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.9em' }}>
+                      <thead style={{ background: '#d4edda', position: 'sticky', top: 0 }}>
+                        <tr>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredMonitoringVisitors.filter(v => v.status === 'active').map((v) => (
+                          <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0f8f5'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                            <td style={{ padding: '10px 8px' }}>{v.name}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.room}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.patient}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.timeIn}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.timeOut || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {filteredMonitoringVisitors.filter(v => v.status === 'active').length === 0 && (
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No active visitors</div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Discharged Visitors Table */}
-              <div>
-                <h2 style={{ color: '#dc3545', fontSize: '1.3em', marginBottom: '12px', borderBottom: '2px solid #dc3545', paddingBottom: '8px' }}>Discharged</h2>
-                <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(33vh - 120px)', minWidth: 0 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
-                    <thead style={{ background: '#f8d7da' }}>
-                      <tr>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Patient</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
-                        <th style={{ padding: '10px', textAlign: 'left' }}>Discharge</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredMonitoringVisitors.filter(v => v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive').map((v) => (
-                        <tr key={v.id}>
-                          <td style={{ padding: '10px' }}>{v.name}</td>
-                          <td style={{ padding: '10px' }}>{v.room}</td>
-                          <td style={{ padding: '10px' }}>{v.patient}</td>
-                          <td style={{ padding: '10px' }}>{v.timeIn}</td>
-                          <td style={{ padding: '10px' }}>{v.timeOut || 'N/A'}</td>
+              {monitoringTab === 'discharged' && (
+                <div style={{ animation: 'fadeInSlide 0.4s ease-in' }}>
+                  <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.9em' }}>
+                      <thead style={{ background: '#f8d7da', position: 'sticky', top: 0 }}>
+                        <tr>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Discharge</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {filteredMonitoringVisitors.filter(v => v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive').length === 0 && (
-                    <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No discharged visitors</div>
-                  )}
+                      </thead>
+                      <tbody>
+                        {filteredMonitoringVisitors.filter(v => v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive').map((v) => (
+                          <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#fdf7f8'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                            <td style={{ padding: '10px 8px' }}>{v.name}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.room}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.patient}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.timeIn}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.timeOut || 'N/A'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {filteredMonitoringVisitors.filter(v => v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive').length === 0 && (
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No discharged visitors</div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              <style>
+                {`
+                  @keyframes fadeInSlide {
+                    from {
+                      opacity: 0;
+                      transform: translateY(5px);
+                    }
+                    to {
+                      opacity: 1;
+                      transform: translateY(0);
+                    }
+                  }
+                `}
+              </style>
             </div>
           )}
-
           {currentView === 'history' && (
             <div>
               <input placeholder="Search history..." value={historySearchQuery} onChange={(e) => setHistorySearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
