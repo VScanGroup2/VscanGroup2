@@ -482,6 +482,7 @@ export default function Dashboard({ onLogout }) {
   };
 
   // Parse QR/string from scanner and load visitor info (shared logic)
+  // Dual-scan system: 1st scan = Time-in, 2nd scan = Time-out
   const parseQrString = (raw) => {
     try {
       if (!raw || !raw.trim()) return false;
@@ -496,37 +497,38 @@ export default function Dashboard({ onLogout }) {
           // Record attendance scan
           recordScan(visitor.id, visitor.name);
           
-          // Check if visitor is already checked-in (active)
-          if (visitor.status === 'checked-in' || visitor.status === 'active') {
-            // Check if this is a second scan (already has checkOutTime) or first scan (no checkOutTime)
-            if (visitor.timeOut) {
-              // Already has time-out recorded, just show info
-              setScannedVisitorData(visitor);
-              setMessage({ type: 'info', text: `${visitor.name} already timed out at ${visitor.timeOut}` });
-              setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-            } else {
-              // Second scan - record as time-out but keep active status
-              const now = new Date();
-              const checkOutTime = now.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit',
-                hour12: true 
-              });
-              
-              updateVisitor(visitor.id, {
-                checkOutTime: checkOutTime
-              });
-              
-              const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
-              setScannedVisitorData(updatedVisitor);
-              setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
-              setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-            }
+          // Dual-scan logic for monitoring
+          const now = new Date();
+          const currentTime = now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            hour12: true 
+          });
+
+          if (!visitor.timeOut) {
+            // FIRST SCAN - Record as Time-in
+            console.log('[Dashboard] First scan for:', visitor.name, ' - Recording as TIME-IN');
+            updateVisitor(visitor.id, {
+              checkInTime: currentTime
+            });
+            
+            const updatedVisitor = { ...visitor, timeIn: currentTime };
+            setScannedVisitorData(updatedVisitor);
+            setMessage({ type: 'success', text: `✓ ${visitor.name} - TIME-IN recorded at ${currentTime}` });
+            setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           } else {
-            setScannedVisitorData(visitor);
-            setMessage({ type: 'info', text: 'Visitor status: ' + visitor.status });
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            // SECOND SCAN - Record as Time-out (Discharge)
+            console.log('[Dashboard] Second scan for:', visitor.name, ' - Recording as TIME-OUT');
+            updateVisitor(visitor.id, {
+              checkOutTime: currentTime,
+              status: 'discharged'
+            });
+            
+            const updatedVisitor = { ...visitor, timeOut: currentTime, status: 'discharged' };
+            setScannedVisitorData(updatedVisitor);
+            setMessage({ type: 'success', text: `⊗ ${visitor.name} - TIME-OUT recorded at ${currentTime} - DISCHARGED` });
+            setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           }
           return true;
         }
@@ -542,37 +544,38 @@ export default function Dashboard({ onLogout }) {
           // Record attendance scan
           recordScan(visitor.id, visitor.name);
           
-          // Check if visitor is already checked-in (active)
-          if (visitor.status === 'checked-in' || visitor.status === 'active') {
-            // Check if this is a second scan (already has checkOutTime) or first scan (no checkOutTime)
-            if (visitor.timeOut) {
-              // Already has time-out recorded, just show info
-              setScannedVisitorData(visitor);
-              setMessage({ type: 'info', text: `${visitor.name} already timed out at ${visitor.timeOut}` });
-              setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-            } else {
-              // Second scan - record as time-out but keep active status
-              const now = new Date();
-              const checkOutTime = now.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit',
-                hour12: true 
-              });
-              
-              updateVisitor(visitor.id, {
-                checkOutTime: checkOutTime
-              });
-              
-              const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
-              setScannedVisitorData(updatedVisitor);
-              setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
-              setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-            }
+          // Dual-scan logic for monitoring
+          const now = new Date();
+          const currentTime = now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit',
+            hour12: true 
+          });
+
+          if (!visitor.timeOut) {
+            // FIRST SCAN - Record as Time-in
+            console.log('[Dashboard] First scan for:', visitor.name, ' - Recording as TIME-IN');
+            updateVisitor(visitor.id, {
+              checkInTime: currentTime
+            });
+            
+            const updatedVisitor = { ...visitor, timeIn: currentTime };
+            setScannedVisitorData(updatedVisitor);
+            setMessage({ type: 'success', text: `✓ ${visitor.name} - TIME-IN recorded at ${currentTime}` });
+            setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           } else {
-            setScannedVisitorData(visitor);
-            setMessage({ type: 'info', text: 'Visitor status: ' + visitor.status });
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            // SECOND SCAN - Record as Time-out (Discharge)
+            console.log('[Dashboard] Second scan for:', visitor.name, ' - Recording as TIME-OUT');
+            updateVisitor(visitor.id, {
+              checkOutTime: currentTime,
+              status: 'discharged'
+            });
+            
+            const updatedVisitor = { ...visitor, timeOut: currentTime, status: 'discharged' };
+            setScannedVisitorData(updatedVisitor);
+            setMessage({ type: 'success', text: `⊗ ${visitor.name} - TIME-OUT recorded at ${currentTime} - DISCHARGED` });
+            setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           }
         } else {
           const scannedData = {
@@ -1303,6 +1306,7 @@ export default function Dashboard({ onLogout }) {
                           <tr>
                             <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>#</th>
                             <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Visitor Name</th>
+                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Scan Date</th>
                             <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Scan Time</th>
                           </tr>
                         </thead>
@@ -1311,6 +1315,7 @@ export default function Dashboard({ onLogout }) {
                             <tr key={record.id} style={{ borderBottom: '1px solid #eee', background: index % 2 === 0 ? '#f9f9f9' : 'white' }}>
                               <td style={{ padding: '10px', color: '#666' }}>{index + 1}</td>
                               <td style={{ padding: '10px', fontWeight: '500', color: '#333' }}>{record.visitorName}</td>
+                              <td style={{ padding: '10px', color: '#666' }}>{record.scanDate || 'N/A'}</td>
                               <td style={{ padding: '10px', color: '#666' }}>{record.scanTime}</td>
                             </tr>
                           ))}
