@@ -257,6 +257,16 @@ export default function Dashboard({ onLogout }) {
       const docId = await addVisitorDoc(visitorData);
       console.log('handleRegister: added visitor', docId);
       
+      // Record attendance for the check-in
+      try {
+        const scanDate = visitorData.registrationDate;
+        const scanTime = visitorData.checkInTime;
+        await recordAttendance(docId, formData.visitorName, scanDate, scanTime);
+        console.log('handleRegister: attendance recorded for', formData.visitorName);
+      } catch (attendanceError) {
+        console.error('handleRegister: error recording attendance:', attendanceError);
+      }
+      
       // Generate QR Code with photo included
       const qrData = JSON.stringify({
         id: docId,
@@ -746,13 +756,15 @@ export default function Dashboard({ onLogout }) {
         />
         {currentView === 'monitoring' && (
         <div style={{ width: 360, background: 'white', borderRadius: 12, padding: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', position: 'sticky', top: '20px', height: 'calc(100vh - 60px)', maxHeight: '100vh' }}>
-          <h2 style={{ color: '#1a8f6f', marginBottom: '18px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px', fontWeight: '700' }}> SCANNER</h2>
-          
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', scrollbarGutter: 'stable' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontWeight: '600', color: '#333', marginBottom: '10px', fontSize: '0.9em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Scan QR:</label>
-            
-            {!isCameraActive ? (
+          {!scannedVisitorData && (
+            <>
+              <h2 style={{ color: '#1a8f6f', marginBottom: '18px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px', fontWeight: '700' }}> SCANNER</h2>
+              
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', scrollbarGutter: 'stable' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontWeight: '600', color: '#333', marginBottom: '10px', fontSize: '0.9em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Scan QR:</label>
+                
+                {!isCameraActive ? (
               <div style={{ 
                 background: '#f8f9fa', 
                 padding: '18px', 
@@ -894,8 +906,10 @@ export default function Dashboard({ onLogout }) {
                 </button>
               </div>
             )}
-            </div>
-          </div>
+                </div>
+              </div>
+            </>
+          )}
 
           {scannedVisitorData && (
             <div style={{ 
@@ -1022,7 +1036,7 @@ export default function Dashboard({ onLogout }) {
         )}
         
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' }}>
-          <h1 style={{ color: '#1a8f6f', marginBottom: '20px' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'history' ? "VISITOR'S HISTORY" : currentView === 'attendance' ? 'ATTENDANCE' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
+          <h1 style={{ color: '#1a8f6f', marginBottom: '20px' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'attendance' ? 'ATTENDANCE' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
 
           {currentView === 'dashboard' && (
             <>
@@ -1271,18 +1285,6 @@ export default function Dashboard({ onLogout }) {
               </style>
             </div>
           )}
-          {currentView === 'history' && (
-            <div>
-              <input placeholder="Search history..." value={historySearchQuery} onChange={(e) => setHistorySearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div style={{ overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)' }}>{filteredHistoryVisitors.map(v => (
-                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
-                  <div style={{ fontWeight: 700 }}>{v.name}</div>
-                  <div style={{ color: '#666' }}>{v.room} — {v.patient}</div>
-                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
-                </div>
-              ))}</div>
-            </div>
-          )}
 
           {currentView === 'attendance' && (
             <div>
@@ -1291,8 +1293,9 @@ export default function Dashboard({ onLogout }) {
 
               {attendanceDate ? (
                 <div>
-                  <div style={{ marginBottom: '12px', padding: '10px', background: '#f0f0f0', borderRadius: '6px', fontWeight: 'bold', color: '#1a8f6f' }}>
-                    Total Scans for {attendanceDate}: <span style={{ fontSize: '1.2em' }}>{attendanceRecords.length}</span>
+                  <div style={{ marginBottom: '12px', padding: '15px', background: '#1a8f6f', color: 'white', borderRadius: '6px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Daily Attendance Report for {attendanceDate}</span>
+                    <span style={{ fontSize: '1.5em', background: 'rgba(255,255,255,0.2)', padding: '8px 16px', borderRadius: '20px' }}>Total Visitors: {attendanceRecords.length}</span>
                   </div>
                   
                   {attendanceRecords.length === 0 ? (
@@ -1306,14 +1309,14 @@ export default function Dashboard({ onLogout }) {
                           <tr>
                             <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>#</th>
                             <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Visitor Name</th>
-                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Scan Date</th>
-                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Scan Time</th>
+                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Check-in Date</th>
+                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Check-in Time</th>
                           </tr>
                         </thead>
                         <tbody>
                           {attendanceRecords.map((record, index) => (
                             <tr key={record.id} style={{ borderBottom: '1px solid #eee', background: index % 2 === 0 ? '#f9f9f9' : 'white' }}>
-                              <td style={{ padding: '10px', color: '#666' }}>{index + 1}</td>
+                              <td style={{ padding: '10px', color: '#666', fontWeight: 'bold' }}>{index + 1}</td>
                               <td style={{ padding: '10px', fontWeight: '500', color: '#333' }}>{record.visitorName}</td>
                               <td style={{ padding: '10px', color: '#666' }}>{record.scanDate || 'N/A'}</td>
                               <td style={{ padding: '10px', color: '#666' }}>{record.scanTime}</td>
@@ -1443,7 +1446,6 @@ export default function Dashboard({ onLogout }) {
           <div onClick={() => showView('visitorInfo')} style={{ padding: 10, marginBottom: 8, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>List of Visitors</div>
           <div onClick={() => showView('registered')} style={{ padding: 10, marginBottom: 8, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Registered Visitor</div>
           <div onClick={() => showView('monitoring')} style={{ padding: 10, marginBottom: 8, background: currentView === 'monitoring' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'monitoring' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Monitoring</div>
-          <div onClick={() => showView('history')} style={{ padding: 10, marginBottom: 8, background: currentView === 'history' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'history' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Visitor's History</div>
           <div onClick={() => showView('attendance')} style={{ padding: 10, marginBottom: 16, background: currentView === 'attendance' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'attendance' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Attendance</div>
           <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold' }}>REGISTER</button>
         </div>
