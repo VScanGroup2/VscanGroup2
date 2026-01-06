@@ -33,6 +33,17 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // Update userRole when user changes (e.g., after login)
+  useEffect(() => {
+    if (user) {
+      const role = localStorage.getItem('userRole');
+      console.log('User changed, updating role to:', role);
+      setUserRole(role);
+    } else {
+      setUserRole(null);
+    }
+  }, [user]);
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontSize: '1.5em', color: '#1a8f6f' }}>

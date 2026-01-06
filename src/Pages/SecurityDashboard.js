@@ -21,6 +21,17 @@ export default function SecurityDashboard({ onLogout }) {
   const [scannerActive, setScannerActive] = useState(false);
   const scannerInputRef = useRef(null);
 
+  // Verify security role access on mount
+  useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'security') {
+      // Admin or other user trying to access security dashboard - logout
+      console.warn('Unauthorized user attempted to access security dashboard');
+      localStorage.removeItem('userRole');
+      onLogout();
+    }
+  }, [onLogout]);
+
   // Update current date and time
   useEffect(() => {
     const updateDateTime = () => {
@@ -252,7 +263,7 @@ export default function SecurityDashboard({ onLogout }) {
           <div style={{ background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h1 style={{ color: '#1a8f6f', margin: '0 0 5px 0', fontSize: '1.8em' }}>SECURITY DASHBOARD</h1>
+                <h1 style={{ color: '#dc3545', margin: '0 0 5px 0', fontSize: '1.8em', fontWeight: 'bold' }}>🛡️ SECURITY PERSONNEL DASHBOARD</h1>
                 <div style={{ color: '#666', fontSize: '0.95em' }}>
                   <span>{currentDate}</span> | <span>{currentTime}</span>
                 </div>
@@ -269,6 +280,14 @@ export default function SecurityDashboard({ onLogout }) {
               {message.text}
             </div>
           )}
+
+          {/* Security Access Info */}
+          <div style={{ background: 'white', borderRadius: '10px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', border: '2px solid #dc3545' }}>
+            <div style={{ fontSize: '1.1em', fontWeight: '700', color: '#dc3545', marginBottom: '8px' }}>🛡️ SECURITY ACCESS</div>
+            <div style={{ fontSize: '0.95em', color: '#333', lineHeight: '1.6' }}>
+              Scan visitor QR codes • Check-in/Check-out • Monitor active visitors • View discharge records
+            </div>
+          </div>
 
           {/* QR Scanner Section */}
           <div style={{ background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
@@ -336,7 +355,7 @@ export default function SecurityDashboard({ onLogout }) {
                 transition: 'all 0.3s ease'
               }}
             >
-              ✓ Active Visitors ({activeVisitors.length})
+              Active Visitors ({activeVisitors.length})
             </button>
             <button
               onClick={() => setSecurityTab('discharged')}
@@ -353,7 +372,7 @@ export default function SecurityDashboard({ onLogout }) {
                 transition: 'all 0.3s ease'
               }}
             >
-              ⊗ Discharged ({dischargedVisitors.length})
+              Discharged ({dischargedVisitors.length})
             </button>
           </div>
 

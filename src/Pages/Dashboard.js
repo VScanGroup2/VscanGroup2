@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import bgImage from '../Styles/bg.png';
-import { listenVisitorsRealtime, addVisitor as addVisitorDoc, updateVisitor, recordAttendance, getAttendanceByDate } from '../lib/firestore';
+import { listenVisitorsRealtime, addVisitor as addVisitorDoc, updateVisitor, recordAttendance, getAttendanceByDate, recordCheckout, getVisitorVisitationHistory, getAllAttendance } from '../lib/firestore';
 import uploadImageToCloudinary from '../lib/cloudinary';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
@@ -17,8 +17,10 @@ export default function Dashboard({ onLogout }) {
   const [monitoringTab, setMonitoringTab] = useState('active');
   const [attendanceDate, setAttendanceDate] = useState('');
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [allAttendanceRecords, setAllAttendanceRecords] = useState([]);
   const [reportSearchQuery, setReportSearchQuery] = useState('');
   const [reportDateFilter, setReportDateFilter] = useState('');
+  const [reportTab, setReportTab] = useState('attendance'); // 'attendance' or 'summary'
   const [securitySearchQuery, setSecuritySearchQuery] = useState('');
   const [securityTab, setSecurityTab] = useState('active');
   // Registration form state
@@ -42,6 +44,17 @@ export default function Dashboard({ onLogout }) {
   const scannerInputRef = useRef(null);
   const [scannerActive, setScannerActive] = useState(false);
   
+
+  // Verify admin role access on mount
+  useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole === 'security') {
+      // Security personnel trying to access admin dashboard - logout
+      console.warn('Security personnel attempted to access admin dashboard');
+      localStorage.removeItem('userRole');
+      onLogout();
+    }
+  }, [onLogout]);
 
   // Update current date and time
   useEffect(() => {
@@ -181,7 +194,23 @@ export default function Dashboard({ onLogout }) {
     }
   }, [attendanceDate, currentView]);
 
-  const showView = (view) => setCurrentView(view);
+  const showView = async (view) => {
+    setCurrentView(view);
+    
+    // Load attendance records when viewing the report
+    if (view === 'report') {
+      try {
+        console.log('[Dashboard] Loading attendance records for report...');
+        const records = await getAllAttendance();
+        setAllAttendanceRecords(records);
+        console.log('[Dashboard] Loaded', records.length, 'attendance records');
+      } catch (error) {
+        console.error('[Dashboard] Error loading attendance records:', error);
+        setMessage({ type: 'error', text: 'Error loading attendance records' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      }
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -390,16 +419,14 @@ export default function Dashboard({ onLogout }) {
   const handleDischarge = async (visitorId) => {
     try {
       const now = new Date();
-      const checkOutTime = now.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        second: '2-digit',
-        hour12: true 
-      });
 
+      // Find visitor to get their name for attendance record
+      const visitor = visitors.find(v => v.id === visitorId);
+
+      // Only update status to discharged, DO NOT record checkout time
       await updateVisitor(visitorId, {
         status: 'discharged',
-        checkOutTime: checkOutTime
+        dischargeTime: now.toISOString()
       });
 
       setMessage({ type: 'success', text: 'Visitor discharged successfully!' });
@@ -412,7 +439,7 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
-  const handleQRScan = () => {
+  const handleQRScan = async () => {
     try {
       if (!qrScanInput.trim()) {
         setMessage({ type: 'error', text: 'Please enter QR code data!' });
@@ -427,10 +454,10 @@ export default function Dashboard({ onLogout }) {
         // Check if visitor is already checked-in (active)
         if (visitor.status === 'checked-in' || visitor.status === 'active') {
           // Check if this is a second scan (already has checkOutTime) or first scan (no checkOutTime)
-          if (visitor.timeOut) {
+          if (visitor.checkOutTime) {
             // Already has time-out recorded, just show info
             setScannedVisitorData(visitor);
-            setMessage({ type: 'info', text: `${visitor.name} already timed out at ${visitor.timeOut}` });
+            setMessage({ type: 'info', text: `${visitor.visitorName} already timed out at ${visitor.checkOutTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 3000);
           } else {
             // First scan after check-in - record as time-out on second scan
@@ -441,14 +468,30 @@ export default function Dashboard({ onLogout }) {
               second: '2-digit',
               hour12: true 
             });
-            
-            updateVisitor(visitor.id, {
-              checkOutTime: checkOutTime
+
+            const checkOutDate = now.toLocaleDateString('en-US', { 
+              month: '2-digit', 
+              day: '2-digit', 
+              year: '2-digit' 
             });
             
-            const updatedVisitor = { ...visitor, checkOutTime: checkOutTime };
+            updateVisitor(visitor.id, {
+              checkOutTime: checkOutTime,
+              checkOutDate: checkOutDate,
+              status: 'checked-out'
+            });
+
+            // Record checkout in attendance
+            try {
+              await recordCheckout(visitor.id, visitor.visitorName, checkOutDate, checkOutTime);
+              console.log('handleQRScan: checkout recorded for', visitor.visitorName);
+            } catch (attendanceError) {
+              console.warn('handleQRScan: error recording checkout:', attendanceError);
+            }
+            
+            const updatedVisitor = { ...visitor, checkOutTime: checkOutTime, checkOutDate: checkOutDate };
             setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `${visitor.name} has timed out at ${checkOutTime}!` });
+            setMessage({ type: 'success', text: `${visitor.visitorName} has timed out at ${checkOutTime}!` });
             setTimeout(() => setMessage({ type: '', text: '' }), 3000);
           }
         } else {
@@ -545,7 +588,7 @@ export default function Dashboard({ onLogout }) {
             
             const updatedVisitor = { ...visitor, timeIn: currentTime };
             setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `✓ ${visitor.name} - TIME-IN recorded at ${currentTime}` });
+            setMessage({ type: 'success', text: `${visitor.name} - TIME-IN recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           } else {
             // SECOND SCAN - Record as Time-out (Discharge)
@@ -557,7 +600,7 @@ export default function Dashboard({ onLogout }) {
             
             const updatedVisitor = { ...visitor, timeOut: currentTime, status: 'discharged' };
             setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `⊗ ${visitor.name} - TIME-OUT recorded at ${currentTime} - DISCHARGED` });
+            setMessage({ type: 'success', text: `${visitor.name} - TIME-OUT recorded at ${currentTime} - DISCHARGED` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           }
           return true;
@@ -592,7 +635,7 @@ export default function Dashboard({ onLogout }) {
             
             const updatedVisitor = { ...visitor, timeIn: currentTime };
             setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `✓ ${visitor.name} - TIME-IN recorded at ${currentTime}` });
+            setMessage({ type: 'success', text: `${visitor.name} - TIME-IN recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           } else {
             // SECOND SCAN - Record as Time-out (Discharge)
@@ -604,7 +647,7 @@ export default function Dashboard({ onLogout }) {
             
             const updatedVisitor = { ...visitor, timeOut: currentTime, status: 'discharged' };
             setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `⊗ ${visitor.name} - TIME-OUT recorded at ${currentTime} - DISCHARGED` });
+            setMessage({ type: 'success', text: `${visitor.name} - TIME-OUT recorded at ${currentTime} - DISCHARGED` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           }
         } else {
@@ -770,7 +813,10 @@ export default function Dashboard({ onLogout }) {
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', height: '100vh', display: 'flex', flexDirection: 'column', backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
       <div style={{ background: '#1a8f6f', color: 'white', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ textAlign: 'center', flex: 1, fontSize: '2.5em', fontWeight: 'bold', letterSpacing: '2px' }}>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</div>
+        <div style={{ textAlign: 'center', flex: 1 }}>
+          <div style={{ fontSize: '2.5em', fontWeight: 'bold', letterSpacing: '2px', marginBottom: '5px' }}>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</div>
+          <div style={{ fontSize: '1em', fontWeight: '600', letterSpacing: '1px', backgroundColor: 'rgba(255,255,255,0.2)', display: 'inline-block', padding: '6px 16px', borderRadius: '20px' }}>👤 ADMIN DASHBOARD</div>
+        </div>
         <button onClick={handleLogout} style={{ padding: '12px 30px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1em', fontWeight: 'bold', cursor: 'pointer' }}>Logout</button>
       </div>
 
@@ -792,7 +838,7 @@ export default function Dashboard({ onLogout }) {
               
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', scrollbarGutter: 'stable' }}>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontWeight: '600', color: '#333', marginBottom: '10px', fontSize: '0.9em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Scan QR:</label>
+                  <label style={{ display: 'block', fontWeight: '600', color: '#333', marginBottom: '10px', fontSize: '1.1em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Scan QR:</label>
                 
                 {!isCameraActive ? (
               <div style={{ 
@@ -804,7 +850,7 @@ export default function Dashboard({ onLogout }) {
                 marginBottom: '12px'
               }}>
                 <div style={{ fontSize: '3.2em', marginBottom: '8px' }}></div>
-                <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '12px', lineHeight: '1.4' }}>Ready to scan</div>
+                <div style={{ fontSize: '1em', color: '#666', marginBottom: '12px', lineHeight: '1.4' }}>Ready to scan</div>
                 <button 
                   onClick={activateUsbScanner}
                   style={{ 
@@ -957,7 +1003,7 @@ export default function Dashboard({ onLogout }) {
               flex: '1'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid rgba(26, 143, 111, 0.2)' }}>
-                <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.4em', fontWeight: '700' }}>✓ VISITOR VERIFIED</h3>
+                <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.4em', fontWeight: '700' }}>VISITOR VERIFIED</h3>
                 <button 
                   onClick={() => setScannedVisitorData(null)}
                   style={{ 
@@ -1008,33 +1054,33 @@ export default function Dashboard({ onLogout }) {
 
               <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
                 <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Visitor Name</div>
-                <div style={{ fontWeight: '700', color: '#1a8f6f', fontSize: '1.18em' }}>{scannedVisitorData.name}</div>
+                <div style={{ fontWeight: '700', color: '#1a8f6f', fontSize: '1.4em' }}>{scannedVisitorData.name}</div>
               </div>
 
               <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
                 <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Contact Number</div>
-                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.contact}</div>
+                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.3em' }}>{scannedVisitorData.contact}</div>
               </div>
 
               <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
                 <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Room Number</div>
-                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.room}</div>
+                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.3em' }}>{scannedVisitorData.room}</div>
               </div>
 
               <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
                 <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Patient Name</div>
-                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.patient}</div>
+                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.3em' }}>{scannedVisitorData.patient}</div>
               </div>
 
               <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
                 <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Check-In Time</div>
-                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.timeIn}</div>
+                <div style={{ fontWeight: '700', color: '#333', fontSize: '1.3em' }}>{scannedVisitorData.timeIn}</div>
               </div>
 
               {scannedVisitorData.timeOut && (
                 <div style={{ marginBottom: '14px', padding: '14px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}>
                   <div style={{ fontSize: '0.73em', color: '#666', marginBottom: '7px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Check-Out Time</div>
-                  <div style={{ fontWeight: '700', color: '#333', fontSize: '1.08em' }}>{scannedVisitorData.timeOut}</div>
+                  <div style={{ fontWeight: '700', color: '#333', fontSize: '1.3em' }}>{scannedVisitorData.timeOut}</div>
                 </div>
               )}
 
@@ -1057,7 +1103,7 @@ export default function Dashboard({ onLogout }) {
                   textTransform: 'uppercase',
                   letterSpacing: '1px'
                 }}>
-                  {scannedVisitorData.status === 'active' ? '✓ ACTIVE' : '⊗ DISCHARGED'}
+                  {scannedVisitorData.status === 'active' ? 'ACTIVE' : 'DISCHARGED'}
                 </span>
               </div>
             </div>
@@ -1065,14 +1111,14 @@ export default function Dashboard({ onLogout }) {
         </div>
         )}
         
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' }}>
-          <h1 style={{ color: '#1a8f6f', marginBottom: '20px', fontSize: '2.5em', fontWeight: 'bold' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'report' ? 'VISITOR REPORT' : currentView === 'security' ? 'SECURITY MONITOR' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable', position: 'relative' }}>
+          <h1 style={{ color: '#1a8f6f', marginBottom: '20px', fontSize: '2em', fontWeight: 'bold', position: 'sticky', top: 0, backgroundColor: 'white', paddingBottom: '10px', zIndex: 5 }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'report' ? 'VISITOR REPORT' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
 
           {currentView === 'dashboard' && (
             <>
               <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: '200px', background: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '1.1em', color: '#666' }}>TOTAL VISITORS</div>
+                  <div style={{ fontSize: '1.4em', color: '#27ae60', fontWeight: 'bold' }}>Active Visitors</div>
                   <div style={{ fontSize: '2em', color: '#1a8f6f', fontWeight: '700' }}>{activeVisitors.length}</div>
                 </div>
                 <div style={{ background: '#1a8f6f', color: 'white', padding: '15px 25px', borderRadius: '8px', fontWeight: '700' }}>
@@ -1109,34 +1155,34 @@ export default function Dashboard({ onLogout }) {
           {currentView === 'visitorInfo' && (
             <div>
               <input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)', minWidth: 0 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
-                  <thead style={{ background: '#f1f1f1' }}>
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 200px)', minWidth: 0, scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px', tableLayout: 'fixed' }}>
+                  <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
-                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Name</th>
-                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Room</th>
-                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Patient Name</th>
-                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Contact Number</th>
-                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Registration Date</th>
-                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Time In</th>
-                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Time Out</th>
-                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Status</th>
-                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Action</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Name</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Room</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Patient Name</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Contact Number</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Registration Date</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Time In</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Time Out</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Status</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredVisitors.map((v) => (
                       <tr key={v.id}>
-                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.name}</td>
-                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.room}</td>
-                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.patient}</td>
-                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.contact}</td>
-                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.date}</td>
-                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.timeIn}</td>
-                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.timeOut || 'N/A'}</td>
-                        <td style={{ padding: '14px', fontSize: '1.05em' }}>
+                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.name}</td>
+                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.room}</td>
+                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.patient}</td>
+                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.contact}</td>
+                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.date}</td>
+                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.timeIn}</td>
+                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.timeOut || 'N/A'}</td>
+                        <td style={{ padding: '10px 8px', fontSize: '1em' }}>
                           <span style={{ 
-                            padding: '6px 14px', 
+                            padding: '6px 10px', 
                             borderRadius: '12px', 
                             fontSize: '0.85em',
                             fontWeight: 'bold',
@@ -1146,7 +1192,7 @@ export default function Dashboard({ onLogout }) {
                             {v.status === 'active' ? 'ACTIVE' : 'DISCHARGED'}
                           </span>
                         </td>
-                        <td style={{ padding: '14px', fontSize: '1.05em' }}>
+                        <td style={{ padding: '10px 8px', fontSize: '0.9em' }}>
                           {v.status === 'active' ? (
                             <button 
                               onClick={() => handleDischarge(v.id)}
@@ -1214,7 +1260,7 @@ export default function Dashboard({ onLogout }) {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  ✓ Active Visitors
+                  Active Visitors
                 </button>
                 <button
                   onClick={() => setMonitoringTab('discharged')}
@@ -1231,7 +1277,7 @@ export default function Dashboard({ onLogout }) {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  ⊗ Discharged
+                  Discharged
                 </button>
               </div>
 
@@ -1330,7 +1376,7 @@ export default function Dashboard({ onLogout }) {
                 </div>
               )}
               
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <input 
                   type="text"
                   placeholder="Search by name, room, or contact..." 
@@ -1344,25 +1390,200 @@ export default function Dashboard({ onLogout }) {
                   onChange={(e) => setReportDateFilter(e.target.value)}
                   style={{ ...inputStyle, minWidth: '150px', padding: '10px 12px' }}
                 />
+                <button
+                  onClick={() => showView('report')}
+                  style={{ padding: '10px 20px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em' }}
+                >
+                  Refresh Report
+                </button>
               </div>
 
-              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.95em' }}>
-                  <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
-                    <tr>
-                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
-                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
-                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
-                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
-                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
-                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
-                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
-                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visitors
-                      .filter(v => {
+              {/* Tab Navigation */}
+              <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '3px solid #ddd', backgroundColor: '#f8f9fa', borderRadius: '8px 8px 0 0' }}>
+                <button
+                  onClick={() => setReportTab('attendance')}
+                  style={{
+                    flex: 1,
+                    padding: '16px 20px',
+                    border: 'none',
+                    background: reportTab === 'attendance' ? '#1a8f6f' : 'transparent',
+                    color: reportTab === 'attendance' ? 'white' : '#666',
+                    fontWeight: reportTab === 'attendance' ? '700' : '600',
+                    fontSize: '1em',
+                    cursor: 'pointer',
+                    borderRadius: '8px 0 0 0',
+                    transition: 'all 0.3s ease',
+                    boxShadow: reportTab === 'attendance' ? '0 2px 8px rgba(26, 143, 111, 0.3)' : 'none'
+                  }}
+                >
+                  All Visitation Records
+                </button>
+                <button
+                  onClick={() => setReportTab('summary')}
+                  style={{
+                    flex: 1,
+                    padding: '16px 20px',
+                    border: 'none',
+                    background: reportTab === 'summary' ? '#1a8f6f' : 'transparent',
+                    color: reportTab === 'summary' ? 'white' : '#666',
+                    fontWeight: reportTab === 'summary' ? '700' : '600',
+                    fontSize: '1em',
+                    cursor: 'pointer',
+                    borderRadius: '0 8px 0 0',
+                    transition: 'all 0.3s ease',
+                    boxShadow: reportTab === 'summary' ? '0 2px 8px rgba(26, 143, 111, 0.3)' : 'none'
+                  }}
+                >
+                  Visitor Summary
+                </button>
+              </div>
+
+              {/* Tab Content - Attendance Records */}
+              {reportTab === 'attendance' && (
+                <div style={{ animation: 'fadeInSlide 0.3s ease' }}>
+                  <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f', marginBottom: '20px' }}>
+                    <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '15px', fontSize: '1.6em' }}>All Visitor Visitation Records (Check-In/Check-Out)</h3>
+                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Total records: <strong>{allAttendanceRecords.length}</strong></p>
+                    
+                    <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 280px)', minWidth: 0, border: '1px solid #ddd' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.15em', background: 'white' }}>
+                        <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
+                          <tr>
+                            <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Visitor Name</th>
+                            <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Event Type</th>
+                            <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
+                            <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Check-In Time</th>
+                            <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Check-Out Time</th>
+                            <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Recorded At</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allAttendanceRecords.length > 0 ? (
+                            allAttendanceRecords.map((record, idx) => (
+                              <tr key={record.id || idx} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f9f9f9'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                                <td style={{ padding: '10px 8px', fontSize: '1.15em' }}>{record.visitorName || 'N/A'}</td>
+                                <td style={{ padding: '10px 8px', fontSize: '1.15em' }}>
+                                  <span style={{ display: 'inline-block', padding: '4px 8px', borderRadius: '3px', background: record.eventType === 'check-in' ? '#cfe2ff' : '#f8d7da', color: record.eventType === 'check-in' ? '#084298' : '#842029', fontSize: '0.9em', fontWeight: '600' }}>
+                                    {record.eventType === 'check-in' ? 'Check-In' : 'Check-Out'}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '10px 8px', fontSize: '1em' }}>{record.scanDate || record.checkOutDate || 'N/A'}</td>
+                                <td style={{ padding: '10px 8px', fontSize: '1em', fontWeight: '500' }}>{record.checkInTime || record.scanTime || '-'}</td>
+                                <td style={{ padding: '10px 8px', fontSize: '1em', fontWeight: '500', color: record.checkoutTime ? '#dc3545' : '#999' }}>{record.checkoutTime || '-'}</td>
+                                <td style={{ padding: '10px 8px', fontSize: '0.9em', color: '#666' }}>
+                                  {record.recordedAt ? new Date(record.recordedAt).toLocaleString('en-US', { 
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: true
+                                  }) : 'N/A'}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="6" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No attendance records found</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab Content - Visitor Summary */}
+              {reportTab === 'summary' && (
+                <div style={{ animation: 'fadeInSlide 0.3s ease' }}>
+                  <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f', marginBottom: '20px' }}>
+                    <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '15px', fontSize: '1.6em' }}>Visitor Summary Report</h3>
+                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Total visitors: <strong>{visitors.filter(v => {
+                      const searchLower = reportSearchQuery.toLowerCase();
+                      const matchesSearch = !reportSearchQuery || 
+                        v.name.toLowerCase().includes(searchLower) ||
+                        v.room.toLowerCase().includes(searchLower) ||
+                        v.contact.toLowerCase().includes(searchLower);
+                      
+                      let matchesDate = true;
+                      if (reportDateFilter) {
+                        try {
+                          const parts = reportDateFilter.split('-');
+                          if (parts.length === 3) {
+                            const [year, month, day] = parts;
+                            const filterDateFormatted = `${month}/${day}/${year.slice(-2)}`;
+                            const filterDateFormattedDash = `${month}-${day}-${year.slice(-2)}`;
+                            matchesDate = v.date === filterDateFormatted || v.date === filterDateFormattedDash;
+                          }
+                        } catch (e) {
+                          matchesDate = false;
+                        }
+                      }
+                      
+                      return matchesSearch && matchesDate;
+                    }).length}</strong></p>
+                    
+                    <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 280px)', minWidth: 0, border: '1px solid #ddd' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.05em', background: 'white' }}>
+                        <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
+                          <tr>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {visitors
+                            .filter(v => {
+                              const searchLower = reportSearchQuery.toLowerCase();
+                              const matchesSearch = !reportSearchQuery || 
+                                v.name.toLowerCase().includes(searchLower) ||
+                                v.room.toLowerCase().includes(searchLower) ||
+                                v.contact.toLowerCase().includes(searchLower);
+                              
+                              let matchesDate = true;
+                              if (reportDateFilter) {
+                                try {
+                                  const parts = reportDateFilter.split('-');
+                                  if (parts.length === 3) {
+                                    const [year, month, day] = parts;
+                                    const filterDateFormatted = `${month}/${day}/${year.slice(-2)}`;
+                                    const filterDateFormattedDash = `${month}-${day}-${year.slice(-2)}`;
+                                    matchesDate = v.date === filterDateFormatted || v.date === filterDateFormattedDash;
+                                  }
+                                } catch (e) {
+                                  matchesDate = false;
+                                }
+                              }
+                              
+                              return matchesSearch && matchesDate;
+                            })
+                            .map((v) => (
+                              <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f5'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                                <td style={{ padding: '12px 10px', fontSize: '1.2em' }}>{v.name}</td>
+                                <td style={{ padding: '12px 10px', fontSize: '1.2em' }}>{v.room}</td>
+                                <td style={{ padding: '12px 10px', fontSize: '1.2em' }}>{v.patient}</td>
+                                <td style={{ padding: '12px 10px', fontSize: '1.2em' }}>{v.contact}</td>
+                                <td style={{ padding: '12px 10px', fontSize: '1.2em' }}>{v.date}</td>
+                                <td style={{ padding: '12px 10px', fontSize: '1.2em' }}>{v.timeIn}</td>
+                                <td style={{ padding: '12px 10px', fontSize: '1.2em', fontWeight: v.timeOut ? '600' : '400', color: v.timeOut ? '#dc3545' : '#999' }}>{v.timeOut || 'Pending'}</td>
+                                <td style={{ padding: '12px 10px', fontSize: '1.2em' }}>
+                                  <span style={{ display: 'inline-block', padding: '6px 12px', borderRadius: '4px', background: v.status === 'active' ? '#d4edda' : '#f8d7da', color: v.status === 'active' ? '#155724' : '#721c24', fontSize: '1em', fontWeight: '600' }}>
+                                    {v.status === 'active' ? 'Active' : 'Discharged'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                      {visitors.filter(v => {
                         const searchLower = reportSearchQuery.toLowerCase();
                         const matchesSearch = !reportSearchQuery || 
                           v.name.toLowerCase().includes(searchLower) ||
@@ -1372,12 +1593,10 @@ export default function Dashboard({ onLogout }) {
                         let matchesDate = true;
                         if (reportDateFilter) {
                           try {
-                            // Convert YYYY-MM-DD from input to MM-DD-YY format
                             const parts = reportDateFilter.split('-');
                             if (parts.length === 3) {
                               const [year, month, day] = parts;
                               const filterDateFormatted = `${month}/${day}/${year.slice(-2)}`;
-                              // Also handle dash format
                               const filterDateFormattedDash = `${month}-${day}-${year.slice(-2)}`;
                               matchesDate = v.date === filterDateFormatted || v.date === filterDateFormattedDash;
                             }
@@ -1387,65 +1606,24 @@ export default function Dashboard({ onLogout }) {
                         }
                         
                         return matchesSearch && matchesDate;
-                      })
-                      .map((v) => (
-                        <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f5'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.name}</td>
-                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.room}</td>
-                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.patient}</td>
-                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.contact}</td>
-                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.date}</td>
-                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.timeIn}</td>
-                          <td style={{ padding: '12px 10px', fontSize: '1.05em', fontWeight: v.timeOut ? '600' : '400', color: v.timeOut ? '#dc3545' : '#999' }}>{v.timeOut || 'Pending'}</td>
-                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>
-                            <span style={{ display: 'inline-block', padding: '6px 12px', borderRadius: '4px', background: v.status === 'active' ? '#d4edda' : '#f8d7da', color: v.status === 'active' ? '#155724' : '#721c24', fontSize: '0.95em', fontWeight: '600' }}>
-                              {v.status === 'active' ? 'Active' : 'Discharged'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-                {visitors.filter(v => {
-                  const searchLower = reportSearchQuery.toLowerCase();
-                  const matchesSearch = !reportSearchQuery || 
-                    v.name.toLowerCase().includes(searchLower) ||
-                    v.room.toLowerCase().includes(searchLower) ||
-                    v.contact.toLowerCase().includes(searchLower);
-                  
-                  let matchesDate = true;
-                  if (reportDateFilter) {
-                    try {
-                      // Convert YYYY-MM-DD from input to MM-DD-YY format
-                      const parts = reportDateFilter.split('-');
-                      if (parts.length === 3) {
-                        const [year, month, day] = parts;
-                        const filterDateFormatted = `${month}/${day}/${year.slice(-2)}`;
-                        // Also handle dash format
-                        const filterDateFormattedDash = `${month}-${day}-${year.slice(-2)}`;
-                        matchesDate = v.date === filterDateFormatted || v.date === filterDateFormattedDash;
-                      }
-                    } catch (e) {
-                      matchesDate = false;
-                    }
-                  }
-                  
-                  return matchesSearch && matchesDate;
-                }).length === 0 && (
-                  <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found</div>
-                )}
-              </div>
+                      }).length === 0 && (
+                        <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <style>
                 {`
                   @keyframes fadeInSlide {
                     from {
                       opacity: 0;
-                      transform: translateY(5px);
+                      transform: translateX(10px);
                     }
                     to {
                       opacity: 1;
-                      transform: translateY(0);
+                      transform: translateX(0);
                     }
                   }
                 `}
@@ -1479,7 +1657,7 @@ export default function Dashboard({ onLogout }) {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  ✓ Active Visitors
+                  Active Visitors
                 </button>
                 <button
                   onClick={() => setSecurityTab('discharged')}
@@ -1496,7 +1674,7 @@ export default function Dashboard({ onLogout }) {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  ⊗ Discharged
+                  Discharged
                 </button>
               </div>
 
@@ -1728,8 +1906,7 @@ export default function Dashboard({ onLogout }) {
           <div onClick={() => showView('visitorInfo')} style={{ padding: 12, marginBottom: 10, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'visitorInfo' ? '600' : '500' }}>List of Visitors</div>
           <div onClick={() => showView('registered')} style={{ padding: 12, marginBottom: 10, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'registered' ? '600' : '500' }}>Registered Visitor</div>
           <div onClick={() => showView('monitoring')} style={{ padding: 12, marginBottom: 10, background: currentView === 'monitoring' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'monitoring' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'monitoring' ? '600' : '500' }}>Monitoring</div>
-          <div onClick={() => showView('report')} style={{ padding: 12, marginBottom: 10, background: currentView === 'report' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'report' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'report' ? '600' : '500' }}>Report</div>
-          <div onClick={() => showView('security')} style={{ padding: 12, marginBottom: 16, background: currentView === 'security' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'security' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'security' ? '600' : '500' }}>Security Monitor</div>
+          <div onClick={() => showView('report')} style={{ padding: 12, marginBottom: 16, background: currentView === 'report' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'report' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'report' ? '600' : '500' }}>Report</div>
           <button onClick={() => showView('register')} style={{ width: '100%', padding: 14, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1em' }}>REGISTER</button>
         </div>
       </div>

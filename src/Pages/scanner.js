@@ -199,7 +199,7 @@ const HospitalIDScanner = () => {
               <h3>ID Scanned Successfully</h3>
             </div>
             <div className="result-info">
-              <div className="success-icon">✓</div>
+              <div className="success-icon">Success</div>
               <p>Welcome to Ignacio Lacson Arroyo Memorial District Hospital</p>
               <p><strong>Patient ID:</strong> {patientID}</p>
               <p><strong>Status:</strong> Verified</p>

@@ -264,7 +264,7 @@ function Home({ onLogout }) {
           {showQRModal && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
               <div style={{ background: 'white', borderRadius: '15px', padding: '40px', maxWidth: '500px', width: '90%', textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
-                <div style={{ fontSize: '3em', marginBottom: '20px' }}>✅</div>
+                <div style={{ fontSize: '3em', marginBottom: '20px' }}>Success</div>
                 <h2 style={{ color: '#1a8f6f', marginBottom: '10px', fontSize: '2em' }}>Registration Successful!</h2>
                 <p style={{ color: '#666', marginBottom: '30px', fontSize: '1.1em' }}>Visitor has been registered successfully</p>
 
@@ -284,7 +284,7 @@ function Home({ onLogout }) {
                     <div ref={qrCodeRef} style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }} />
 
                     <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                      <button onClick={downloadQRCode} style={{ padding: '12px 20px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1em', transition: 'background 0.3s' }} onMouseOver={(e) => e.target.style.background = '#157a5f'} onMouseOut={(e) => e.target.style.background = '#1a8f6f'}>📥 Download QR</button>
+                      <button onClick={downloadQRCode} style={{ padding: '12px 20px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1em', transition: 'background 0.3s' }} onMouseOver={(e) => e.target.style.background = '#157a5f'} onMouseOut={(e) => e.target.style.background = '#1a8f6f'}}>Download QR</button>
                       <button onClick={() => { setShowQRModal(false); showView('registered'); }} style={{ padding: '12px 20px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1em', transition: 'background 0.3s' }} onMouseOver={(e) => e.target.style.background = '#5a6268'} onMouseOut={(e) => e.target.style.background = '#6c757d'}>Close</button>
                     </div>
                   </div>
@@ -298,12 +298,12 @@ function Home({ onLogout }) {
               <h1 style={{ fontSize: '2.5em', color: '#1a8f6f', marginBottom: '30px' }}>Dashboard</h1>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div style={{ background: 'white', padding: '30px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-                  <div style={{ fontSize: '3em', marginBottom: '15px' }}>👥</div>
+                  <div style={{ fontSize: '3em', marginBottom: '15px' }}>Users</div>
                   <h3 style={{ color: '#333', marginBottom: '10px' }}>Total Registered</h3>
                   <div style={{ fontSize: '3em', fontWeight: 'bold', color: '#1a8f6f' }}>{visitors.length}</div>
                 </div>
                 <div style={{ background: 'white', padding: '30px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-                  <div style={{ fontSize: '3em', marginBottom: '15px' }}>🟢</div>
+                  <div style={{ fontSize: '3em', marginBottom: '15px' }}>Active</div>
                   <h3 style={{ color: '#333', marginBottom: '10px' }}>Active Visitors</h3>
                   <div style={{ fontSize: '3em', fontWeight: 'bold', color: '#27ae60' }}>{visitors.filter(v => v.status === 'active').length}</div>
                 </div>
@@ -432,17 +432,17 @@ function Home({ onLogout }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '30px' }}>
                 <div style={{ background: '#d4edda', padding: '25px', borderRadius: '10px', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-                  <div style={{ fontSize: '2.5em', marginBottom: '10px' }}>✅</div>
+                  <div style={{ fontSize: '2.5em', marginBottom: '10px' }}>--</div>
                   <h3 style={{ color: '#155724', margin: '0 0 10px 0' }}>Total</h3>
                   <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#155724' }}>{attendanceVisitors.length}</div>
                 </div>
                 <div style={{ background: '#cce5ff', padding: '25px', borderRadius: '10px', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-                  <div style={{ fontSize: '2.5em', marginBottom: '10px' }}>🟢</div>
+                  <div style={{ fontSize: '2.5em', marginBottom: '10px' }}>--</div>
                   <h3 style={{ color: '#004085', margin: '0 0 10px 0' }}>Active</h3>
                   <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#004085' }}>{attendanceVisitors.filter(v => v.status === 'active').length}</div>
                 </div>
                 <div style={{ background: '#f8d7da', padding: '25px', borderRadius: '10px', textAlign: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-                  <div style={{ fontSize: '2.5em', marginBottom: '10px' }}>🔴</div>
+                  <div style={{ fontSize: '2.5em', marginBottom: '10px' }}>--</div>
                   <h3 style={{ color: '#721c24', margin: '0 0 10px 0' }}>Completed</h3>
                   <div style={{ fontSize: '2.5em', fontWeight: 'bold', color: '#721c24' }}>{attendanceVisitors.filter(v => v.status === 'completed').length}</div>
                 </div>
@@ -481,7 +481,7 @@ function Home({ onLogout }) {
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-                  <div style={{ fontSize: '4em', marginBottom: '20px' }}>📊</div>
+                  <div style={{ fontSize: '4em', marginBottom: '20px' }}>-</div>
                   <p style={{ color: '#666', fontSize: '1.2em' }}>No attendance records for selected date</p>
                 </div>
               )}

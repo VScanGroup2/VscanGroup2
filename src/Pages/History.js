@@ -1,15 +1,78 @@
 import React, { useState, useRef, useEffect } from 'react';
 import '../Styles/History.css';
+import { getAllAttendance, getVisitors } from '../lib/firestore';
+import { calculateVisitDuration } from '../lib/visitationTracking';
 
 const History = () => {
-    const [visitors, setVisitors] = useState([
-        { name: 'John Doe', address: '123 Main St', timeIn: '9:00 AM', timeOut: '5:00 PM', date: '10/12/25', roomNo: '101' },
-        { name: 'Jane Smith', address: '456 Oak Ave', timeIn: '10:30 AM', timeOut: '4:15 PM', date: '10/12/25', roomNo: '205' },
-        { name: 'Bob Johnson', address: '789 Pine Rd', timeIn: '8:45 AM', timeOut: '3:30 PM', date: '10/11/25', roomNo: '101' },
-        { name: 'Alice Brown', address: '321 Elm St', timeIn: '11:00 AM', timeOut: '6:00 PM', date: '10/11/25', roomNo: '303' },
-    ]);
-
+    const [visitors, setVisitors] = useState([]);
+    const [allAttendanceRecords, setAllAttendanceRecords] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [filterType, setFilterType] = useState('all'); // 'all', 'today', 'date'
+    const [selectedDate, setSelectedDate] = useState('');
+
+    // Load visitor data on component mount
+    useEffect(() => {
+        loadVisitorData();
+    }, []);
+
+    const loadVisitorData = async () => {
+        try {
+            setLoading(true);
+            
+            // Fetch all visitors
+            const visitorList = await getVisitors();
+            
+            // Fetch all attendance records
+            const attendanceRecords = await getAllAttendance();
+            
+            console.log('Loaded visitors:', visitorList);
+            console.log('Loaded attendance records:', attendanceRecords);
+            
+            // Merge visitor data with attendance records
+            const mergedData = visitorList.map(visitor => {
+                // Find check-in and check-out records for this visitor
+                const checkInRecord = attendanceRecords.find(
+                    record => record.visitorId === visitor.id && 
+                    (record.eventType === 'check-in' || record.scanTime)
+                );
+                
+                const checkOutRecord = attendanceRecords.find(
+                    record => record.visitorId === visitor.id && 
+                    record.eventType === 'checkout'
+                );
+                
+                return {
+                    id: visitor.id,
+                    name: visitor.visitorName,
+                    visitorName: visitor.visitorName,
+                    address: 'N/A', // Not stored in visitor record
+                    timeIn: checkInRecord?.checkInTime || visitor.checkInTime || 'N/A',
+                    timeOut: checkOutRecord?.checkoutTime || visitor.checkOutTime || 'Not checked out',
+                    date: visitor.registrationDate || checkInRecord?.scanDate || 'N/A',
+                    roomNo: visitor.roomNumber || 'N/A',
+                    patientName: visitor.patientName || 'N/A',
+                    contactNumber: visitor.contactNumber || 'N/A',
+                    status: visitor.status || 'active',
+                    checkInRecord: checkInRecord,
+                    checkOutRecord: checkOutRecord,
+                    timestamp: visitor.timestamp
+                };
+            });
+            
+            setVisitors(mergedData);
+            setAllAttendanceRecords(attendanceRecords);
+        } catch (error) {
+            console.error('Error loading visitor data:', error);
+            // Show dummy data as fallback
+            setVisitors([
+                { name: 'John Doe', address: '123 Main St', timeIn: '9:00 AM', timeOut: '5:00 PM', date: '10/12/25', roomNo: '101', patientName: 'Patient A', contactNumber: '555-1234', status: 'checked-out' },
+                { name: 'Jane Smith', address: '456 Oak Ave', timeIn: '10:30 AM', timeOut: '4:15 PM', date: '10/12/25', roomNo: '205', patientName: 'Patient B', contactNumber: '555-5678', status: 'checked-out' },
+            ]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         animateRows();
@@ -88,150 +151,201 @@ const History = () => {
     };
 
     const showVisitorDetails = (visitor) => {
-        alert(`Visitor Details:\n\nName: ${visitor.name}\nAddress: ${visitor.address}\nTime In: ${visitor.timeIn}\nTime Out: ${visitor.timeOut}\nDate: ${visitor.date}\nRoom: ${visitor.roomNo}`);
-    };
-
-    const addVisitor = (visitorData) => {
-        setVisitors([...visitors, visitorData]);
-    };
-
-    const removeVisitor = (index) => {
-        const newVisitors = visitors.filter((_, i) => i !== index);
-        setVisitors(newVisitors);
-    };
-
-    const handleSearch = (term) => {
-        setSearchTerm(term);
+        const duration = calculateVisitDuration(visitor.timeIn, visitor.timeOut);
+        const durationStr = duration ? duration.formatted : 'N/A';
+        
+        alert(`Visitor Details:\n\nName: ${visitor.name}\nPatient: ${visitor.patientName}\nRoom: ${visitor.roomNo}\nContact: ${visitor.contactNumber}\n\nCheck-In Time: ${visitor.timeIn}\nCheck-Out Time: ${visitor.timeOut}\nVisit Duration: ${durationStr}\n\nDate: ${visitor.date}\nStatus: ${visitor.status}`);
     };
 
     const getFilteredVisitors = () => {
-        if (!searchTerm) return visitors;
+        let filtered = visitors;
         
-        return visitors.filter(visitor => 
+        // Apply date filter
+        if (filterType === 'today') {
+            const today = new Date().toLocaleDateString('en-US', {
+                month: '2-digit',
+                day: '2-digit',
+                year: '2-digit'
+            });
+            filtered = filtered.filter(visitor => visitor.date === today);
+        } else if (filterType === 'date' && selectedDate) {
+            filtered = filtered.filter(visitor => visitor.date === selectedDate);
+        }
+        
+        // Apply search filter
+        if (!searchTerm) return filtered;
+        
+        return filtered.filter(visitor => 
             visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             visitor.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            visitor.roomNo.includes(searchTerm)
+            visitor.roomNo.includes(searchTerm) ||
+            visitor.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            visitor.contactNumber.includes(searchTerm)
         );
     };
 
     const exportToCSV = () => {
-        const headers = ['Name', 'Address', 'Time In', 'Time Out', 'Date', 'Room No'];
+        const headers = ['Name', 'Patient Name', 'Room No', 'Contact Number', 'Check-In Time', 'Check-Out Time', 'Date', 'Visit Status'];
+        const filteredVisitors = getFilteredVisitors();
         const csvContent = [
             headers.join(','),
-            ...visitors.map(visitor => 
-                Object.values(visitor).map(value => `"${value}"`).join(',')
-            )
+            ...filteredVisitors.map(visitor => {
+                const duration = calculateVisitDuration(visitor.timeIn, visitor.timeOut);
+                const durationStr = duration ? duration.formatted : 'N/A';
+                return [
+                    `"${visitor.name}"`,
+                    `"${visitor.patientName}"`,
+                    `"${visitor.roomNo}"`,
+                    `"${visitor.contactNumber}"`,
+                    `"${visitor.timeIn}"`,
+                    `"${visitor.timeOut}"`,
+                    `"${visitor.date}"`,
+                    `"${visitor.status}"`
+                ].join(',');
+            })
         ].join('\n');
         
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'visitor-history.csv';
+        a.download = `visitor-history-${new Date().toLocaleDateString()}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
     };
 
     const addNewVisitor = () => {
-        const name = prompt('Enter visitor name:');
-        if (!name) return;
-        
-        const address = prompt('Enter visitor address:');
-        if (!address) return;
-        
-        const timeIn = prompt('Enter time in (e.g., 9:00 AM):');
-        if (!timeIn) return;
-        
-        const timeOut = prompt('Enter time out (e.g., 5:00 PM):');
-        if (!timeOut) return;
-        
-        const date = new Date().toLocaleDateString('en-US', {
-            month: '2-digit',
-            day: '2-digit',
-            year: '2-digit'
-        });
-        
-        const roomNo = prompt('Enter room number:');
-        if (!roomNo) return;
-        
-        const newVisitor = { name, address, timeIn, timeOut, date, roomNo };
-        addVisitor(newVisitor);
+        // This feature is now managed through the Dashboard registration
+        alert('Please register new visitors through the Dashboard page.');
     };
 
-    const filteredVisitors = getFilteredVisitors();
-    const totalVisitors = visitors.length;
-    const todayVisitors = getTodayVisitorsCount();
-    const averageVisitTime = calculateAverageVisitTime();
-    const mostVisitedRoom = getMostVisitedRoom();
+    const removeVisitor = (index) => {
+        // This feature is now managed through the Dashboard
+        alert('Visitor management is done through the Dashboard page.');
+    };
 
     return (
         <div className="history-container">
             <div className="history-header">
-                <h1>Visitor History</h1>
+                <h1>Visitor History & Visitation Records</h1>
                 <div className="action-buttons">
-                    <button onClick={addNewVisitor}>Add Visitor</button>
-                    <button onClick={exportToCSV}>Export CSV</button>
+                    <button onClick={loadVisitorData} disabled={loading}>
+                        {loading ? 'Loading...' : 'Refresh Data'}
+                    </button>
+                    <button onClick={exportToCSV} disabled={loading}>Export CSV</button>
                 </div>
             </div>
 
-            <div className="search-bar">
-                <input
-                    type="text"
-                    placeholder="Search by name, address, or room number..."
-                    value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
-                />
+            <div className="search-and-filter">
+                <div className="search-bar">
+                    <input
+                        type="text"
+                        placeholder="Search by name, patient, room, or contact..."
+                        value={searchTerm}
+                        onChange={(e) => handleSearch(e.target.value)}
+                    />
+                </div>
+                
+                <div className="filter-controls">
+                    <select 
+                        value={filterType} 
+                        onChange={(e) => {
+                            setFilterType(e.target.value);
+                            setSelectedDate('');
+                        }}
+                    >
+                        <option value="all">All Visitors</option>
+                        <option value="today">Today's Visitors</option>
+                        <option value="date">Select Date</option>
+                    </select>
+                    
+                    {filterType === 'date' && (
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => {
+                                const date = new Date(e.target.value);
+                                const formatted = date.toLocaleDateString('en-US', {
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    year: '2-digit'
+                                });
+                                setSelectedDate(formatted);
+                            }}
+                        />
+                    )}
+                </div>
             </div>
 
-            <div id="statsContainer" className="stats-container">
-                <div className="stat-card">
-                    <div className="stat-number">{totalVisitors}</div>
-                    <div className="stat-label">Total Visitors</div>
+            {loading ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#1a8f6f', fontSize: '1.2em' }}>
+                    Loading visitor data...
                 </div>
-                <div className="stat-card">
-                    <div className="stat-number">{todayVisitors}</div>
-                    <div className="stat-label">Today's Visitors</div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-number">{averageVisitTime}</div>
-                    <div className="stat-label">Avg Visit Time</div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-number">{mostVisitedRoom}</div>
-                    <div className="stat-label">Popular Room</div>
-                </div>
-            </div>
+            ) : (
+                <>
+                    <div id="statsContainer" className="stats-container">
+                        <div className="stat-card">
+                            <div className="stat-number">{visitors.length}</div>
+                            <div className="stat-label">Total Visitors</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-number">{getTodayVisitorsCount()}</div>
+                            <div className="stat-label">Today's Visitors</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-number">{calculateAverageVisitTime()}</div>
+                            <div className="stat-label">Avg Visit Time</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-number">{getMostVisitedRoom()}</div>
+                            <div className="stat-label">Popular Room</div>
+                        </div>
+                    </div>
 
-            <div className="table-container">
-                <table className="visitor-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Address</th>
-                            <th>Time In</th>
-                            <th>Time Out</th>
-                            <th>Date</th>
-                            <th>Room No</th>
-                        </tr>
-                    </thead>
-                    <tbody id="visitorTableBody">
-                        {filteredVisitors.map((visitor, index) => (
-                            <tr 
-                                key={index} 
-                                className="visitor-row"
-                                onClick={() => showVisitorDetails(visitor)}
-                            >
-                                <td className="name-cell">{visitor.name}</td>
-                                <td className="address-cell">{visitor.address}</td>
-                                <td className="time-cell">{visitor.timeIn}</td>
-                                <td className="time-cell">{visitor.timeOut}</td>
-                                <td className="date-cell">{visitor.date}</td>
-                                <td className="room-cell">{visitor.roomNo}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    <div className="table-container">
+                        <table className="visitor-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Patient</th>
+                                    <th>Room</th>
+                                    <th>Contact</th>
+                                    <th>Check-In</th>
+                                    <th>Check-Out</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="visitorTableBody">
+                                {getFilteredVisitors().length > 0 ? (
+                                    getFilteredVisitors().map((visitor) => (
+                                        <tr 
+                                            key={visitor.id} 
+                                            className="visitor-row"
+                                            onClick={() => showVisitorDetails(visitor)}
+                                        >
+                                            <td className="name-cell">{visitor.name}</td>
+                                            <td className="patient-cell">{visitor.patientName}</td>
+                                            <td className="room-cell">{visitor.roomNo}</td>
+                                            <td className="contact-cell">{visitor.contactNumber}</td>
+                                            <td className="time-cell">{visitor.timeIn}</td>
+                                            <td className="time-cell">{visitor.timeOut}</td>
+                                            <td className="date-cell">{visitor.date}</td>
+                                            <td className="status-cell">{visitor.status}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="8" style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                                            No visitors found matching your criteria
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

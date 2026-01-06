@@ -105,26 +105,77 @@ export async function deleteVisitor(id) {
   await deleteDoc(ref);
 }
 
-// Record visitor attendance (scan-in event)
+// Record visitor attendance (check-in event)
 export async function recordAttendance(visitorId, visitorName, scanDate, scanTime) {
   const col = collection(db, 'attendance');
   try {
-    console.log('[Firestore] Recording attendance for:', visitorId, visitorName, scanDate, scanTime);
+    console.log('[Firestore] Recording check-in attendance for:', visitorId, visitorName, scanDate, scanTime);
     const attendanceRecord = {
       visitorId: visitorId,
       visitorName: visitorName,
       scanDate: scanDate, // Format: MM-DD-YY
       scanTime: scanTime, // Format: HH:MM:SS AM/PM
+      checkInTime: scanTime, // Store as explicit check-in time
       timestamp: new Date().toISOString(),
-      recordedAt: new Date()
+      recordedAt: new Date(),
+      eventType: 'check-in',
+      status: 'checked-in'
     };
     
     const docRef = await addDoc(col, attendanceRecord);
-    console.log('[Firestore] Attendance recorded successfully:', docRef.id);
+    console.log('[Firestore] Check-in attendance recorded successfully:', docRef.id);
     return docRef.id;
   } catch (err) {
     console.error('[Firestore] Error recording attendance:', err);
     throw err;
+  }
+}
+
+// Record visitor checkout event
+export async function recordCheckout(visitorId, visitorName, checkoutDate, checkoutTime) {
+  const col = collection(db, 'attendance');
+  try {
+    console.log('[Firestore] Recording checkout for:', visitorId, visitorName, checkoutDate, checkoutTime);
+    const checkoutRecord = {
+      visitorId: visitorId,
+      visitorName: visitorName,
+      scanDate: checkoutDate, // Format: MM-DD-YY
+      checkoutTime: checkoutTime, // Format: HH:MM:SS AM/PM
+      timestamp: new Date().toISOString(),
+      recordedAt: new Date(),
+      eventType: 'checkout',
+      status: 'checked-out'
+    };
+    
+    const docRef = await addDoc(col, checkoutRecord);
+    console.log('[Firestore] Checkout recorded successfully:', docRef.id);
+    return docRef.id;
+  } catch (err) {
+    console.error('[Firestore] Error recording checkout:', err);
+    throw err;
+  }
+}
+
+// Get all visitation records for a visitor
+export async function getVisitorVisitationHistory(visitorId) {
+  try {
+    console.log('[Firestore] Fetching visitation history for visitor:', visitorId);
+    const snap = await getDocs(collection(db, 'attendance'));
+    
+    const visits = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(record => record.visitorId === visitorId)
+      .sort((a, b) => {
+        const timeA = a.recordedAt ? new Date(a.recordedAt).getTime() : 0;
+        const timeB = b.recordedAt ? new Date(b.recordedAt).getTime() : 0;
+        return timeB - timeA;
+      });
+    
+    console.log('[Firestore] Found', visits.length, 'visitation records for visitor:', visitorId);
+    return visits;
+  } catch (err) {
+    console.error('[Firestore] Error fetching visitation history:', err);
+    return [];
   }
 }
 
