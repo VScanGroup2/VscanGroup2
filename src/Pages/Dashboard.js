@@ -760,7 +760,7 @@ export default function Dashboard({ onLogout }) {
     return v.date === formattedDate;
   }) : visitors;
 
-  const inputStyle = { width: '100%', padding: '12px', borderRadius: '6px', border: '2px solid #ddd', fontSize: '1em', outline: 'none', transition: 'border-color 0.3s', backgroundColor: 'white' };
+  const inputStyle = { width: '100%', padding: '16px', borderRadius: '8px', border: '2px solid #ddd', fontSize: '1.2em', outline: 'none', transition: 'border-color 0.3s', backgroundColor: 'white' };
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
@@ -770,8 +770,8 @@ export default function Dashboard({ onLogout }) {
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', height: '100vh', display: 'flex', flexDirection: 'column', backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}>
       <div style={{ background: '#1a8f6f', color: 'white', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ textAlign: 'center', flex: 1, fontSize: '2em', fontWeight: 'bold', letterSpacing: '2px' }}>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</div>
-        <button onClick={handleLogout} style={{ padding: '10px 25px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1em', fontWeight: 'bold', cursor: 'pointer' }}>Logout</button>
+        <div style={{ textAlign: 'center', flex: 1, fontSize: '2.5em', fontWeight: 'bold', letterSpacing: '2px' }}>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</div>
+        <button onClick={handleLogout} style={{ padding: '12px 30px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1em', fontWeight: 'bold', cursor: 'pointer' }}>Logout</button>
       </div>
 
       <div style={{ display: 'flex', flex: 1, width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '20px', gap: '20px', overflow: 'hidden' }}>
@@ -1066,7 +1066,7 @@ export default function Dashboard({ onLogout }) {
         )}
         
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' }}>
-          <h1 style={{ color: '#1a8f6f', marginBottom: '20px' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'report' ? 'VISITOR REPORT' : currentView === 'security' ? 'SECURITY MONITOR' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
+          <h1 style={{ color: '#1a8f6f', marginBottom: '20px', fontSize: '2.5em', fontWeight: 'bold' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'report' ? 'VISITOR REPORT' : currentView === 'security' ? 'SECURITY MONITOR' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
 
           {currentView === 'dashboard' && (
             <>
@@ -1085,19 +1085,19 @@ export default function Dashboard({ onLogout }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
                   <thead style={{ background: '#f1f1f1' }}>
                     <tr>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Patient Name</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Contact Number</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Name</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Room</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Patient Name</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Contact Number</th>
                     </tr>
                   </thead>
                   <tbody>
                     {activeVisitors.map((v) => (
                       <tr key={v.id}>
-                        <td style={{ padding: '10px' }}>{v.name}</td>
-                        <td style={{ padding: '10px' }}>{v.room}</td>
-                        <td style={{ padding: '10px' }}>{v.patient}</td>
-                        <td style={{ padding: '10px' }}>{v.contact}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.name}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.room}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.patient}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.contact}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1113,30 +1113,30 @@ export default function Dashboard({ onLogout }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
                   <thead style={{ background: '#f1f1f1' }}>
                     <tr>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Name</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Room</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Patient Name</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Contact Number</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Registration Date</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Time In</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Time Out</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
-                      <th style={{ padding: '10px', textAlign: 'left' }}>Action</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Name</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Room</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Patient Name</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Contact Number</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Registration Date</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Time In</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Time Out</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Status</th>
+                      <th style={{ padding: '14px', textAlign: 'left', fontSize: '1.1em', fontWeight: 'bold' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredVisitors.map((v) => (
                       <tr key={v.id}>
-                        <td style={{ padding: '10px' }}>{v.name}</td>
-                        <td style={{ padding: '10px' }}>{v.room}</td>
-                        <td style={{ padding: '10px' }}>{v.patient}</td>
-                        <td style={{ padding: '10px' }}>{v.contact}</td>
-                        <td style={{ padding: '10px' }}>{v.date}</td>
-                        <td style={{ padding: '10px' }}>{v.timeIn}</td>
-                        <td style={{ padding: '10px' }}>{v.timeOut || 'N/A'}</td>
-                        <td style={{ padding: '10px' }}>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.name}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.room}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.patient}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.contact}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.date}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.timeIn}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>{v.timeOut || 'N/A'}</td>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>
                           <span style={{ 
-                            padding: '4px 12px', 
+                            padding: '6px 14px', 
                             borderRadius: '12px', 
                             fontSize: '0.85em',
                             fontWeight: 'bold',
@@ -1347,17 +1347,17 @@ export default function Dashboard({ onLogout }) {
               </div>
 
               <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.9em' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.95em' }}>
                   <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
                     <tr>
-                      <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
-                      <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
-                      <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
-                      <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
-                      <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
-                      <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
-                      <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
-                      <th style={{ padding: '12px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Status</th>
+                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
+                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
+                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
+                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
+                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                      <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1390,15 +1390,15 @@ export default function Dashboard({ onLogout }) {
                       })
                       .map((v) => (
                         <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f5'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{ padding: '10px 8px' }}>{v.name}</td>
-                          <td style={{ padding: '10px 8px' }}>{v.room}</td>
-                          <td style={{ padding: '10px 8px' }}>{v.patient}</td>
-                          <td style={{ padding: '10px 8px' }}>{v.contact}</td>
-                          <td style={{ padding: '10px 8px' }}>{v.date}</td>
-                          <td style={{ padding: '10px 8px' }}>{v.timeIn}</td>
-                          <td style={{ padding: '10px 8px', fontWeight: v.timeOut ? '600' : '400', color: v.timeOut ? '#dc3545' : '#999' }}>{v.timeOut || 'Pending'}</td>
-                          <td style={{ padding: '10px 8px' }}>
-                            <span style={{ display: 'inline-block', padding: '4px 8px', borderRadius: '4px', background: v.status === 'active' ? '#d4edda' : '#f8d7da', color: v.status === 'active' ? '#155724' : '#721c24', fontSize: '0.85em', fontWeight: '600' }}>
+                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.name}</td>
+                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.room}</td>
+                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.patient}</td>
+                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.contact}</td>
+                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.date}</td>
+                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.timeIn}</td>
+                          <td style={{ padding: '12px 10px', fontSize: '1.05em', fontWeight: v.timeOut ? '600' : '400', color: v.timeOut ? '#dc3545' : '#999' }}>{v.timeOut || 'Pending'}</td>
+                          <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>
+                            <span style={{ display: 'inline-block', padding: '6px 12px', borderRadius: '4px', background: v.status === 'active' ? '#d4edda' : '#f8d7da', color: v.status === 'active' ? '#155724' : '#721c24', fontSize: '0.95em', fontWeight: '600' }}>
                               {v.status === 'active' ? 'Active' : 'Discharged'}
                             </span>
                           </td>
@@ -1468,8 +1468,8 @@ export default function Dashboard({ onLogout }) {
                   onClick={() => setSecurityTab('active')}
                   style={{
                     flex: 1,
-                    padding: '14px 20px',
-                    fontSize: '1em',
+                    padding: '16px 20px',
+                    fontSize: '1.1em',
                     fontWeight: securityTab === 'active' ? '700' : '500',
                     backgroundColor: 'transparent',
                     border: 'none',
@@ -1485,8 +1485,8 @@ export default function Dashboard({ onLogout }) {
                   onClick={() => setSecurityTab('discharged')}
                   style={{
                     flex: 1,
-                    padding: '14px 20px',
-                    fontSize: '1em',
+                    padding: '16px 20px',
+                    fontSize: '1.1em',
                     fontWeight: securityTab === 'discharged' ? '700' : '500',
                     backgroundColor: 'transparent',
                     border: 'none',
@@ -1504,16 +1504,16 @@ export default function Dashboard({ onLogout }) {
               {securityTab === 'active' && (
                 <div style={{ animation: 'fadeInSlide 0.4s ease-in' }}>
                   <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.9em' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.95em' }}>
                       <thead style={{ background: '#d4edda', position: 'sticky', top: 0 }}>
                         <tr>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1526,13 +1526,13 @@ export default function Dashboard({ onLogout }) {
                           return matchesSearch && v.status === 'active';
                         }).map((v) => (
                           <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0f8f5'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                            <td style={{ padding: '10px 8px' }}>{v.name}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.room}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.patient}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.contact}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.date}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.timeIn}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.timeOut || 'N/A'}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.name}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.room}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.patient}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.contact}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.date}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.timeIn}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.timeOut || 'N/A'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1555,15 +1555,15 @@ export default function Dashboard({ onLogout }) {
               {securityTab === 'discharged' && (
                 <div style={{ animation: 'fadeInSlide 0.4s ease-in' }}>
                   <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.9em' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.95em' }}>
                       <thead style={{ background: '#f8d7da', position: 'sticky', top: 0 }}>
                         <tr>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1576,12 +1576,12 @@ export default function Dashboard({ onLogout }) {
                           return matchesSearch && (v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive');
                         }).map((v) => (
                           <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#fdf7f8'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                            <td style={{ padding: '10px 8px' }}>{v.name}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.room}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.patient}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.date}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.timeIn}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.timeOut || 'N/A'}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.name}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.room}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.patient}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.date}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.timeIn}</td>
+                            <td style={{ padding: '12px 10px', fontSize: '1.05em' }}>{v.timeOut || 'N/A'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1724,13 +1724,13 @@ export default function Dashboard({ onLogout }) {
 
         <div style={{ width: 260, background: 'white', borderRadius: 10, padding: 16, boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
           <div onClick={() => showView('dashboard')} style={{ fontSize: 28, textAlign: 'center', marginBottom: 12, cursor: 'pointer' }}></div>
-          <div onClick={() => showView('dashboard')} style={{ padding: 10, marginBottom: 8, background: currentView === 'dashboard' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'dashboard' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Dashboard</div>
-          <div onClick={() => showView('visitorInfo')} style={{ padding: 10, marginBottom: 8, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>List of Visitors</div>
-          <div onClick={() => showView('registered')} style={{ padding: 10, marginBottom: 8, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Registered Visitor</div>
-          <div onClick={() => showView('monitoring')} style={{ padding: 10, marginBottom: 8, background: currentView === 'monitoring' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'monitoring' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Monitoring</div>
-          <div onClick={() => showView('report')} style={{ padding: 10, marginBottom: 8, background: currentView === 'report' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'report' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Report</div>
-          <div onClick={() => showView('security')} style={{ padding: 10, marginBottom: 16, background: currentView === 'security' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'security' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Security Monitor</div>
-          <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold' }}>REGISTER</button>
+          <div onClick={() => showView('dashboard')} style={{ padding: 12, marginBottom: 10, background: currentView === 'dashboard' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'dashboard' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'dashboard' ? '600' : '500' }}>Dashboard</div>
+          <div onClick={() => showView('visitorInfo')} style={{ padding: 12, marginBottom: 10, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'visitorInfo' ? '600' : '500' }}>List of Visitors</div>
+          <div onClick={() => showView('registered')} style={{ padding: 12, marginBottom: 10, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'registered' ? '600' : '500' }}>Registered Visitor</div>
+          <div onClick={() => showView('monitoring')} style={{ padding: 12, marginBottom: 10, background: currentView === 'monitoring' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'monitoring' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'monitoring' ? '600' : '500' }}>Monitoring</div>
+          <div onClick={() => showView('report')} style={{ padding: 12, marginBottom: 10, background: currentView === 'report' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'report' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'report' ? '600' : '500' }}>Report</div>
+          <div onClick={() => showView('security')} style={{ padding: 12, marginBottom: 16, background: currentView === 'security' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'security' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'security' ? '600' : '500' }}>Security Monitor</div>
+          <button onClick={() => showView('register')} style={{ width: '100%', padding: 14, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1em' }}>REGISTER</button>
         </div>
       </div>
     </div>

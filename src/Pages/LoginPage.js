@@ -87,33 +87,6 @@ export default function LoginPage({ onLogin }) {
           </button>
         </div>
       </div>
-
-      {/* Credentials Section */}
-      <div style={{ background: 'rgba(255, 255, 255, 0.95)', borderRadius: '15px', padding: '30px', boxShadow: '0 8px 30px rgba(0,0,0,0.2)', maxWidth: '500px', width: '100%', marginTop: '20px' }}>
-        <h3 style={{ fontSize: '1.3em', fontWeight: 'bold', color: '#1a8f6f', marginTop: 0, marginBottom: '20px', textAlign: 'center' }}>Login Credentials</h3>
-        
-        {/* Admin Credentials */}
-        <div style={{ marginBottom: '20px', padding: '15px', background: '#d4edda', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
-          <div style={{ fontWeight: 'bold', color: '#155724', marginBottom: '8px', fontSize: '1.1em' }}>👤 Administrator</div>
-          <div style={{ color: '#155724', marginBottom: '5px', fontSize: '0.95em' }}>
-            <strong>Email:</strong> vscangroup@gmail.com
-          </div>
-          <div style={{ color: '#155724', fontSize: '0.95em' }}>
-            <strong>Password:</strong> @dmin1234
-          </div>
-        </div>
-
-        {/* Security Personnel Credentials */}
-        <div style={{ padding: '15px', background: '#cfe2ff', borderRadius: '8px', border: '1px solid #b6d4fe' }}>
-          <div style={{ fontWeight: 'bold', color: '#084298', marginBottom: '8px', fontSize: '1.1em' }}>🔐 Security Personnel</div>
-          <div style={{ color: '#084298', marginBottom: '5px', fontSize: '0.95em' }}>
-            <strong>Email:</strong> security@hospital.com
-          </div>
-          <div style={{ color: '#084298', fontSize: '0.95em' }}>
-            <strong>Password:</strong> security123
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
