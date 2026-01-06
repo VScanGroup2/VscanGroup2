@@ -17,12 +17,9 @@ function App() {
     const unsubscribe = subscribeToAuthState((currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        // Get role from localStorage
-        const role = localStorage.getItem('userRole');
-        console.log('User logged in:', currentUser.email, 'Role from localStorage:', role);
-        if (role) {
-          setUserRole(role);
-        }
+        // Get role from user object
+        console.log('User logged in:', currentUser.email, 'Role:', currentUser.role);
+        setUserRole(currentUser.role);
       } else {
         setUserRole(null);
         localStorage.removeItem('userRole');
@@ -30,19 +27,14 @@ function App() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, []);
+    // Ensure loading is set to false after a delay if callback wasn't called
+    const timeout = setTimeout(() => setLoading(false), 500);
 
-  // Update userRole when user changes (e.g., after login)
-  useEffect(() => {
-    if (user) {
-      const role = localStorage.getItem('userRole');
-      console.log('User changed, updating role to:', role);
-      setUserRole(role);
-    } else {
-      setUserRole(null);
-    }
-  }, [user]);
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -54,7 +46,7 @@ function App() {
 
   if (user) {
     // Route based on user role
-    console.log('Current userRole state:', userRole);
+    console.log('Current user:', user.email, 'Current userRole state:', userRole);
     if (userRole === 'security') {
       console.log('Rendering SecurityDashboard');
       return <SecurityDashboard onLogout={() => { 

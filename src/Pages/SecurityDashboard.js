@@ -21,17 +21,6 @@ export default function SecurityDashboard({ onLogout }) {
   const [scannerActive, setScannerActive] = useState(false);
   const scannerInputRef = useRef(null);
 
-  // Verify security role access on mount
-  useEffect(() => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'security') {
-      // Admin or other user trying to access security dashboard - logout
-      console.warn('Unauthorized user attempted to access security dashboard');
-      localStorage.removeItem('userRole');
-      onLogout();
-    }
-  }, [onLogout]);
-
   // Update current date and time
   useEffect(() => {
     const updateDateTime = () => {
@@ -107,62 +96,102 @@ export default function SecurityDashboard({ onLogout }) {
     }, 100);
   }, []);
 
-  // Handle USB scanner input
+  // Handle scanner key input
   useEffect(() => {
-    if (!scannerActive) return;
-
-    const handleScannerInput = (e) => {
-      setScannerBuffer(prev => prev + e.key);
-      
-      // Check if the buffer ends with Enter (scan complete)
+    const handleScannerKeyDown = (e) => {
       if (e.key === 'Enter') {
-        const qrData = scannerBuffer.slice(0, -1).trim();
-        if (qrData) {
-          processScan(qrData);
-        }
+        e.preventDefault();
+        const data = scannerBuffer;
         setScannerBuffer('');
+        parseQrString(data);
+        // keep input focused for next scan
+        setTimeout(() => scannerInputRef.current && scannerInputRef.current.focus(), 50);
       }
     };
 
-    if (scannerInputRef.current) {
-      scannerInputRef.current.addEventListener('keypress', handleScannerInput);
+    if (scannerActive && scannerInputRef.current) {
+      scannerInputRef.current.addEventListener('keydown', handleScannerKeyDown);
     }
 
     return () => {
       if (scannerInputRef.current) {
-        scannerInputRef.current.removeEventListener('keypress', handleScannerInput);
+        scannerInputRef.current.removeEventListener('keydown', handleScannerKeyDown);
       }
     };
   }, [scannerActive, scannerBuffer]);
 
-  const processScan = (qrData) => {
+  // Parse QR/string from scanner and load visitor info
+  const parseQrString = (raw) => {
     try {
-      const data = JSON.parse(qrData);
-      const visitor = visitors.find(v => v.id === data.id);
-      
-      if (!visitor) {
-        setMessage({ type: 'error', text: 'Visitor not found in the system!' });
+      if (!raw || !raw.trim()) return false;
+      const trimmed = raw.trim();
+      let qrData;
+      try {
+        qrData = JSON.parse(trimmed);
+      } catch (e) {
+        // Not JSON — treat as ID lookup
+        const visitor = visitors.find(v => v.id === trimmed || v.id === trimmed.replace(/\r|\n/g, ''));
+        if (visitor) {
+          if (visitor.status === 'active') {
+            // Discharge the visitor
+            const now = new Date();
+            const checkOutTime = now.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true
+            });
+            
+            handleCheckOut(visitor.id, checkOutTime);
+            return true;
+          } else {
+            setMessage({ type: 'info', text: 'Visitor is already discharged.' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            return true;
+          }
+        }
+        setMessage({ type: 'error', text: 'Scanned ID not found.' });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-        return;
+        return false;
       }
 
-      if (visitor.status === 'active') {
-        // Discharge the visitor
-        handleCheckOut(visitor.id);
-      } else {
-        setMessage({ type: 'info', text: 'Visitor is already discharged.' });
+      if (qrData && (qrData.id || qrData.name)) {
+        const visitor = visitors.find(v => v.id === qrData.id);
+        if (visitor) {
+          if (visitor.status === 'active') {
+            // Discharge the visitor
+            const now = new Date();
+            const checkOutTime = now.toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: true
+            });
+            
+            handleCheckOut(visitor.id, checkOutTime);
+            return true;
+          } else {
+            setMessage({ type: 'info', text: 'Visitor is already discharged.' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            return true;
+          }
+        }
+        setMessage({ type: 'error', text: 'Visitor not found in the system.' });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        return false;
       }
-    } catch (e) {
-      setMessage({ type: 'error', text: 'Invalid QR code format!' });
-      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    } catch (err) {
+      console.error('parseQrString error', err);
     }
-  };
+    setMessage({ type: 'error', text: 'Unable to parse scanned data.' });
+    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+    return false;
+  }
 
-  const handleCheckOut = async (visitorId) => {
+  const handleCheckOut = async (visitorId, checkOutTime) => {
     try {
       const now = new Date();
-      const checkOutTime = now.toLocaleTimeString('en-US', {
+      const time = checkOutTime || now.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
@@ -172,11 +201,11 @@ export default function SecurityDashboard({ onLogout }) {
       const visitor = visitors.find(v => v.id === visitorId);
 
       await updateVisitor(visitorId, {
-        checkOutTime: checkOutTime,
+        checkOutTime: time,
         status: 'discharged'
       });
 
-      setMessage({ type: 'success', text: `${visitor.name} has been checked out successfully at ${checkOutTime}` });
+      setMessage({ type: 'success', text: `${visitor.name} has been checked out successfully at ${time}` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (err) {
       console.error('Error checking out visitor:', err);
@@ -222,7 +251,7 @@ export default function SecurityDashboard({ onLogout }) {
         const code = jsQR(imageData.data, canvas.width, canvas.height);
 
         if (code) {
-          processScan(code.data);
+          parseQrString(code.data);
           stopCamera();
         }
       }
@@ -280,14 +309,6 @@ export default function SecurityDashboard({ onLogout }) {
               {message.text}
             </div>
           )}
-
-          {/* Security Access Info */}
-          <div style={{ background: 'white', borderRadius: '10px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', border: '2px solid #dc3545' }}>
-            <div style={{ fontSize: '1.1em', fontWeight: '700', color: '#dc3545', marginBottom: '8px' }}>🛡️ SECURITY ACCESS</div>
-            <div style={{ fontSize: '0.95em', color: '#333', lineHeight: '1.6' }}>
-              Scan visitor QR codes • Check-in/Check-out • Monitor active visitors • View discharge records
-            </div>
-          </div>
 
           {/* QR Scanner Section */}
           <div style={{ background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>

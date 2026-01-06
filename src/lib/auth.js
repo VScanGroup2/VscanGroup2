@@ -34,8 +34,9 @@ export const signIn = async (email, password) => {
     'security@hospital.com': { password: 'Secure@123', role: 'security' }
   };
 
-  // Normalize email (lowercase)
+  // Normalize email and password (lowercase, trim whitespace)
   const normalizedEmail = email.toLowerCase().trim();
+  const normalizedPassword = password.trim();
 
   // Check if credentials match an allowed user
   const userConfig = allowedUsers[normalizedEmail];
@@ -44,10 +45,10 @@ export const signIn = async (email, password) => {
     throw new Error('Access denied. Invalid credentials.');
   }
 
-  if (userConfig.password !== password) {
+  if (userConfig.password !== normalizedPassword) {
     console.log('Password mismatch for', normalizedEmail);
     console.log('Expected password:', userConfig.password);
-    console.log('Received password:', password);
+    console.log('Received password:', normalizedPassword);
     throw new Error('Access denied. Invalid credentials.');
   }
 
@@ -84,48 +85,41 @@ export const logout = async () => {
  * @returns {function} unsubscribe function
  */
 export const subscribeToAuthState = (callback) => {
-  // Create a listener that checks localStorage for role changes
-  const checkAuth = () => {
-    const userRole = localStorage.getItem('userRole');
-    if (userRole) {
-      // User is locally authenticated, create mock user object
-      const mockUser = {
-        uid: 'local-user',
-        email: userRole === 'admin' ? 'vscangroup@gmail.com' : 'security@hospital.com',
-        role: userRole
-      };
-      callback(mockUser);
-      return true;
-    }
-    return false;
-  };
-
+  let lastKnownRole = localStorage.getItem('userRole');
+  
   // Check immediately
-  if (checkAuth()) {
-    // Poll localStorage for changes
-    const interval = setInterval(() => {
-      const userRole = localStorage.getItem('userRole');
-      if (!userRole) {
-        // User logged out
-        clearInterval(interval);
-        callback(null);
-      }
-    }, 100);
-    
-    return () => clearInterval(interval);
+  if (lastKnownRole) {
+    const mockUser = {
+      uid: 'local-user',
+      email: lastKnownRole === 'admin' ? 'vscangroup@gmail.com' : 'security@hospital.com',
+      role: lastKnownRole
+    };
+    callback(mockUser);
   }
 
-  // Otherwise use Firebase auth state
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    if (user) {
-      // Get role from localStorage
-      const role = localStorage.getItem('userRole');
-      user.role = role;
+  // Poll localStorage for changes
+  const interval = setInterval(() => {
+    const currentRole = localStorage.getItem('userRole');
+    
+    if (currentRole !== lastKnownRole) {
+      lastKnownRole = currentRole;
+      
+      if (currentRole) {
+        // User logged in
+        const mockUser = {
+          uid: 'local-user',
+          email: currentRole === 'admin' ? 'vscangroup@gmail.com' : 'security@hospital.com',
+          role: currentRole
+        };
+        callback(mockUser);
+      } else {
+        // User logged out
+        callback(null);
+      }
     }
-    callback(user);
-  });
+  }, 100);
 
-  return unsubscribe;
+  return () => clearInterval(interval);
 };
 
 /**

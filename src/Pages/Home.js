@@ -104,6 +104,7 @@ function Home({ onLogout }) {
   const [attendanceDate, setAttendanceDate] = useState('');
   const [showQRModal, setShowQRModal] = useState(false);
   const [currentQRData, setCurrentQRData] = useState(null);
+  const qrCodeRef = useRef(null);
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -284,7 +285,7 @@ function Home({ onLogout }) {
                     <div ref={qrCodeRef} style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }} />
 
                     <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                      <button onClick={downloadQRCode} style={{ padding: '12px 20px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1em', transition: 'background 0.3s' }} onMouseOver={(e) => e.target.style.background = '#157a5f'} onMouseOut={(e) => e.target.style.background = '#1a8f6f'}}>Download QR</button>
+                      <button onClick={downloadQRCode} style={{ padding: '12px 20px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1em', transition: 'background 0.3s' }} onMouseOver={(e) => { e.target.style.background = '#157a5f'; }} onMouseOut={(e) => { e.target.style.background = '#1a8f6f'; }}>Download QR</button>
                       <button onClick={() => { setShowQRModal(false); showView('registered'); }} style={{ padding: '12px 20px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1em', transition: 'background 0.3s' }} onMouseOver={(e) => e.target.style.background = '#5a6268'} onMouseOut={(e) => e.target.style.background = '#6c757d'}>Close</button>
                     </div>
                   </div>
