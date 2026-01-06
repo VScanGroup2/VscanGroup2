@@ -87,19 +87,35 @@ export default function Dashboard({ onLogout }) {
 
         let fullDate = v.registrationFullDate || '';
         if (!fullDate && v.timestamp) {
-          fullDate = new Date(v.timestamp).toLocaleString();
+          fullDate = new Date(v.timestamp).toLocaleString('en-US', { 
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
         }
         if (!fullDate && v.fullDate) {
           fullDate = v.fullDate;
         }
         if (!fullDate) {
-          fullDate = new Date().toLocaleString();
+          fullDate = new Date().toLocaleString('en-US', { 
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
         }
 
         // status normalization: support legacy values
         const statusRaw = (v.status || '').toLowerCase();
         const status = statusRaw === 'checked-in' || statusRaw === 'active' ? 'active'
-          : statusRaw === 'discharged' || statusRaw === 'checked-out' ? 'inactive'
+          : statusRaw === 'discharged' || statusRaw === 'checked-out' ? 'discharged'
           : 'inactive';
 
         return {
@@ -725,7 +741,12 @@ export default function Dashboard({ onLogout }) {
   });
   const filteredMonitoringVisitors = visitors.filter(v => {
     const q = monitoringSearchQuery.toLowerCase();
-    return v.name.toLowerCase().includes(q) || v.room.toLowerCase().includes(q) || v.patient.toLowerCase().includes(q);
+    return (v.name && v.name.toLowerCase().includes(q)) || 
+           (v.room && v.room.toLowerCase().includes(q)) || 
+           (v.patient && v.patient.toLowerCase().includes(q)) || 
+           (v.date && v.date.toLowerCase().includes(q)) ||
+           (v.timeIn && v.timeIn.toLowerCase().includes(q)) ||
+           (v.timeOut && v.timeOut && v.timeOut.toLowerCase().includes(q));
   });
   const attendanceVisitors = attendanceDate ? visitors.filter(v => {
     // Convert attendanceDate from YYYY-MM-DD to MM-DD-YY format to match v.date
@@ -1036,7 +1057,7 @@ export default function Dashboard({ onLogout }) {
         )}
         
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable' }}>
-          <h1 style={{ color: '#1a8f6f', marginBottom: '20px' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'attendance' ? 'ATTENDANCE' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
+          <h1 style={{ color: '#1a8f6f', marginBottom: '20px' }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
 
           {currentView === 'dashboard' && (
             <>
@@ -1213,6 +1234,7 @@ export default function Dashboard({ onLogout }) {
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
                         </tr>
@@ -1223,6 +1245,7 @@ export default function Dashboard({ onLogout }) {
                             <td style={{ padding: '10px 8px' }}>{v.name}</td>
                             <td style={{ padding: '10px 8px' }}>{v.room}</td>
                             <td style={{ padding: '10px 8px' }}>{v.patient}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.date}</td>
                             <td style={{ padding: '10px 8px' }}>{v.timeIn}</td>
                             <td style={{ padding: '10px 8px' }}>{v.timeOut || 'N/A'}</td>
                           </tr>
@@ -1246,6 +1269,7 @@ export default function Dashboard({ onLogout }) {
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Discharge</th>
                         </tr>
@@ -1256,6 +1280,7 @@ export default function Dashboard({ onLogout }) {
                             <td style={{ padding: '10px 8px' }}>{v.name}</td>
                             <td style={{ padding: '10px 8px' }}>{v.room}</td>
                             <td style={{ padding: '10px 8px' }}>{v.patient}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.date}</td>
                             <td style={{ padding: '10px 8px' }}>{v.timeIn}</td>
                             <td style={{ padding: '10px 8px' }}>{v.timeOut || 'N/A'}</td>
                           </tr>
@@ -1283,55 +1308,6 @@ export default function Dashboard({ onLogout }) {
                   }
                 `}
               </style>
-            </div>
-          )}
-
-          {currentView === 'attendance' && (
-            <div>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Select Date</label>
-              <input type="date" value={attendanceDate} onChange={(e) => setAttendanceDate(e.target.value)} style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd', marginBottom: '16px' }} />
-
-              {attendanceDate ? (
-                <div>
-                  <div style={{ marginBottom: '12px', padding: '15px', background: '#1a8f6f', color: 'white', borderRadius: '6px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>Daily Attendance Report for {attendanceDate}</span>
-                    <span style={{ fontSize: '1.5em', background: 'rgba(255,255,255,0.2)', padding: '8px 16px', borderRadius: '20px' }}>Total Visitors: {attendanceRecords.length}</span>
-                  </div>
-                  
-                  {attendanceRecords.length === 0 ? (
-                    <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '1em' }}>
-                      No attendance records for this date
-                    </div>
-                  ) : (
-                    <div style={{ overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 400px)' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95em' }}>
-                        <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
-                          <tr>
-                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>#</th>
-                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Visitor Name</th>
-                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Check-in Date</th>
-                            <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Check-in Time</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {attendanceRecords.map((record, index) => (
-                            <tr key={record.id} style={{ borderBottom: '1px solid #eee', background: index % 2 === 0 ? '#f9f9f9' : 'white' }}>
-                              <td style={{ padding: '10px', color: '#666', fontWeight: 'bold' }}>{index + 1}</td>
-                              <td style={{ padding: '10px', fontWeight: '500', color: '#333' }}>{record.visitorName}</td>
-                              <td style={{ padding: '10px', color: '#666' }}>{record.scanDate || 'N/A'}</td>
-                              <td style={{ padding: '10px', color: '#666' }}>{record.scanTime}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#999', fontSize: '1em' }}>
-                  Please select a date to view attendance records
-                </div>
-              )}
             </div>
           )}
 
@@ -1445,8 +1421,7 @@ export default function Dashboard({ onLogout }) {
           <div onClick={() => showView('dashboard')} style={{ padding: 10, marginBottom: 8, background: currentView === 'dashboard' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'dashboard' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Dashboard</div>
           <div onClick={() => showView('visitorInfo')} style={{ padding: 10, marginBottom: 8, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>List of Visitors</div>
           <div onClick={() => showView('registered')} style={{ padding: 10, marginBottom: 8, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Registered Visitor</div>
-          <div onClick={() => showView('monitoring')} style={{ padding: 10, marginBottom: 8, background: currentView === 'monitoring' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'monitoring' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Monitoring</div>
-          <div onClick={() => showView('attendance')} style={{ padding: 10, marginBottom: 16, background: currentView === 'attendance' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'attendance' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Attendance</div>
+          <div onClick={() => showView('monitoring')} style={{ padding: 10, marginBottom: 16, background: currentView === 'monitoring' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'monitoring' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer' }}>Monitoring</div>
           <button onClick={() => showView('register')} style={{ width: '100%', padding: 12, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold' }}>REGISTER</button>
         </div>
       </div>
