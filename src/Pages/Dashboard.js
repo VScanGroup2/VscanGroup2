@@ -1146,25 +1146,25 @@ export default function Dashboard({ onLogout }) {
                             {v.status === 'active' ? 'ACTIVE' : 'DISCHARGED'}
                           </span>
                         </td>
-                        <td style={{ padding: '10px' }}>
+                        <td style={{ padding: '14px', fontSize: '1.05em' }}>
                           {v.status === 'active' ? (
                             <button 
                               onClick={() => handleDischarge(v.id)}
                               style={{ 
-                                padding: '6px 16px', 
+                                padding: '8px 18px', 
                                 background: '#dc3545', 
                                 color: 'white', 
                                 border: 'none', 
                                 borderRadius: '6px', 
                                 cursor: 'pointer',
                                 fontWeight: 'bold',
-                                fontSize: '0.9em'
+                                fontSize: '1em'
                               }}
                             >
                               Discharge
                             </button>
                           ) : (
-                            <span style={{ color: '#999', fontSize: '0.9em' }}>Completed</span>
+                            <span style={{ color: '#999', fontSize: '1em' }}>Completed</span>
                           )}
                         </td>
                       </tr>
@@ -1660,7 +1660,7 @@ export default function Dashboard({ onLogout }) {
                   <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
                     <button 
                       onClick={handleDownloadQR}
-                      style={{ flex: 1, minWidth: '150px', padding: '12px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s' }}
+                      style={{ flex: 1, minWidth: '150px', padding: '14px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', textDecoration: 'none', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s', fontSize: '1.05em' }}
                       onMouseOver={(e) => e.target.style.background = '#157a5e'}
                       onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
                     >
@@ -1668,7 +1668,7 @@ export default function Dashboard({ onLogout }) {
                     </button>
                     <button 
                       onClick={handlePrintQR}
-                      style={{ flex: 1, minWidth: '150px', padding: '12px', background: '#0d6efd', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s' }}
+                      style={{ flex: 1, minWidth: '150px', padding: '14px', background: '#0d6efd', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s', fontSize: '1.05em' }}
                       onMouseOver={(e) => e.target.style.background = '#0b5ed7'}
                       onMouseOut={(e) => e.target.style.background = '#0d6efd'}
                     >
@@ -1676,7 +1676,7 @@ export default function Dashboard({ onLogout }) {
                     </button>
                     <button 
                       onClick={() => { setQrCodeUrl(null); setRegisteredVisitorData(null); }}
-                      style={{ flex: 1, minWidth: '150px', padding: '12px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s' }}
+                      style={{ flex: 1, minWidth: '150px', padding: '14px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s', fontSize: '1.05em' }}
                       onMouseOver={(e) => e.target.style.background = '#5c636a'}
                       onMouseOut={(e) => e.target.style.background = '#6c757d'}
                     >
@@ -1688,34 +1688,34 @@ export default function Dashboard({ onLogout }) {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Visitor Name:</label>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Visitor Name:</label>
                   <input type="text" name="visitorName" value={formData.visitorName} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter visitor's full name" />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Room Number:</label>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Room Number:</label>
                   <input type="text" name="roomNumber" value={formData.roomNumber} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter room number" />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Patient Name:</label>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Patient Name:</label>
                   <input type="text" name="patientName" value={formData.patientName} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter patient's name" />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Contact Number:</label>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Contact Number:</label>
                   <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '4px' }} placeholder="Enter 11-digit contact number" />
-                  <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '16px' }}>Must be 11 digits</div>
+                  <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '16px' }}>Must be 11 digits</div>
                 </div>
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>Photo (optional):</label>
+                <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Photo (optional):</label>
                 <input type="file" accept="image/*" onChange={handleFileChange} style={{ marginBottom: '8px' }} />
                 {previewUrl && <img src={previewUrl} alt="preview" style={{ maxWidth: '200px', marginTop: '8px', borderRadius: '8px' }} />}
               </div>
 
-              <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ width: '100%', padding: '16px', background: loading || uploadingImage ? '#ccc' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'background 0.3s' }}>
+              <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ width: '100%', padding: '18px', background: loading || uploadingImage ? '#ccc' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.2em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'background 0.3s' }}>
                 {uploadingImage ? 'UPLOADING IMAGE...' : loading ? 'REGISTERING...' : 'REGISTER'}
               </button>
             </div>
