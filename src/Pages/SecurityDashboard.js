@@ -155,6 +155,7 @@ export default function SecurityDashboard({ onLogout }) {
   }, [scannerActive, scannerBuffer]);
 
   // Parse QR/string from scanner and load visitor info
+  // Alternating scan system: odd scans (1,3,5...) = Time-in, even scans (2,4,6...) = Time-out
   const parseQrString = (raw) => {
     try {
       if (!raw || !raw.trim()) return false;
@@ -188,29 +189,38 @@ export default function SecurityDashboard({ onLogout }) {
 
       setSelectedVisitor(visitor);
 
-      if (visitor.status === 'active') {
-        // Second swipe - Check out the visitor
-        const now = new Date();
-        const checkOutTime = now.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        });
-        
-        handleCheckOut(visitor.id, checkOutTime);
+      // Get today's date for scan counting
+      const now = new Date();
+      const currentDate = now.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: '2-digit'
+      }).replace(/\//g, '-');
+
+      // Count scans for this visitor today
+      const todayScans = allAttendanceRecords.filter(record => {
+        const recordDate = record.scanDate || record.checkInDate || record.date || '';
+        return record.visitorId === visitor.id && recordDate === currentDate;
+      });
+
+      const scanCount = todayScans.length + 1; // +1 for current scan
+      const isOddScan = scanCount % 2 === 1; // 1, 3, 5... are odd scans = time-in
+      console.log('[SecurityDashboard] Visitor:', visitor.name, 'ID:', visitor.id, 'ScanCount:', scanCount, 'isOddScan:', isOddScan, 'todayScansCount:', todayScans.length);
+
+      const checkTime = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+
+      if (isOddScan) {
+        // ODD SCAN - Check in the visitor (Time-in)
+        handleCheckIn(visitor.id, checkTime, scanCount);
         return true;
       } else {
-        // First swipe - Check in the visitor
-        const now = new Date();
-        const checkInTime = now.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        });
-        
-        handleCheckIn(visitor.id, checkInTime);
+        // EVEN SCAN - Check out the visitor (Time-out)
+        handleCheckOut(visitor.id, checkTime, scanCount);
         return true;
       }
     } catch (err) {
@@ -221,7 +231,32 @@ export default function SecurityDashboard({ onLogout }) {
     return false;
   }
 
-  const handleCheckIn = async (visitorId, checkInTime) => {
+  // Calculate next scan prediction for a visitor
+  const getNextScanPrediction = (visitorId) => {
+    const now = new Date();
+    const currentDate = now.toLocaleDateString('en-US', { 
+      month: '2-digit', 
+      day: '2-digit', 
+      year: '2-digit' 
+    }).replace(/\//g, '-');
+
+    // Count scans for this visitor today
+    const todayScans = allAttendanceRecords.filter(record => {
+      const recordDate = record.scanDate || record.checkInDate || record.date || '';
+      return record.visitorId === visitorId && recordDate === currentDate;
+    });
+
+    const scanCount = todayScans.length + 1; // +1 for next scan
+    const isOddScan = scanCount % 2 === 1; // 1, 3, 5... are odd scans = time-in
+
+    if (isOddScan) {
+      return 'Time-In';
+    } else {
+      return 'Time-Out';
+    }
+  };
+
+  const handleCheckIn = async (visitorId, checkInTime, scanCount = 1) => {
     try {
       const now = new Date();
       const time = checkInTime || now.toLocaleTimeString('en-US', {
@@ -236,17 +271,27 @@ export default function SecurityDashboard({ onLogout }) {
         month: '2-digit',
         day: '2-digit',
         year: '2-digit'
-      });
+      }).replace(/\//g, '-');
 
       const visitor = visitors.find(v => v.id === visitorId);
 
-      await updateVisitor(visitorId, {
-        checkInTime: time,
-        registrationDate: checkInDate,
-        status: 'active',
-        checkOutTime: null,
-        checkOutDate: null
-      });
+      // Only update main checkInTime if this is the first scan (scan 1)
+      if (scanCount === 1) {
+        await updateVisitor(visitorId, {
+          checkInTime: time,
+          registrationDate: checkInDate,
+          status: 'active',
+          checkOutTime: null,
+          checkOutDate: null
+        });
+      } else {
+        // For scan 3+, just mark as active and clear timeout, but don't overwrite original checkInTime
+        await updateVisitor(visitorId, {
+          status: 'active',
+          checkOutTime: null,
+          checkOutDate: null
+        });
+      }
 
       // Record attendance event (check-in)
       await recordAttendance(visitorId, visitor.name, checkInDate, time);
@@ -255,7 +300,7 @@ export default function SecurityDashboard({ onLogout }) {
       // Refresh attendance records to show in history
       await refreshAttendanceRecords();
 
-      setMessage({ type: 'success', text: `${visitor.name} has been timed in at ${time}` });
+      setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-IN) recorded at ${time}` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (err) {
       console.error('Error timing in visitor:', err);
@@ -264,7 +309,7 @@ export default function SecurityDashboard({ onLogout }) {
     }
   };
 
-  const handleCheckOut = async (visitorId, checkOutTime) => {
+  const handleCheckOut = async (visitorId, checkOutTime, scanCount = 2) => {
     try {
       const now = new Date();
       const time = checkOutTime || now.toLocaleTimeString('en-US', {
@@ -279,24 +324,25 @@ export default function SecurityDashboard({ onLogout }) {
         month: '2-digit',
         day: '2-digit',
         year: '2-digit'
-      });
+      }).replace(/\//g, '-');
 
       const visitor = visitors.find(v => v.id === visitorId);
 
-      // Record time-out but keep status as active (visitor can check back in)
-      await updateVisitor(visitorId, {
-        checkOutTime: time,
-        checkOutDate: checkOutDate
-      });
-
-      // Record checkout event (time-out - second swipe)
+      // Record checkout event (time-out) FIRST
       await recordCheckout(visitorId, visitor.name, checkOutDate, time);
       console.log('[SecurityDashboard] Checkout attendance recorded for:', visitor.name);
+
+      // Then update visitor - keep status as active (visitor can check back in)
+      await updateVisitor(visitorId, {
+        checkOutTime: time,
+        checkOutDate: checkOutDate,
+        status: 'active'
+      });
 
       // Refresh attendance records to show in history
       await refreshAttendanceRecords();
 
-      setMessage({ type: 'success', text: `${visitor.name} has been timed out at ${time}` });
+      setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-OUT) recorded at ${time}` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (err) {
       console.error('Error timing out visitor:', err);
@@ -509,6 +555,40 @@ export default function SecurityDashboard({ onLogout }) {
                   <div style={{ fontSize: '0.95em', fontWeight: '600', padding: '4px 8px', borderRadius: '4px', textAlign: 'center', background: selectedVisitor.status === 'active' ? '#d4edda' : '#f8d7da', color: selectedVisitor.status === 'active' ? '#155724' : '#721c24' }}>
                     {selectedVisitor.status === 'active' ? 'Active' : 'Discharged'}
                   </div>
+                </div>
+
+                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '2px solid #1a8f6f' }}>
+                  <h4 style={{ margin: '0 0 12px 0', color: '#1a8f6f', fontSize: '0.95em', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px' }}>📋 Attendance Records</h4>
+                  {allAttendanceRecords && allAttendanceRecords.filter(r => r.visitorId === selectedVisitor.id).length > 0 ? (
+                    <div style={{ maxHeight: '250px', overflowY: 'auto', scrollbarGutter: 'stable' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8em' }}>
+                        <thead>
+                          <tr style={{ background: '#1a8f6f', color: 'white' }}>
+                            <th style={{ padding: '8px', textAlign: 'left', fontWeight: '700', fontSize: '0.8em', borderBottom: '2px solid #0d5443' }}>Date</th>
+                            <th style={{ padding: '8px', textAlign: 'left', fontWeight: '700', fontSize: '0.8em', borderBottom: '2px solid #0d5443' }}>Time</th>
+                            <th style={{ padding: '8px', textAlign: 'left', fontWeight: '700', fontSize: '0.8em', borderBottom: '2px solid #0d5443' }}>Type</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allAttendanceRecords.filter(r => r.visitorId === selectedVisitor.id).sort((a, b) => {
+                            const dateA = new Date(a.scanDate || a.checkInDate || a.date || '');
+                            const dateB = new Date(b.scanDate || b.checkInDate || b.date || '');
+                            return dateB - dateA;
+                          }).map((record, idx) => (
+                            <tr key={idx} style={{ background: idx % 2 === 0 ? 'white' : '#f9fdf7', borderBottom: '1px solid #ddd' }}>
+                              <td style={{ padding: '6px', fontSize: '0.75em', color: '#333' }}>{record.scanDate || record.checkInDate || record.date || 'N/A'}</td>
+                              <td style={{ padding: '6px', fontSize: '0.75em', color: '#333' }}>{record.scanTime || record.checkInTime || record.checkoutTime || record.timeOut || 'N/A'}</td>
+                              <td style={{ padding: '6px', fontSize: '0.75em', fontWeight: '600', color: record.eventType === 'checkout' ? '#dc3545' : '#28a745' }}>
+                                {record.eventType === 'checkout' ? 'OUT' : 'IN'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ color: '#999', fontSize: '0.8em', textAlign: 'center', padding: '12px', fontStyle: 'italic' }}>No records found</div>
+                  )}
                 </div>
               </div>
             </>
@@ -752,6 +832,7 @@ export default function SecurityDashboard({ onLogout }) {
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Date</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time In</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time Out</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Next Scan</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Action</th>
                   </tr>
                 </thead>
@@ -765,6 +846,18 @@ export default function SecurityDashboard({ onLogout }) {
                       <td style={{ padding: '10px 8px' }}>{v.date}</td>
                       <td style={{ padding: '10px 8px' }}>{v.timeIn}</td>
                       <td style={{ padding: '10px 8px' }}>{v.timeOut || '-'}</td>
+                      <td style={{ padding: '10px 8px', fontSize: '0.85em', fontWeight: '600' }}>
+                        <span style={{
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.85em',
+                          fontWeight: 'bold',
+                          background: '#cfe2ff',
+                          color: '#084298'
+                        }}>
+                          {getNextScanPrediction(v.id)}
+                        </span>
+                      </td>
                       <td style={{ padding: '10px 8px', display: 'flex', gap: '6px' }}>
                         <button
                           onClick={() => handleCheckOut(v.id)}

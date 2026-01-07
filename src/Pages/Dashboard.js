@@ -199,6 +199,21 @@ export default function Dashboard({ onLogout }) {
     }
   }, [attendanceDate, currentView]);
 
+  // Load all attendance records for scan counting
+  useEffect(() => {
+    const loadAllAttendance = async () => {
+      try {
+        const records = await getAllAttendance();
+        setAllAttendanceRecords(records);
+        console.log('[Dashboard] Loaded', records.length, 'total attendance records for scan counting');
+      } catch (error) {
+        console.error('[Dashboard] Error loading attendance records:', error);
+      }
+    };
+    
+    loadAllAttendance();
+  }, []);
+
   const showView = async (view) => {
     setCurrentView(view);
     
@@ -508,7 +523,7 @@ export default function Dashboard({ onLogout }) {
               month: '2-digit', 
               day: '2-digit', 
               year: '2-digit' 
-            });
+            }).replace(/\//g, '-');
             
             updateVisitor(visitor.id, {
               checkOutTime: checkOutTime,
@@ -574,7 +589,7 @@ export default function Dashboard({ onLogout }) {
         month: '2-digit', 
         day: '2-digit', 
         year: '2-digit' 
-      });
+      }).replace(/\//g, '-');
       const scanTime = now.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
         minute: '2-digit', 
@@ -584,13 +599,52 @@ export default function Dashboard({ onLogout }) {
       
       await recordAttendance(visitorId, visitorName, scanDate, scanTime);
       console.log('[Dashboard] Attendance recorded for:', visitorName);
+      
+      // Refresh attendance records after recording
+      await refreshAttendanceRecords();
     } catch (err) {
       console.error('[Dashboard] Error recording attendance:', err);
     }
   };
 
+  // Refresh all attendance records
+  const refreshAttendanceRecords = async () => {
+    try {
+      const records = await getAllAttendance();
+      setAllAttendanceRecords(records);
+      console.log('[Dashboard] Refreshed attendance records:', records.length);
+    } catch (err) {
+      console.error('[Dashboard] Error refreshing attendance records:', err);
+    }
+  };
+
+  // Calculate next scan prediction for a visitor
+  const getNextScanPrediction = (visitorId) => {
+    const now = new Date();
+    const currentDate = now.toLocaleDateString('en-US', { 
+      month: '2-digit', 
+      day: '2-digit', 
+      year: '2-digit' 
+    }).replace(/\//g, '-');
+
+    // Count scans for this visitor today
+    const todayScans = allAttendanceRecords.filter(record => {
+      const recordDate = record.scanDate || record.checkInDate || record.date || '';
+      return record.visitorId === visitorId && recordDate === currentDate;
+    });
+
+    const scanCount = todayScans.length + 1; // +1 for next scan
+    const isOddScan = scanCount % 2 === 1; // 1, 3, 5... are odd scans = time-in
+
+    if (isOddScan) {
+      return 'Time-In';
+    } else {
+      return 'Time-Out';
+    }
+  };
+
   // Parse QR/string from scanner and load visitor info (shared logic)
-  // Dual-scan system: 1st scan = Time-in, 2nd scan = Time-out
+  // Alternating scan system: odd scans (1,3,5...) = Time-in, even scans (2,4,6...) = Time-out
   const parseQrString = async (raw) => {
     try {
       if (!raw || !raw.trim()) return false;
@@ -602,8 +656,24 @@ export default function Dashboard({ onLogout }) {
         // Not JSON — treat as ID lookup
         const visitor = visitors.find(v => v.id === trimmed || v.id === trimmed.replace(/\r|\n/g, ''));
         if (visitor) {
-          // Dual-scan logic for monitoring
+          // Get today's date for scan counting
           const now = new Date();
+          const currentDate = now.toLocaleDateString('en-US', { 
+            month: '2-digit', 
+            day: '2-digit', 
+            year: '2-digit' 
+          }).replace(/\//g, '-'); // Convert slashes to dashes: MM-DD-YY
+          
+          // Count scans for this visitor today
+          const todayScans = allAttendanceRecords.filter(record => {
+            const recordDate = (record.scanDate || record.checkInDate || record.date || '').replace(/\//g, '-');
+            return record.visitorId === visitor.id && recordDate === currentDate;
+          });
+          
+          const scanCount = todayScans.length + 1; // +1 for current scan
+          const isOddScan = scanCount % 2 === 1; // 1, 3, 5... are odd scans = time-in
+          console.log('[Dashboard NON-JSON] Visitor:', visitor.name, 'ID:', visitor.id, 'ScanCount:', scanCount, 'isOddScan:', isOddScan, 'todayScansCount:', todayScans.length);
+          
           const currentTime = now.toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit', 
@@ -614,50 +684,66 @@ export default function Dashboard({ onLogout }) {
             month: '2-digit', 
             day: '2-digit', 
             year: '2-digit' 
-          });
+          }).replace(/\//g, '-'); // Convert slashes to dashes: MM-DD-YY
 
-          if (!visitor.timeOut) {
-            // FIRST SCAN - Record as Time-in
-            console.log('[Dashboard] First scan for:', visitor.name, ' - Recording as TIME-IN at', currentTime);
+          if (isOddScan) {
+            // ODD SCAN - Record as Time-in
+            console.log('[Dashboard] Scan #' + scanCount + ' for:', visitor.name, ' - Recording as TIME-IN at', currentTime);
             
             // Record check-in attendance scan
             await recordScan(visitor.id, visitor.name);
             
-            await updateVisitor(visitor.id, {
-              checkInTime: currentTime,
-              timeIn: currentTime,
-              registrationDate: checkInDate,
-              date: checkInDate,
-              status: 'active'
-            });
+            // Only update main fields if this is the first scan (scan 1)
+            if (scanCount === 1) {
+              await updateVisitor(visitor.id, {
+                checkInTime: currentTime,
+                timeIn: currentTime,
+                registrationDate: checkInDate,
+                date: checkInDate,
+                status: 'active'
+              });
+            } else {
+              // For scan 3+, just mark as active but don't overwrite the original timeIn
+              await updateVisitor(visitor.id, {
+                status: 'active',
+                checkOutTime: null,
+                checkOutDate: null
+              });
+            }
             console.log('[Dashboard] TIME-IN update sent to Firestore');
             
             const updatedVisitor = { ...visitor, timeIn: currentTime, date: checkInDate, status: 'active' };
             setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `${visitor.name} - TIME-IN recorded at ${currentTime}` });
+            setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-IN) recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           } else {
-            // SECOND SCAN - Record as Time-out (NOT discharge - visitor can check back in)
-            console.log('[Dashboard] Second scan for:', visitor.name, ' - Recording as TIME-OUT at', currentTime);
+            // EVEN SCAN - Record as Time-out (visitor can check back in)
+            console.log('[Dashboard] Scan #' + scanCount + ' for:', visitor.name, ' - Recording as TIME-OUT at', currentTime);
             const checkOutDate = now.toLocaleDateString('en-US', { 
               month: '2-digit', 
               day: '2-digit', 
               year: '2-digit' 
-            });
-            await updateVisitor(visitor.id, {
-              checkOutTime: currentTime,
-              timeOut: currentTime,
-              checkOutDate: checkOutDate
-            });
-            console.log('[Dashboard] TIME-OUT update sent to Firestore');
+            }).replace(/\//g, '-');
             
-            // Record checkout event in attendance collection
+            // Record checkout event in attendance collection FIRST
             await recordCheckout(visitor.id, visitor.name, checkOutDate, currentTime);
             console.log('[Dashboard] Checkout event recorded for attendance report');
             
+            // Refresh attendance records after recording checkout
+            await refreshAttendanceRecords();
+            
+            // Then update visitor status
+            await updateVisitor(visitor.id, {
+              checkOutTime: currentTime,
+              timeOut: currentTime,
+              checkOutDate: checkOutDate,
+              status: 'active'
+            });
+            console.log('[Dashboard] TIME-OUT update sent to Firestore');
+            
             const updatedVisitor = { ...visitor, timeOut: currentTime };
             setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `${visitor.name} - TIME-OUT recorded at ${currentTime}` });
+            setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-OUT) recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           }
           return true;
@@ -671,8 +757,24 @@ export default function Dashboard({ onLogout }) {
       if (qrData && (qrData.id || qrData.name)) {
         const visitor = visitors.find(v => v.id === qrData.id) || null;
         if (visitor) {
-          // Dual-scan logic for monitoring
+          // Get today's date for scan counting
           const now = new Date();
+          const currentDate = now.toLocaleDateString('en-US', { 
+            month: '2-digit', 
+            day: '2-digit', 
+            year: '2-digit' 
+          }).replace(/\//g, '-');
+          
+          // Count scans for this visitor today
+          const todayScans = allAttendanceRecords.filter(record => {
+            const recordDate = record.scanDate || record.checkInDate || record.date || '';
+            return record.visitorId === visitor.id && recordDate === currentDate;
+          });
+          
+          const scanCount = todayScans.length + 1; // +1 for current scan
+          const isOddScan = scanCount % 2 === 1; // 1, 3, 5... are odd scans = time-in
+          console.log('[Dashboard JSON] Visitor:', visitor.name, 'ID:', visitor.id, 'ScanCount:', scanCount, 'isOddScan:', isOddScan, 'todayScansCount:', todayScans.length);
+          
           const currentTime = now.toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit', 
@@ -683,50 +785,66 @@ export default function Dashboard({ onLogout }) {
             month: '2-digit', 
             day: '2-digit', 
             year: '2-digit' 
-          });
+          }).replace(/\//g, '-');
 
-          if (!visitor.timeOut) {
-            // FIRST SCAN - Record as Time-in
-            console.log('[Dashboard] First scan for:', visitor.name, ' - Recording as TIME-IN at', currentTime);
+          if (isOddScan) {
+            // ODD SCAN - Record as Time-in
+            console.log('[Dashboard] Scan #' + scanCount + ' for:', visitor.name, ' - Recording as TIME-IN at', currentTime);
             
             // Record check-in attendance scan
             await recordScan(visitor.id, visitor.name);
             
-            await updateVisitor(visitor.id, {
-              checkInTime: currentTime,
-              timeIn: currentTime,
-              registrationDate: checkInDate,
-              date: checkInDate,
-              status: 'active'
-            });
+            // Only update main fields if this is the first scan (scan 1)
+            if (scanCount === 1) {
+              await updateVisitor(visitor.id, {
+                checkInTime: currentTime,
+                timeIn: currentTime,
+                registrationDate: checkInDate,
+                date: checkInDate,
+                status: 'active'
+              });
+            } else {
+              // For scan 3+, just mark as active but don't overwrite the original timeIn
+              await updateVisitor(visitor.id, {
+                status: 'active',
+                checkOutTime: null,
+                checkOutDate: null
+              });
+            }
             console.log('[Dashboard] TIME-IN update sent to Firestore');
             
             const updatedVisitor = { ...visitor, timeIn: currentTime, date: checkInDate, status: 'active' };
             setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `${visitor.name} - TIME-IN recorded at ${currentTime}` });
+            setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-IN) recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           } else {
-            // SECOND SCAN - Record as Time-out (NOT discharge - visitor can check back in)
-            console.log('[Dashboard] Second scan for:', visitor.name, ' - Recording as TIME-OUT at', currentTime);
+            // EVEN SCAN - Record as Time-out (visitor can check back in)
+            console.log('[Dashboard] Scan #' + scanCount + ' for:', visitor.name, ' - Recording as TIME-OUT at', currentTime);
             const checkOutDate = now.toLocaleDateString('en-US', { 
               month: '2-digit', 
               day: '2-digit', 
               year: '2-digit' 
-            });
-            await updateVisitor(visitor.id, {
-              checkOutTime: currentTime,
-              timeOut: currentTime,
-              checkOutDate: checkOutDate
-            });
-            console.log('[Dashboard] TIME-OUT update sent to Firestore');
+            }).replace(/\//g, '-');
             
-            // Record checkout event in attendance collection
+            // Record checkout event in attendance collection FIRST
             await recordCheckout(visitor.id, visitor.name, checkOutDate, currentTime);
             console.log('[Dashboard] Checkout event recorded for attendance report');
             
+            // Refresh attendance records after recording checkout
+            await refreshAttendanceRecords();
+            
+            // Then update visitor status
+            await updateVisitor(visitor.id, {
+              checkOutTime: currentTime,
+              timeOut: currentTime,
+              checkOutDate: checkOutDate,
+              status: 'active'
+            });
+            console.log('[Dashboard] TIME-OUT update sent to Firestore');
+            
             const updatedVisitor = { ...visitor, timeOut: currentTime };
             setScannedVisitorData(updatedVisitor);
-            setMessage({ type: 'success', text: `${visitor.name} - TIME-OUT recorded at ${currentTime}` });
+            setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-OUT) recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
           }
           return true;
@@ -1186,6 +1304,40 @@ export default function Dashboard({ onLogout }) {
                   {scannedVisitorData.status === 'active' ? 'ACTIVE' : 'DISCHARGED'}
                 </span>
               </div>
+
+              <div style={{ marginTop: '24px', padding: '16px', background: '#f0f8f5', borderRadius: '8px', border: '2px solid #1a8f6f' }}>
+                <h4 style={{ color: '#1a8f6f', margin: '0 0 14px 0', fontSize: '1em', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📋 Attendance Records</h4>
+                {allAttendanceRecords && allAttendanceRecords.filter(r => r.visitorId === scannedVisitorData.id).length > 0 ? (
+                  <div style={{ maxHeight: '300px', overflowY: 'auto', scrollbarGutter: 'stable' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em' }}>
+                      <thead>
+                        <tr style={{ background: '#1a8f6f', color: 'white', stickyTop: 0 }}>
+                          <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Date</th>
+                          <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Time</th>
+                          <th style={{ padding: '10px', textAlign: 'left', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allAttendanceRecords.filter(r => r.visitorId === scannedVisitorData.id).sort((a, b) => {
+                          const dateA = new Date(a.scanDate || a.checkInDate || a.date || '');
+                          const dateB = new Date(b.scanDate || b.checkInDate || b.date || '');
+                          return dateB - dateA; // Most recent first
+                        }).map((record, idx) => (
+                          <tr key={idx} style={{ background: idx % 2 === 0 ? 'white' : '#f9fdf7', borderBottom: '1px solid #ddd' }}>
+                            <td style={{ padding: '10px', fontWeight: '600', color: '#333' }}>{record.scanDate || record.checkInDate || record.date || 'N/A'}</td>
+                            <td style={{ padding: '10px', fontWeight: '600', color: '#333' }}>{record.scanTime || record.checkInTime || record.checkoutTime || record.timeOut || 'N/A'}</td>
+                            <td style={{ padding: '10px', fontWeight: '700', color: record.eventType === 'checkout' ? '#dc3545' : '#28a745' }}>
+                              {record.eventType === 'checkout' ? '🔴 TIME-OUT' : '🟢 TIME-IN'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>No attendance records found</div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -1332,13 +1484,35 @@ export default function Dashboard({ onLogout }) {
           {currentView === 'registered' && (
             <div>
               <input placeholder="Search registered..." value={registeredSearchQuery} onChange={(e) => setRegisteredSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
-              <div style={{ overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)' }}>{filteredRegisteredVisitors.map(v => (
-                <div key={v.id} style={{ padding: '10px', borderBottom: '1px solid #eee' }}>
-                  <div style={{ fontWeight: 700 }}>{v.name}</div>
-                  <div style={{ color: '#666' }}>{v.room} — {v.patient}</div>
-                  <div style={{ color: '#999', fontSize: '0.9em' }}>Registered: {v.fullDate}</div>
-                </div>
-              ))}</div>
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 300px)', minWidth: 0, border: '1px solid #ddd' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.95em', background: 'white' }}>
+                  <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
+                    <tr>
+                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
+                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Registration Date</th>
+                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
+                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRegisteredVisitors.map(v => (
+                      <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f9f9f9'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                        <td style={{ padding: '10px 10px', fontSize: '0.95em', fontWeight: '600' }}>{v.name}</td>
+                        <td style={{ padding: '10px 10px', fontSize: '0.95em' }}>{v.room}</td>
+                        <td style={{ padding: '10px 10px', fontSize: '0.95em' }}>{v.patient}</td>
+                        <td style={{ padding: '10px 10px', fontSize: '0.95em', color: '#007bff', fontWeight: '600' }}>{v.fullDate}</td>
+                        <td style={{ padding: '10px 10px', fontSize: '0.95em', fontWeight: '600', color: v.timeIn ? '#155724' : '#999' }}>{v.timeIn || '-'}</td>
+                        <td style={{ padding: '10px 10px', fontSize: '0.95em', fontWeight: '600', color: v.timeOut ? '#dc3545' : '#999' }}>{v.timeOut || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {filteredRegisteredVisitors.length === 0 && (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No registered visitors found</div>
+              )}
             </div>
           )}
 
@@ -1403,6 +1577,7 @@ export default function Dashboard({ onLogout }) {
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Reg Date</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Next Scan</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Status</th>
                         </tr>
                       </thead>
@@ -1429,6 +1604,31 @@ export default function Dashboard({ onLogout }) {
                                 </span>
                               ) : (
                                 'Pending'
+                              )}
+                            </td>
+                            <td style={{ padding: '10px 8px', fontSize: '0.9em', fontWeight: '600' }}>
+                              {v.timeOut ? (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '12px',
+                                  fontSize: '0.85em',
+                                  fontWeight: 'bold',
+                                  background: '#fff3cd',
+                                  color: '#856404'
+                                }}>
+                                  Complete
+                                </span>
+                              ) : (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '12px',
+                                  fontSize: '0.85em',
+                                  fontWeight: 'bold',
+                                  background: '#cfe2ff',
+                                  color: '#084298'
+                                }}>
+                                  Next: {getNextScanPrediction(v.id)}
+                                </span>
                               )}
                             </td>
                             <td style={{ padding: '10px 8px', fontSize: '0.9em' }}>
@@ -1480,7 +1680,7 @@ export default function Dashboard({ onLogout }) {
                             <td style={{ padding: '10px 8px' }}>{v.date || 'N/A'}</td>
                             <td style={{ padding: '10px 8px', fontWeight: '600', color: '#721c24' }}>
                               {v.dischargeTime ? (
-                                typeof v.dischargeTime === 'string' ? v.dischargeTime : new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
+                                typeof v.dischargeTime === 'string' ? v.dischargeTime : new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '-')
                               ) : v.dischargeDate ? v.dischargeDate : 'N/A'}
                             </td>
                             <td style={{ padding: '10px 8px', fontWeight: '600', color: '#dc3545' }}>{v.timeOut || 'N/A'}</td>
@@ -1702,7 +1902,7 @@ export default function Dashboard({ onLogout }) {
                       );
                     })()}
                     
-                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Total records: <strong>{(() => {
+                    {(() => {
                       // Count only records that will be displayed (with time-in)
                       const groupedRecords = {};
                       allAttendanceRecords.forEach((record) => {
@@ -1723,85 +1923,84 @@ export default function Dashboard({ onLogout }) {
                           count++;
                         }
                       });
-                      return count;
-                    })()}</strong></p>
-                    
-                    <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 400px)', minWidth: 0, border: '1px solid #ddd' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.15em', background: 'white' }}>
-                        <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
-                          <tr>
-                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Visitor Name</th>
-                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
-                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
-                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {allAttendanceRecords.length > 0 ? (
-                            (() => {
-                              // Group records by visitor ID and date, track 1st and 2nd swipes
-                              const groupedRecords = {};
-                              
-                              allAttendanceRecords.forEach((record, idx) => {
-                                const visitorId = record.visitorId || 'unknown';
-                                const recordDate = record.scanDate || record.checkInDate || record.date || '';
-                                const key = `${visitorId}_${recordDate}`;
-                                
-                                if (!groupedRecords[key]) {
-                                  groupedRecords[key] = [];
-                                }
-                                groupedRecords[key].push(record);
-                              });
-                              
-                              // Build array of combined records: 1st swipe = time-in, 2nd swipe = time-out in same row
-                              const displayRecords = [];
-                              
-                              Object.entries(groupedRecords).forEach(([key, records]) => {
-                                const recordDate = (records[0].scanDate || records[0].checkInDate || records[0].date || '').replace(/\//g, '-');
-                                const visitorName = records[0].visitorName || 'N/A';
-                                
-                                // Get 1st swipe (time-in) - use checkInTime, timeIn, or scanTime
-                                const timeInRecord = records[0];
-                                const timeIn = timeInRecord.checkInTime || timeInRecord.timeIn || timeInRecord.scanTime || '';
-                                
-                                // Get 2nd swipe (time-out) if it exists - use checkOutTime, timeOut, or fallback to checkInTime
-                                const timeOutRecord = records.length > 1 ? records[1] : null;
-                                const timeOut = timeOutRecord ? (timeOutRecord.checkOutTime || timeOutRecord.timeOut || timeOutRecord.checkInTime || timeOutRecord.timeIn || timeOutRecord.scanTime || '') : null;
-                                
-                                displayRecords.push({
-                                  id: key,
-                                  visitorName,
-                                  recordDate,
-                                  timeIn,
-                                  timeOut,
-                                  hasTimeOut: !!timeOut
-                                });
-                              });
-                              
-                              // Filter out records without time-in
-                              const filteredRecords = displayRecords.filter(record => record.timeIn && record.timeIn.trim() !== '');
-                              
-                              return filteredRecords.map((display) => (
-                                <tr key={display.id} style={{ 
-                                  borderBottom: '1px solid #eee', 
-                                  transition: 'background 0.2s',
-                                  background: display.hasTimeOut ? '#fff3cd' : 'transparent'
-                                }} onMouseOver={(e) => e.currentTarget.style.background = display.hasTimeOut ? '#ffeaa7' : '#f9f9f9'} onMouseOut={(e) => e.currentTarget.style.background = display.hasTimeOut ? '#fff3cd' : 'transparent'}>
-                                  <td style={{ padding: '12px 10px', fontSize: '1.15em' }}>{display.visitorName}</td>
-                                  <td style={{ padding: '12px 10px', fontSize: '1.15em' }}>{display.recordDate}</td>
-                                  <td style={{ padding: '12px 10px', fontSize: '1.15em', fontWeight: display.hasTimeOut ? '600' : '400', color: display.hasTimeOut ? '#28a745' : '#999' }}>{display.timeOut || '-'}</td>
-                                  <td style={{ padding: '12px 10px', fontSize: '1.15em', fontWeight: '600', color: '#dc3545' }}>{display.timeIn || '-'}</td>
+                      
+                      return count > 0 ? (
+                        <>
+                          <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Total records: <strong>{count}</strong></p>
+                          
+                          <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 400px)', minWidth: 0, border: '1px solid #ddd' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.15em', background: 'white' }}>
+                              <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
+                                <tr>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Visitor Name</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
                                 </tr>
-                              ));
-                            })()
-                          ) : (
-                            <tr>
-                              <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No visitor history records found</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                              </thead>
+                              <tbody>
+                                {(() => {
+                                  // Group records by visitor ID and date, track 1st and 2nd swipes
+                                  const groupedRecords = {};
+                                  
+                                  allAttendanceRecords.forEach((record, idx) => {
+                                    const visitorId = record.visitorId || 'unknown';
+                                    const recordDate = record.scanDate || record.checkInDate || record.date || '';
+                                    const key = `${visitorId}_${recordDate}`;
+                                    
+                                    if (!groupedRecords[key]) {
+                                      groupedRecords[key] = [];
+                                    }
+                                    groupedRecords[key].push(record);
+                                  });
+                                  
+                                  // Build array of combined records: 1st swipe = time-in, 2nd swipe = time-out in same row
+                                  const displayRecords = [];
+                                  
+                                  Object.entries(groupedRecords).forEach(([key, records]) => {
+                                    const recordDate = (records[0].scanDate || records[0].checkInDate || records[0].date || '').replace(/\//g, '-');
+                                    const visitorName = records[0].visitorName || 'N/A';
+                                    
+                                    // Get 1st swipe (time-in) - use checkInTime, timeIn, or scanTime
+                                    const timeInRecord = records[0];
+                                    const timeIn = timeInRecord.checkInTime || timeInRecord.timeIn || timeInRecord.scanTime || '';
+                                    
+                                    // Get 2nd swipe (time-out) if it exists - use checkOutTime, timeOut, or fallback to checkInTime
+                                    const timeOutRecord = records.length > 1 ? records[1] : null;
+                                    const timeOut = timeOutRecord ? (timeOutRecord.checkOutTime || timeOutRecord.timeOut || timeOutRecord.checkInTime || timeOutRecord.timeIn || timeOutRecord.scanTime || '') : null;
+                                    
+                                    displayRecords.push({
+                                      id: key,
+                                      visitorName,
+                                      recordDate,
+                                      timeIn,
+                                      timeOut,
+                                      hasTimeOut: !!timeOut
+                                    });
+                                  });
+                                  
+                                  // Filter out records without time-in
+                                  const filteredRecords = displayRecords.filter(record => record.timeIn && record.timeIn.trim() !== '');
+                                  
+                                  return filteredRecords.map((display) => (
+                                    <tr key={display.id} style={{ 
+                                      borderBottom: '1px solid #eee', 
+                                      transition: 'background 0.2s',
+                                      background: display.hasTimeOut ? '#fff3cd' : 'transparent'
+                                    }} onMouseOver={(e) => e.currentTarget.style.background = display.hasTimeOut ? '#ffeaa7' : '#f9f9f9'} onMouseOut={(e) => e.currentTarget.style.background = display.hasTimeOut ? '#fff3cd' : 'transparent'}>
+                                      <td style={{ padding: '12px 10px', fontSize: '1.15em' }}>{display.visitorName}</td>
+                                      <td style={{ padding: '12px 10px', fontSize: '1.15em' }}>{display.recordDate}</td>
+                                      <td style={{ padding: '12px 10px', fontSize: '1.15em', fontWeight: display.hasTimeOut ? '600' : '400', color: display.hasTimeOut ? '#28a745' : '#999' }}>{display.timeOut || '-'}</td>
+                                      <td style={{ padding: '12px 10px', fontSize: '1.15em', fontWeight: '600', color: '#dc3545' }}>{display.timeIn || '-'}</td>
+                                    </tr>
+                                  ));
+                                })()}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
               )}
