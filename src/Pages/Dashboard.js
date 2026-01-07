@@ -1617,24 +1617,22 @@ export default function Dashboard({ onLogout }) {
                         return recordDate === todayFormatted;
                       });
                       
-                      // Determine earliest and latest times
-                      let displayTimeIn = v.timeIn;
+                      // Use registration time as time-in (from visitor document)
+                      let displayTimeIn = v.timeIn || v.checkInTime;
                       let displayTimeOut = v.timeOut;
                       
-                      if (todayRecords.length > 0) {
+                      // Only recalculate time-out if there are attendance records with multiple scans
+                      if (todayRecords.length > 1) {
                         // Get all times from today's records
                         const allTimes = todayRecords.map(r => ({
                           time: r.checkInTime || r.checkOutTime || r.timeIn || r.timeOut || r.scanTime || '',
                           minutes: parseTimeToMinutes(r.checkInTime || r.checkOutTime || r.timeIn || r.timeOut || r.scanTime || '')
                         })).filter(t => t.minutes >= 0);
                         
-                        if (allTimes.length === 1) {
-                          displayTimeIn = allTimes[0].time;
-                          displayTimeOut = null;
-                        } else if (allTimes.length > 1) {
+                        if (allTimes.length > 1) {
                           // Sort by time to get earliest and latest
                           allTimes.sort((a, b) => a.minutes - b.minutes);
-                          displayTimeIn = allTimes[0].time;
+                          // Set time-out as the latest time
                           displayTimeOut = allTimes[allTimes.length - 1].time;
                         }
                       }
@@ -1791,16 +1789,48 @@ export default function Dashboard({ onLogout }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredMonitoringVisitors.filter(v => v.status === 'active').map((v) => (
-                          <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s', background: v.timeOut ? '#fff3cd' : 'transparent' }} onMouseOver={(e) => e.currentTarget.style.background = v.timeOut ? '#ffeaa7' : '#f0f8f5'} onMouseOut={(e) => e.currentTarget.style.background = v.timeOut ? '#fff3cd' : 'transparent'}>
+                        {filteredMonitoringVisitors.filter(v => v.status === 'active').map((v) => {
+                          // Get latest time-in and time-out from attendance records
+                          const visitorCheckIns = allAttendanceRecords.filter(
+                            record => record.visitorId === v.id && record.eventType === 'check-in'
+                          );
+                          
+                          // Extract visit dates with their corresponding time-in and time-out values
+                          const uniqueVisits = {};
+                          visitorCheckIns.forEach(r => {
+                            const date = r.scanDate || r.checkInDate || r.date || '';
+                            if (date && date.trim() !== '') {
+                              if (!uniqueVisits[date]) {
+                                uniqueVisits[date] = {
+                                  timeIn: r.checkInTime || r.timeIn || '',
+                                  timeOut: null
+                                };
+                              } else {
+                                uniqueVisits[date].timeOut = r.checkInTime || r.timeIn || '';
+                              }
+                            }
+                          });
+                          
+                          const visitsData = Object.entries(uniqueVisits).map(([date, times]) => ({
+                            date,
+                            timeIn: times.timeIn,
+                            timeOut: times.timeOut
+                          }));
+                          
+                          // Get latest time-in and time-out from all visits (use last entry for latest)
+                          const latestTimeIn = visitsData.length > 0 ? visitsData[visitsData.length - 1].timeIn : v.timeIn || '';
+                          const latestTimeOut = visitsData.length > 0 ? visitsData[visitsData.length - 1].timeOut : v.timeOut || '';
+                          
+                          return (
+                          <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s', background: latestTimeOut ? '#fff3cd' : 'transparent' }} onMouseOver={(e) => e.currentTarget.style.background = latestTimeOut ? '#ffeaa7' : '#f0f8f5'} onMouseOut={(e) => e.currentTarget.style.background = latestTimeOut ? '#fff3cd' : 'transparent'}>
                             <td style={{ padding: '10px 8px' }}>{v.name}</td>
                             <td style={{ padding: '10px 8px' }}>{v.room}</td>
                             <td style={{ padding: '10px 8px' }}>{v.patient}</td>
                             <td style={{ padding: '10px 8px' }}>{v.contact}</td>
                             <td style={{ padding: '10px 8px', fontWeight: '600', color: '#007bff' }}>{v.date || (v.registrationDate ? v.registrationDate.replace(/\//g, '-') : 'N/A')}</td>
-                            <td style={{ padding: '10px 8px', fontWeight: '600', color: '#155724' }}>{v.timeIn}</td>
-                            <td style={{ padding: '10px 8px', fontWeight: v.timeOut ? '600' : '400', color: v.timeOut ? '#dc3545' : '#999' }}>
-                              {v.timeOut ? (
+                            <td style={{ padding: '10px 8px', fontWeight: '600', color: '#155724' }}>{latestTimeIn || 'N/A'}</td>
+                            <td style={{ padding: '10px 8px', fontWeight: latestTimeOut ? '600' : '400', color: latestTimeOut ? '#dc3545' : '#999' }}>
+                              {latestTimeOut ? (
                                 <span style={{ 
                                   padding: '3px 8px',
                                   borderRadius: '3px',
@@ -1809,14 +1839,14 @@ export default function Dashboard({ onLogout }) {
                                   fontWeight: '600',
                                   fontSize: '0.9em'
                                 }}>
-                                  {v.timeOut}
+                                  {latestTimeOut}
                                 </span>
                               ) : (
                                 'Pending'
                               )}
                             </td>
                             <td style={{ padding: '10px 8px', fontSize: '0.9em', fontWeight: '600' }}>
-                              {v.timeOut ? (
+                              {latestTimeOut ? (
                                 <span style={{
                                   padding: '4px 10px',
                                   borderRadius: '12px',
@@ -1853,7 +1883,8 @@ export default function Dashboard({ onLogout }) {
                               </span>
                             </td>
                           </tr>
-                        ))}
+                        );
+                        })}
                       </tbody>
                     </table>
                     {filteredMonitoringVisitors.filter(v => v.status === 'active').length === 0 && (
@@ -2185,24 +2216,18 @@ export default function Dashboard({ onLogout }) {
                                     const recordDate = (records[0].scanDate || records[0].checkInDate || records[0].date || '').replace(/\//g, '-');
                                     const visitorName = records[0].visitorName || 'N/A';
                                     
-                                    // Get all times from records
-                                    const allTimes = records.map(r => ({
-                                      record: r,
-                                      time: r.checkInTime || r.checkOutTime || r.timeIn || r.timeOut || r.scanTime || '',
-                                      minutes: parseTimeToMinutes(r.checkInTime || r.checkOutTime || r.timeIn || r.timeOut || r.scanTime || '')
-                                    })).filter(t => t.minutes >= 0);
-                                    
+                                    // Use scan order: 1st, 3rd, 5th... = time-in (odd), 2nd, 4th, 6th... = time-out (even)
                                     let timeIn = '';
                                     let timeOut = null;
                                     
-                                    if (allTimes.length === 1) {
-                                      timeIn = allTimes[0].time;
-                                      timeOut = null;
-                                    } else if (allTimes.length > 1) {
-                                      // Sort by time and get earliest and latest
-                                      allTimes.sort((a, b) => a.minutes - b.minutes);
-                                      timeIn = allTimes[0].time;
-                                      timeOut = allTimes[allTimes.length - 1].time;
+                                    // Get 1st scan (time-in) - index 0
+                                    const timeInRecord = records[0];
+                                    timeIn = timeInRecord.checkInTime || timeInRecord.timeIn || timeInRecord.scanTime || '';
+                                    
+                                    // Get 2nd scan (time-out) if it exists - index 1
+                                    if (records.length > 1) {
+                                      const timeOutRecord = records[1];
+                                      timeOut = timeOutRecord.checkOutTime || timeOutRecord.timeOut || timeOutRecord.checkInTime || timeOutRecord.timeIn || timeOutRecord.scanTime || '';
                                     }
                                     
                                     displayRecords.push({
@@ -2212,7 +2237,6 @@ export default function Dashboard({ onLogout }) {
                                       timeIn,
                                       timeOut,
                                       hasTimeOut: !!timeOut
-                               
                                     });
                                   });
                                   
@@ -2247,30 +2271,7 @@ export default function Dashboard({ onLogout }) {
                 <div style={{ animation: 'fadeInSlide 0.3s ease' }}>
                   <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f', marginBottom: '20px' }}>
                     <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '15px', fontSize: '1.6em' }}>Visitor Summary Report</h3>
-                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Total visitors: <strong>{visitors.filter(v => {
-                      const searchLower = reportSearchQuery.toLowerCase();
-                      const matchesSearch = !reportSearchQuery || 
-                        v.name.toLowerCase().includes(searchLower) ||
-                        v.room.toLowerCase().includes(searchLower) ||
-                        v.contact.toLowerCase().includes(searchLower);
-                      
-                      let matchesDate = true;
-                      if (reportDateFilter) {
-                        try {
-                          const parts = reportDateFilter.split('-');
-                          if (parts.length === 3) {
-                            const [year, month, day] = parts;
-                            const filterDateFormatted = `${month}/${day}/${year.slice(-2)}`;
-                            const filterDateFormattedDash = `${month}-${day}-${year.slice(-2)}`;
-                            matchesDate = v.date === filterDateFormatted || v.date === filterDateFormattedDash;
-                          }
-                        } catch (e) {
-                          matchesDate = false;
-                        }
-                      }
-                      
-                      return matchesSearch && matchesDate;
-                    }).length}</strong></p>
+                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Total visitors: <strong>{visitors.length}</strong></p>
                     
                     <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 280px)', minWidth: 0, border: '1px solid #ddd' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.05em', background: 'white' }}>
@@ -2288,30 +2289,6 @@ export default function Dashboard({ onLogout }) {
                         </thead>
                         <tbody>
                           {visitors
-                            .filter(v => {
-                              const searchLower = reportSearchQuery.toLowerCase();
-                              const matchesSearch = !reportSearchQuery || 
-                                v.name.toLowerCase().includes(searchLower) ||
-                                v.room.toLowerCase().includes(searchLower) ||
-                                v.contact.toLowerCase().includes(searchLower);
-                              
-                              let matchesDate = true;
-                              if (reportDateFilter) {
-                                try {
-                                  const parts = reportDateFilter.split('-');
-                                  if (parts.length === 3) {
-                                    const [year, month, day] = parts;
-                                    const filterDateFormatted = `${month}/${day}/${year.slice(-2)}`;
-                                    const filterDateFormattedDash = `${month}-${day}-${year.slice(-2)}`;
-                                    matchesDate = v.date === filterDateFormatted || v.date === filterDateFormattedDash;
-                                  }
-                                } catch (e) {
-                                  matchesDate = false;
-                                }
-                              }
-                              
-                              return matchesSearch && matchesDate;
-                            })
                             .map((v) => {
                               // Count total visits and collect visit dates with check-in and check-out times
                               const visitorCheckIns = allAttendanceRecords.filter(
@@ -2389,30 +2366,7 @@ export default function Dashboard({ onLogout }) {
                             })}
                         </tbody>
                       </table>
-                      {visitors.filter(v => {
-                        const searchLower = reportSearchQuery.toLowerCase();
-                        const matchesSearch = !reportSearchQuery || 
-                          v.name.toLowerCase().includes(searchLower) ||
-                          v.room.toLowerCase().includes(searchLower) ||
-                          v.contact.toLowerCase().includes(searchLower);
-                        
-                        let matchesDate = true;
-                        if (reportDateFilter) {
-                          try {
-                            const parts = reportDateFilter.split('-');
-                            if (parts.length === 3) {
-                              const [year, month, day] = parts;
-                              const filterDateFormatted = `${month}/${day}/${year.slice(-2)}`;
-                              const filterDateFormattedDash = `${month}-${day}-${year.slice(-2)}`;
-                              matchesDate = v.date === filterDateFormatted || v.date === filterDateFormattedDash;
-                            }
-                          } catch (e) {
-                            matchesDate = false;
-                          }
-                        }
-                        
-                        return matchesSearch && matchesDate;
-                      }).length === 0 && (
+                      {visitors.length === 0 && (
                         <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found</div>
                       )}
                     </div>
