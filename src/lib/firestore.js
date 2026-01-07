@@ -131,27 +131,55 @@ export async function recordAttendance(visitorId, visitorName, scanDate, scanTim
   }
 }
 
-// Record visitor checkout event
+// Record visitor checkout event (Time-out - visitor can check back in)
 export async function recordCheckout(visitorId, visitorName, checkoutDate, checkoutTime) {
   const col = collection(db, 'attendance');
   try {
-    console.log('[Firestore] Recording checkout for:', visitorId, visitorName, checkoutDate, checkoutTime);
+    console.log('[Firestore] Recording checkout (TIME-OUT) for:', visitorId, visitorName, checkoutDate, checkoutTime);
     const checkoutRecord = {
       visitorId: visitorId,
       visitorName: visitorName,
       scanDate: checkoutDate, // Format: MM-DD-YY
+      checkOutDate: checkoutDate, // Alternative field name
       checkoutTime: checkoutTime, // Format: HH:MM:SS AM/PM
+      timeOut: checkoutTime, // Alternative field name
       timestamp: new Date().toISOString(),
       recordedAt: new Date(),
-      eventType: 'checkout',
+      eventType: 'checkout', // Separate from discharge
       status: 'checked-out'
     };
     
     const docRef = await addDoc(col, checkoutRecord);
-    console.log('[Firestore] Checkout recorded successfully:', docRef.id);
+    console.log('[Firestore] TIME-OUT checkout recorded successfully:', docRef.id);
     return docRef.id;
   } catch (err) {
     console.error('[Firestore] Error recording checkout:', err);
+    throw err;
+  }
+}
+
+// Record visitor discharge event (Permanent removal - visitor discharged from system)
+export async function recordDischarge(visitorId, visitorName, dischargeDate, dischargeTime) {
+  const col = collection(db, 'attendance');
+  try {
+    console.log('[Firestore] Recording DISCHARGE for:', visitorId, visitorName, dischargeDate, dischargeTime);
+    const dischargeRecord = {
+      visitorId: visitorId,
+      visitorName: visitorName,
+      scanDate: dischargeDate, // Format: MM-DD-YY
+      dischargeDate: dischargeDate, // Specific discharge date
+      dischargeTime: dischargeTime, // Format: HH:MM:SS AM/PM
+      timestamp: new Date().toISOString(),
+      recordedAt: new Date(),
+      eventType: 'discharge', // Separate from checkout
+      status: 'discharged'
+    };
+    
+    const docRef = await addDoc(col, dischargeRecord);
+    console.log('[Firestore] DISCHARGE recorded successfully:', docRef.id);
+    return docRef.id;
+  } catch (err) {
+    console.error('[Firestore] Error recording discharge:', err);
     throw err;
   }
 }
