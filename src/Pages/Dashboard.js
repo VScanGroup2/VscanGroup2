@@ -275,12 +275,25 @@ export default function Dashboard({ onLogout }) {
       if (selectedFile) {
         try {
           setUploadingImage(true);
+          console.log('[Dashboard] Starting image upload for file:', selectedFile.name, 'Size:', (selectedFile.size / 1024).toFixed(2) + 'KB');
           const uploadRes = await uploadImageToCloudinary(selectedFile);
           photoUrl = uploadRes.secure_url || uploadRes.url || null;
+          console.log('[Dashboard] Image uploaded successfully:', photoUrl);
         } catch (err) {
-          console.error('Image upload failed', err);
-          const msg = err && err.message ? err.message : 'Image upload failed. Please try again.';
-          setMessage({ type: 'error', text: `Image upload failed: ${msg}` });
+          console.error('[Dashboard] Image upload error:', err);
+          let msg = 'Image upload failed. ';
+          
+          if (err.message.includes('too large')) {
+            msg += 'File is too large. Please use an image smaller than 10MB.';
+          } else if (err.message.includes('Network error') || err.message.includes('Failed to fetch')) {
+            msg += 'Network error - check your internet connection. If problem persists, verify your Cloudinary credentials in .env.local';
+          } else if (err.message.includes('configuration missing')) {
+            msg += 'Cloudinary is not configured. Please set REACT_APP_CLOUDINARY_CLOUD_NAME and REACT_APP_CLOUDINARY_UPLOAD_PRESET in .env.local';
+          } else {
+            msg += err.message;
+          }
+          
+          setMessage({ type: 'error', text: msg });
           setLoading(false);
           return;
         } finally {
@@ -410,31 +423,122 @@ export default function Dashboard({ onLogout }) {
       printWindow.document.write(`
         <html>
           <head>
-            <title>Visitor QR Code - ${registeredVisitorData.name}</title>
+            <title>Visitor ID Card - ${registeredVisitorData.name}</title>
             <style>
-              body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-              .header { color: #1a8f6f; margin-bottom: 20px; }
-              .qr-container { margin: 20px 0; }
-              .info { text-align: left; margin: 20px auto; max-width: 400px; }
-              .info-row { margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 4px; }
-              .label { font-weight: bold; color: #1a8f6f; }
+              body { font-family: Arial, sans-serif; margin: 0; padding: 20px; text-align: center; background: #f5f5f5; }
+              @media print {
+                body { padding: 0; margin: 0; background: white; }
+              }
+              .id-card {
+                width: 350px;
+                height: 220px;
+                margin: 20px auto;
+                background: white;
+                border: 3px solid #1a8f6f;
+                border-radius: 10px;
+                padding: 15px;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                page-break-after: avoid;
+              }
+              .card-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 10px;
+              }
+              .card-logo {
+                text-align: left;
+                flex: 1;
+              }
+              .card-logo h3 {
+                margin: 0;
+                font-size: 11px;
+                color: #1a8f6f;
+                line-height: 1.2;
+              }
+              .card-qr {
+                flex-shrink: 0;
+                margin-left: 10px;
+              }
+              .card-qr img {
+                width: 25px;
+                height: 25px;
+                border: 2px solid #1a8f6f;
+                padding: 2px;
+                background: white;
+              }
+              .card-id-section {
+                background: linear-gradient(135deg, #1a8f6f 0%, #158560 100%);
+                color: white;
+                border-radius: 6px;
+                padding: 10px;
+                margin: 5px 0;
+                text-align: center;
+              }
+              .card-id-label {
+                font-size: 10px;
+                font-weight: bold;
+                letter-spacing: 1px;
+                margin-bottom: 3px;
+              }
+              .card-id-value {
+                font-size: 24px;
+                font-weight: bold;
+                font-family: 'Courier New', monospace;
+                letter-spacing: 2px;
+              }
+              .card-info {
+                text-align: left;
+                font-size: 10px;
+                line-height: 1.4;
+              }
+              .card-info-row {
+                display: flex;
+                margin: 2px 0;
+              }
+              .card-label {
+                font-weight: bold;
+                width: 40px;
+                color: #1a8f6f;
+              }
+              .card-value {
+                flex: 1;
+              }
             </style>
           </head>
           <body>
-            <div class="header">
-              <h1>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</h1>
-              <h2>Visitor Pass</h2>
-            </div>
-            <div class="qr-container">
-              <img src="${qrCodeUrl}" alt="Visitor QR Code" />
-            </div>
-            <div class="info">
-              <div class="info-row"><span class="label">Visitor ID:</span> ${registeredVisitorData.id}</div>
-              <div class="info-row"><span class="label">Name:</span> ${registeredVisitorData.name}</div>
-              <div class="info-row"><span class="label">Room:</span> ${registeredVisitorData.room}</div>
-              <div class="info-row"><span class="label">Patient:</span> ${registeredVisitorData.patient}</div>
-              <div class="info-row"><span class="label">Contact:</span> ${registeredVisitorData.contact}</div>
-              <div class="info-row"><span class="label">Registration Date & Time:</span> ${registeredVisitorData.registrationDateTime}</div>
+            <div class="id-card">
+              <div class="card-top">
+                <div class="card-logo">
+                  <h3>IGNACIO LACSON<br/>ARROYO MEMORIAL<br/>HOSPITAL</h3>
+                </div>
+                <div class="card-qr">
+                  <img src="${qrCodeUrl}" alt="QR Code" />
+                </div>
+              </div>
+              
+              <div class="card-id-section">
+                <div class="card-id-label">VISITOR ID</div>
+                <div class="card-id-value">${registeredVisitorData.id}</div>
+              </div>
+              
+              <div class="card-info">
+                <div class="card-info-row">
+                  <span class="card-label">Name:</span>
+                  <span class="card-value">${registeredVisitorData.name}</span>
+                </div>
+                <div class="card-info-row">
+                  <span class="card-label">Room:</span>
+                  <span class="card-value">${registeredVisitorData.room}</span>
+                </div>
+                <div class="card-info-row">
+                  <span class="card-label">Patient:</span>
+                  <span class="card-value">${registeredVisitorData.patient}</span>
+                </div>
+              </div>
             </div>
           </body>
         </html>
