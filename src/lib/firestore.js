@@ -105,6 +105,45 @@ export async function deleteVisitor(id) {
   await deleteDoc(ref);
 }
 
+// Delete all attendance records for a visitor
+export async function deleteVisitorAttendance(visitorId) {
+  try {
+    console.log('[Firestore] Deleting all attendance records for visitor:', visitorId);
+    const snap = await getDocs(collection(db, 'attendance'));
+    
+    let deletedCount = 0;
+    const recordsToDelete = [];
+    
+    // Find all records matching this visitor ID
+    snap.docs.forEach(doc => {
+      const data = doc.data();
+      // Check multiple possible field names for visitor ID
+      if (data.visitorId === visitorId || data.visitorName === visitorId) {
+        recordsToDelete.push(doc);
+      }
+    });
+    
+    console.log('[Firestore] Found', recordsToDelete.length, 'records to delete');
+    
+    // Delete each record
+    for (const recordDoc of recordsToDelete) {
+      try {
+        await deleteDoc(doc(db, 'attendance', recordDoc.id));
+        deletedCount++;
+        console.log('[Firestore] Deleted attendance record:', recordDoc.id);
+      } catch (deleteErr) {
+        console.error('[Firestore] Error deleting specific record:', recordDoc.id, deleteErr);
+      }
+    }
+    
+    console.log('[Firestore] Successfully deleted', deletedCount, 'attendance records for visitor:', visitorId);
+    return deletedCount;
+  } catch (err) {
+    console.error('[Firestore] Error deleting visitor attendance:', err);
+    throw err;
+  }
+}
+
 // Record visitor attendance (check-in event)
 export async function recordAttendance(visitorId, visitorName, scanDate, scanTime) {
   const col = collection(db, 'attendance');

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import bgImage from '../Styles/bg.png';
-import { listenVisitorsRealtime, addVisitor as addVisitorDoc, updateVisitor, recordAttendance, getAttendanceByDate, recordCheckout, recordDischarge, getVisitorVisitationHistory, getAllAttendance } from '../lib/firestore';
+import { listenVisitorsRealtime, addVisitor as addVisitorDoc, updateVisitor, recordAttendance, getAttendanceByDate, recordCheckout, recordDischarge, getVisitorVisitationHistory, getAllAttendance, deleteVisitor, deleteVisitorAttendance } from '../lib/firestore';
 import uploadImageToCloudinary from '../lib/cloudinary';
 import QRCode from 'qrcode';
 import jsQR from 'jsqr';
@@ -43,6 +43,9 @@ export default function Dashboard({ onLogout }) {
   const [scannerBuffer, setScannerBuffer] = useState('');
   const scannerInputRef = useRef(null);
   const [scannerActive, setScannerActive] = useState(false);
+  // Admin delete functionality
+  const [showDeletePanel, setShowDeletePanel] = useState(false);
+  const [deleteVisitorName, setDeleteVisitorName] = useState('');
   
 
   // Verify admin role access on mount
@@ -341,6 +344,7 @@ export default function Dashboard({ onLogout }) {
           hour12: true 
         }),
         status: 'active',
+        justRegistered: true,
         photoUrl: photoUrl
       };
 
@@ -371,7 +375,7 @@ export default function Dashboard({ onLogout }) {
       });
       
       const qrUrl = await QRCode.toDataURL(qrData, {
-        width: 300,
+        width: 800,
         margin: 2,
         color: {
           dark: '#1a8f6f',
@@ -464,8 +468,8 @@ export default function Dashboard({ onLogout }) {
                 margin-left: 10px;
               }
               .card-qr img {
-                width: 25px;
-                height: 25px;
+                width: 120px;
+                height: 120px;
                 border: 2px solid #1a8f6f;
                 padding: 2px;
                 background: white;
@@ -529,14 +533,6 @@ export default function Dashboard({ onLogout }) {
                 <div class="card-info-row">
                   <span class="card-label">Name:</span>
                   <span class="card-value">${registeredVisitorData.name}</span>
-                </div>
-                <div class="card-info-row">
-                  <span class="card-label">Room:</span>
-                  <span class="card-value">${registeredVisitorData.room}</span>
-                </div>
-                <div class="card-info-row">
-                  <span class="card-label">Patient:</span>
-                  <span class="card-value">${registeredVisitorData.patient}</span>
                 </div>
               </div>
             </div>
@@ -720,6 +716,89 @@ export default function Dashboard({ onLogout }) {
     } catch (err) {
       console.error('[Dashboard] Error refreshing attendance records:', err);
     }
+  };
+
+  // Delete visitor records by name
+  const deleteVisitorByName = async (visitorName) => {
+    try {
+      setLoading(true);
+      const nameLower = visitorName.toLowerCase().trim();
+      const visitorToDelete = visitors.find(v => (v.visitorName || v.name || '').toLowerCase() === nameLower);
+      
+      if (!visitorToDelete) {
+        setMessage({ type: 'error', text: `Visitor "${visitorName}" not found in system.` });
+        setLoading(false);
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+        return false;
+      }
+
+      console.log('[Dashboard] Starting deletion for visitor:', visitorToDelete.id, visitorName);
+      
+      // Delete all attendance records for this visitor first
+      let deletedAttendanceCount = 0;
+      try {
+        deletedAttendanceCount = await deleteVisitorAttendance(visitorToDelete.id);
+        console.log(`[Dashboard] Deleted ${deletedAttendanceCount} attendance record(s)`);
+      } catch (attendanceErr) {
+        console.error('[Dashboard] Error deleting attendance records:', attendanceErr);
+        setMessage({ type: 'error', text: `Error deleting attendance records: ${attendanceErr.message}` });
+        setLoading(false);
+        setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+        return false;
+      }
+      
+      // Delete the visitor document
+      try {
+        await deleteVisitor(visitorToDelete.id);
+        console.log(`[Dashboard] Deleted visitor document`);
+      } catch (visitorErr) {
+        console.error('[Dashboard] Error deleting visitor document:', visitorErr);
+        setMessage({ type: 'error', text: `Error deleting visitor: ${visitorErr.message}` });
+        setLoading(false);
+        setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+        return false;
+      }
+      
+      // Wait a moment then refresh the data
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await refreshAttendanceRecords();
+      
+      setMessage({ type: 'success', text: `Successfully deleted "${visitorName}" and ${deletedAttendanceCount} record(s).` });
+      setDeleteVisitorName('');
+      setShowDeletePanel(false);
+      setLoading(false);
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return true;
+    } catch (err) {
+      console.error('[Dashboard] Error in deleteVisitorByName:', err);
+      setMessage({ type: 'error', text: `Deletion error: ${err.message}` });
+      setLoading(false);
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+      return false;
+    }
+  };
+
+  // Batch delete multiple visitors
+  const deleteMultipleVisitors = async (visitorNames) => {
+    console.log('[Dashboard] Starting batch deletion for:', visitorNames);
+    setLoading(true);
+    
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const name of visitorNames) {
+      const result = await deleteVisitorByName(name);
+      if (result) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+
+    setLoading(false);
+    const summaryMsg = `Deletion complete: ${successCount} deleted, ${failCount} failed.`;
+    setMessage({ type: successCount > 0 ? 'success' : 'error', text: summaryMsg });
+    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
   };
 
   // Calculate next scan prediction for a visitor
@@ -1323,7 +1402,7 @@ export default function Dashboard({ onLogout }) {
                   onMouseOver={(e) => e.target.style.background = '#c82333'}
                   onMouseOut={(e) => e.target.style.background = '#dc3545'}
                 >
-                  ✕ Clear
+                  × Clear
                 </button>
               </div>
 
@@ -1410,7 +1489,7 @@ export default function Dashboard({ onLogout }) {
               </div>
 
               <div style={{ marginTop: '24px', padding: '16px', background: '#f0f8f5', borderRadius: '8px', border: '2px solid #1a8f6f' }}>
-                <h4 style={{ color: '#1a8f6f', margin: '0 0 14px 0', fontSize: '1em', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📋 Attendance Records</h4>
+                <h4 style={{ color: '#1a8f6f', margin: '0 0 14px 0', fontSize: '1em', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Attendance Records</h4>
                 {allAttendanceRecords && allAttendanceRecords.filter(r => r.visitorId === scannedVisitorData.id).length > 0 ? (
                   <div style={{ maxHeight: '300px', overflowY: 'auto', scrollbarGutter: 'stable' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em' }}>
@@ -1508,29 +1587,55 @@ export default function Dashboard({ onLogout }) {
                   </thead>
                   <tbody>
                     {filteredVisitors.map((v) => {
-                      // Get latest time-in and time-out from attendance records using 2nd scan logic
-                      const visitorCheckIns = allAttendanceRecords.filter(
-                        record => record.visitorId === v.id && record.eventType === 'check-in'
+                      // Helper function to parse time string to minutes
+                      const parseTimeToMinutes = (timeStr) => {
+                        if (!timeStr) return -1;
+                        const match = timeStr.match(/(\d{1,2}):(\d{2}):?(\d{2})?\s*(AM|PM)?/i);
+                        if (match) {
+                          let hours = parseInt(match[1]);
+                          const minutes = parseInt(match[2]);
+                          const ampm = match[4];
+                          if (ampm && ampm.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+                          if (ampm && ampm.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                          return hours * 60 + minutes;
+                        }
+                        return -1;
+                      };
+                      
+                      // Get all attendance records for this visitor
+                      const visitorRecords = allAttendanceRecords.filter(
+                        record => record.visitorId === v.id
                       );
                       
                       // Get today's date in MM-DD-YY format
                       const today = new Date();
                       const todayFormatted = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}-${String(today.getFullYear()).slice(-2)}`;
                       
-                      // Get today's check-ins for this visitor
-                      const todayCheckIns = visitorCheckIns.filter(r => {
+                      // Get today's records for this visitor
+                      const todayRecords = visitorRecords.filter(r => {
                         const recordDate = r.scanDate || r.checkInDate || r.date || '';
                         return recordDate === todayFormatted;
                       });
                       
-                      // Use 1st as timeIn, 2nd (if exists) as timeOut
+                      // Determine earliest and latest times
                       let displayTimeIn = v.timeIn;
                       let displayTimeOut = v.timeOut;
                       
-                      if (todayCheckIns.length > 0) {
-                        displayTimeIn = todayCheckIns[0].checkInTime || todayCheckIns[0].timeIn || displayTimeIn;
-                        if (todayCheckIns.length > 1) {
-                          displayTimeOut = todayCheckIns[1].checkInTime || todayCheckIns[1].timeIn || displayTimeOut;
+                      if (todayRecords.length > 0) {
+                        // Get all times from today's records
+                        const allTimes = todayRecords.map(r => ({
+                          time: r.checkInTime || r.checkOutTime || r.timeIn || r.timeOut || r.scanTime || '',
+                          minutes: parseTimeToMinutes(r.checkInTime || r.checkOutTime || r.timeIn || r.timeOut || r.scanTime || '')
+                        })).filter(t => t.minutes >= 0);
+                        
+                        if (allTimes.length === 1) {
+                          displayTimeIn = allTimes[0].time;
+                          displayTimeOut = null;
+                        } else if (allTimes.length > 1) {
+                          // Sort by time to get earliest and latest
+                          allTimes.sort((a, b) => a.minutes - b.minutes);
+                          displayTimeIn = allTimes[0].time;
+                          displayTimeOut = allTimes[allTimes.length - 1].time;
                         }
                       }
                       
@@ -2044,6 +2149,21 @@ export default function Dashboard({ onLogout }) {
                               </thead>
                               <tbody>
                                 {(() => {
+                                  // Helper function to parse time string to comparable format
+                                  const parseTimeToMinutes = (timeStr) => {
+                                    if (!timeStr) return -1;
+                                    const match = timeStr.match(/(\d{1,2}):(\d{2}):?(\d{2})?\s*(AM|PM)?/i);
+                                    if (match) {
+                                      let hours = parseInt(match[1]);
+                                      const minutes = parseInt(match[2]);
+                                      const ampm = match[4];
+                                      if (ampm && ampm.toUpperCase() === 'PM' && hours !== 12) hours += 12;
+                                      if (ampm && ampm.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                                      return hours * 60 + minutes;
+                                    }
+                                    return -1;
+                                  };
+                                  
                                   // Group records by visitor ID and date, track 1st and 2nd swipes
                                   const groupedRecords = {};
                                   
@@ -2058,20 +2178,32 @@ export default function Dashboard({ onLogout }) {
                                     groupedRecords[key].push(record);
                                   });
                                   
-                                  // Build array of combined records: 1st swipe = time-in, 2nd swipe = time-out in same row
+                                  // Build array of combined records: earliest time = time-in, latest time = time-out
                                   const displayRecords = [];
                                   
                                   Object.entries(groupedRecords).forEach(([key, records]) => {
                                     const recordDate = (records[0].scanDate || records[0].checkInDate || records[0].date || '').replace(/\//g, '-');
                                     const visitorName = records[0].visitorName || 'N/A';
                                     
-                                    // Get 1st swipe (time-in) - use checkInTime, timeIn, or scanTime
-                                    const timeInRecord = records[0];
-                                    const timeIn = timeInRecord.checkInTime || timeInRecord.timeIn || timeInRecord.scanTime || '';
+                                    // Get all times from records
+                                    const allTimes = records.map(r => ({
+                                      record: r,
+                                      time: r.checkInTime || r.checkOutTime || r.timeIn || r.timeOut || r.scanTime || '',
+                                      minutes: parseTimeToMinutes(r.checkInTime || r.checkOutTime || r.timeIn || r.timeOut || r.scanTime || '')
+                                    })).filter(t => t.minutes >= 0);
                                     
-                                    // Get 2nd swipe (time-out) if it exists - use checkOutTime, timeOut, or fallback to checkInTime
-                                    const timeOutRecord = records.length > 1 ? records[1] : null;
-                                    const timeOut = timeOutRecord ? (timeOutRecord.checkOutTime || timeOutRecord.timeOut || timeOutRecord.checkInTime || timeOutRecord.timeIn || timeOutRecord.scanTime || '') : null;
+                                    let timeIn = '';
+                                    let timeOut = null;
+                                    
+                                    if (allTimes.length === 1) {
+                                      timeIn = allTimes[0].time;
+                                      timeOut = null;
+                                    } else if (allTimes.length > 1) {
+                                      // Sort by time and get earliest and latest
+                                      allTimes.sort((a, b) => a.minutes - b.minutes);
+                                      timeIn = allTimes[0].time;
+                                      timeOut = allTimes[allTimes.length - 1].time;
+                                    }
                                     
                                     displayRecords.push({
                                       id: key,
@@ -2080,6 +2212,7 @@ export default function Dashboard({ onLogout }) {
                                       timeIn,
                                       timeOut,
                                       hasTimeOut: !!timeOut
+                               
                                     });
                                   });
                                   
@@ -2094,8 +2227,8 @@ export default function Dashboard({ onLogout }) {
                                     }} onMouseOver={(e) => e.currentTarget.style.background = display.hasTimeOut ? '#ffeaa7' : '#f9f9f9'} onMouseOut={(e) => e.currentTarget.style.background = display.hasTimeOut ? '#fff3cd' : 'transparent'}>
                                       <td style={{ padding: '12px 10px', fontSize: '1.15em' }}>{display.visitorName}</td>
                                       <td style={{ padding: '12px 10px', fontSize: '1.15em' }}>{display.recordDate}</td>
-                                      <td style={{ padding: '12px 10px', fontSize: '1.15em', fontWeight: display.hasTimeOut ? '600' : '400', color: display.hasTimeOut ? '#28a745' : '#999' }}>{display.timeOut || '-'}</td>
-                                      <td style={{ padding: '12px 10px', fontSize: '1.15em', fontWeight: '600', color: '#dc3545' }}>{display.timeIn || '-'}</td>
+                                      <td style={{ padding: '12px 10px', fontSize: '1.15em', fontWeight: '600', color: '#28a745' }}>{display.timeIn || '-'}</td>
+                                      <td style={{ padding: '12px 10px', fontSize: '1.15em', fontWeight: display.hasTimeOut ? '600' : '400', color: display.hasTimeOut ? '#dc3545' : '#999' }}>{display.timeOut || '-'}</td>
                                     </tr>
                                   ));
                                 })()}
@@ -2503,7 +2636,7 @@ export default function Dashboard({ onLogout }) {
                     </div>
                     
                     <div style={{ textAlign: 'center', background: 'white', padding: '15px', borderRadius: '8px' }}>
-                      <img src={qrCodeUrl} alt="Visitor QR Code" style={{ borderRadius: '8px', border: '3px solid #1a8f6f', display: 'block' }} />
+                      <img src={qrCodeUrl} alt="Visitor QR Code" style={{ borderRadius: '8px', border: '3px solid #1a8f6f', display: 'block', width: '600px', height: '600px' }} />
                       <p style={{ marginTop: '12px', fontSize: '0.9em', color: '#666', fontWeight: 'bold' }}>Scan to view visitor info</p>
                     </div>
                   </div>
@@ -2531,7 +2664,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#5c636a'}
                       onMouseOut={(e) => e.target.style.background = '#6c757d'}
                     >
-                      ✕ Close
+                      × Close
                     </button>
                   </div>
                 </div>
@@ -2580,6 +2713,36 @@ export default function Dashboard({ onLogout }) {
           <div onClick={() => showView('registered')} style={{ padding: 12, marginBottom: 10, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'registered' ? '600' : '500' }}>Registered Visitor</div>
           <div onClick={() => showView('monitoring')} style={{ padding: 12, marginBottom: 10, background: currentView === 'monitoring' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'monitoring' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'monitoring' ? '600' : '500' }}>Monitoring</div>
           <div onClick={() => showView('report')} style={{ padding: 12, marginBottom: 16, background: currentView === 'report' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'report' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'report' ? '600' : '500' }}>Report</div>
+          
+          {/* Admin Delete Panel */}
+          <div style={{ marginBottom: 16, padding: 12, background: '#fff3cd', borderRadius: 8, border: '2px solid #ffc107' }}>
+            <div style={{ fontSize: '0.85em', fontWeight: 'bold', color: '#856404', marginBottom: 10, textAlign: 'center' }}>ADMIN TOOLS</div>
+            <button 
+              onClick={() => setShowDeletePanel(!showDeletePanel)}
+              style={{ width: '100%', padding: 10, background: '#dc3545', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9em', marginBottom: showDeletePanel ? 10 : 0 }}
+            >
+              {showDeletePanel ? '× Close' : 'Delete Visitor'}
+            </button>
+            {showDeletePanel && (
+              <div style={{ marginTop: 10 }}>
+                <input 
+                  type="text"
+                  placeholder="Enter visitor name"
+                  value={deleteVisitorName}
+                  onChange={(e) => setDeleteVisitorName(e.target.value)}
+                  style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ccc', marginBottom: 8, fontSize: '0.9em' }}
+                />
+                <button
+                  onClick={() => deleteVisitorByName(deleteVisitorName)}
+                  disabled={loading || !deleteVisitorName.trim()}
+                  style={{ width: '100%', padding: 8, background: loading ? '#999' : '#dc3545', color: 'white', border: 'none', borderRadius: 4, cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: '0.85em', opacity: loading ? 0.6 : 1 }}
+                >
+                  {loading ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            )}
+          </div>
+          
           <button onClick={() => showView('register')} style={{ width: '100%', padding: 14, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1em' }}>REGISTER</button>
         </div>
       </div>
