@@ -1790,37 +1790,32 @@ export default function Dashboard({ onLogout }) {
                       </thead>
                       <tbody>
                         {filteredMonitoringVisitors.filter(v => v.status === 'active').map((v) => {
-                          // Get latest time-in and time-out from attendance records
-                          const visitorCheckIns = allAttendanceRecords.filter(
-                            record => record.visitorId === v.id && record.eventType === 'check-in'
-                          );
-                          
-                          // Extract visit dates with their corresponding time-in and time-out values
-                          const uniqueVisits = {};
-                          visitorCheckIns.forEach(r => {
-                            const date = r.scanDate || r.checkInDate || r.date || '';
-                            if (date && date.trim() !== '') {
-                              if (!uniqueVisits[date]) {
-                                uniqueVisits[date] = {
-                                  timeIn: r.checkInTime || r.timeIn || '',
-                                  timeOut: null
-                                };
-                              } else {
-                                uniqueVisits[date].timeOut = r.checkInTime || r.timeIn || '';
-                              }
-                            }
+                          // Get all attendance records for this visitor today
+                          const now = new Date();
+                          const currentDate = now.toLocaleDateString('en-US', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            year: '2-digit'
+                          }).replace(/\//g, '-');
+
+                          const todayRecords = allAttendanceRecords.filter(record => {
+                            const recordDate = record.scanDate || record.checkInDate || record.checkOutDate || record.dischargeDate || record.date || '';
+                            return record.visitorId === v.id && recordDate === currentDate;
+                          }).sort((a, b) => {
+                            const timeA = new Date(a.recordedAt || 0).getTime();
+                            const timeB = new Date(b.recordedAt || 0).getTime();
+                            return timeA - timeB; // Oldest first
                           });
-                          
-                          const visitsData = Object.entries(uniqueVisits).map(([date, times]) => ({
-                            date,
-                            timeIn: times.timeIn,
-                            timeOut: times.timeOut
-                          }));
-                          
-                          // Get latest time-in and time-out from all visits (use last entry for latest)
-                          const latestTimeIn = visitsData.length > 0 ? visitsData[visitsData.length - 1].timeIn : v.timeIn || '';
-                          const latestTimeOut = visitsData.length > 0 ? visitsData[visitsData.length - 1].timeOut : v.timeOut || '';
-                          
+
+                          // Get time-in (first check-in event today)
+                          const checkInRecord = todayRecords.find(r => r.eventType === 'check-in' || r.checkInTime || r.scanTime);
+                          const latestTimeIn = checkInRecord ? (checkInRecord.checkInTime || checkInRecord.scanTime || checkInRecord.timeIn || '') : v.timeIn || '';
+
+                          // Get time-out (most recent checkout event today)
+                          const checkOutRecords = todayRecords.filter(r => r.eventType === 'checkout');
+                          const latestCheckout = checkOutRecords.length > 0 ? checkOutRecords[checkOutRecords.length - 1] : null;
+                          const latestTimeOut = latestCheckout ? (latestCheckout.checkoutTime || latestCheckout.timeOut || latestCheckout.scanTime || '') : v.timeOut || '';
+
                           return (
                           <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s', background: latestTimeOut ? '#fff3cd' : 'transparent' }} onMouseOver={(e) => e.currentTarget.style.background = latestTimeOut ? '#ffeaa7' : '#f0f8f5'} onMouseOut={(e) => e.currentTarget.style.background = latestTimeOut ? '#fff3cd' : 'transparent'}>
                             <td style={{ padding: '10px 8px' }}>{v.name}</td>
