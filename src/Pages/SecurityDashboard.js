@@ -837,61 +837,96 @@ export default function SecurityDashboard({ onLogout }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeVisitors.map((v) => (
-                    <tr key={v.id} style={{ borderBottom: '1px solid #eee' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0f8f5'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                      <td style={{ padding: '10px 8px' }}>{v.name}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.room}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.patient}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.contact}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.date}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.timeIn}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.timeOut || '-'}</td>
-                      <td style={{ padding: '10px 8px', fontSize: '0.85em', fontWeight: '600' }}>
-                        <span style={{
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          fontSize: '0.85em',
-                          fontWeight: 'bold',
-                          background: '#cfe2ff',
-                          color: '#084298'
-                        }}>
-                          {getNextScanPrediction(v.id)}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 8px', display: 'flex', gap: '6px' }}>
-                        <button
-                          onClick={() => handleCheckOut(v.id)}
-                          style={{
-                            padding: '6px 10px',
-                            background: '#1a8f6f',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
+                  {activeVisitors.map((v) => {
+                    // Get all attendance records for this visitor today
+                    const now = new Date();
+                    const currentDate = now.toLocaleDateString('en-US', {
+                      month: '2-digit',
+                      day: '2-digit',
+                      year: '2-digit'
+                    }).replace(/\//g, '-');
+
+                    const todayRecords = allAttendanceRecords.filter(record => {
+                      const recordDate = record.scanDate || record.checkInDate || record.checkOutDate || record.dischargeDate || record.date || '';
+                      return record.visitorId === v.id && recordDate === currentDate;
+                    });
+
+                    // Extract all time values from records and sort them
+                    let allTimes = [];
+                    todayRecords.forEach(record => {
+                      const time = record.checkInTime || record.scanTime || record.timeIn || record.checkoutTime || record.timeOut || '';
+                      if (time) {
+                        allTimes.push(time);
+                      }
+                    });
+
+                    // Sort times chronologically (HH:MM:SS AM/PM format)
+                    allTimes.sort((a, b) => {
+                      const timeA = new Date(`2000-01-01 ${a}`).getTime();
+                      const timeB = new Date(`2000-01-01 ${b}`).getTime();
+                      return timeA - timeB;
+                    });
+
+                    // Earliest time is time-in, latest time is time-out
+                    const earliestTimeIn = allTimes.length > 0 ? allTimes[0] : (v.timeIn || '');
+                    const latestTimeOut = allTimes.length > 0 ? allTimes[allTimes.length - 1] : (v.timeOut || '');
+
+                    return (
+                      <tr key={v.id} style={{ borderBottom: '1px solid #eee' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0f8f5'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                        <td style={{ padding: '10px 8px' }}>{v.name}</td>
+                        <td style={{ padding: '10px 8px' }}>{v.room}</td>
+                        <td style={{ padding: '10px 8px' }}>{v.patient}</td>
+                        <td style={{ padding: '10px 8px' }}>{v.contact}</td>
+                        <td style={{ padding: '10px 8px' }}>{v.date}</td>
+                        <td style={{ padding: '10px 8px', fontWeight: '600', color: earliestTimeIn ? '#155724' : '#999' }}>{earliestTimeIn || 'N/A'}</td>
+                        <td style={{ padding: '10px 8px', fontWeight: '600', color: latestTimeOut ? '#dc3545' : '#999' }}>{latestTimeOut || '-'}</td>
+                        <td style={{ padding: '10px 8px', fontSize: '0.85em', fontWeight: '600' }}>
+                          <span style={{
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            fontSize: '0.85em',
                             fontWeight: 'bold',
-                            fontSize: '0.8em'
-                          }}
-                        >
-                          Time Out
-                        </button>
-                        <button
-                          onClick={() => handleDischarge(v.id)}
-                          style={{
-                            padding: '6px 10px',
-                            background: '#dc3545',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontWeight: 'bold',
-                            fontSize: '0.8em'
-                          }}
-                        >
-                          Discharge
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                            background: '#cfe2ff',
+                            color: '#084298'
+                          }}>
+                            {getNextScanPrediction(v.id)}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 8px', display: 'flex', gap: '6px' }}>
+                          <button
+                            onClick={() => handleCheckOut(v.id)}
+                            style={{
+                              padding: '6px 10px',
+                              background: '#1a8f6f',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              fontSize: '0.8em'
+                            }}
+                          >
+                            Time Out
+                          </button>
+                          <button
+                            onClick={() => handleDischarge(v.id)}
+                            style={{
+                              padding: '6px 10px',
+                              background: '#dc3545',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              fontSize: '0.8em'
+                            }}
+                          >
+                            Discharge
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               {activeVisitors.length === 0 && (
@@ -909,6 +944,8 @@ export default function SecurityDashboard({ onLogout }) {
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Name</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Room</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Patient</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Contact</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Reg Date</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time In</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time Out</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Discharge Date</th>
@@ -916,21 +953,48 @@ export default function SecurityDashboard({ onLogout }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {dischargedVisitors.map((v) => (
-                    <tr key={v.id} style={{ borderBottom: '1px solid #eee' }} onMouseOver={(e) => e.currentTarget.style.background = '#fdf7f8'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                      <td style={{ padding: '10px 8px' }}>{v.name}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.room}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.patient}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.timeIn || '-'}</td>
-                      <td style={{ padding: '10px 8px' }}>{v.timeOut || '-'}</td>
-                      <td style={{ padding: '10px 8px', fontWeight: '600', color: '#dc3545' }}>
-                        {v.dischargeTime ? new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }) : '-'}
-                      </td>
-                      <td style={{ padding: '10px 8px', fontWeight: '600', color: '#dc3545' }}>
-                        {v.dischargeTime ? new Date(v.dischargeTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '-'}
-                      </td>
-                    </tr>
-                  ))}
+                  {dischargedVisitors.map((v) => {
+                    // Get discharge record for this visitor
+                    const dischargeRecord = allAttendanceRecords.find(r => r.visitorId === v.id && r.eventType === 'discharge');
+                    const dischargeDate = dischargeRecord ? (dischargeRecord.dischargeDate || '') : (v.dischargeTime ? new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }) : '');
+                    const dischargeTime = dischargeRecord ? (dischargeRecord.dischargeTime || '') : (v.dischargeTime ? new Date(v.dischargeTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '');
+
+                    // Get all attendance records for this visitor to extract time-in and time-out
+                    const visitorRecords = allAttendanceRecords.filter(r => r.visitorId === v.id);
+                    
+                    // Extract all time values and sort them
+                    let allTimes = [];
+                    visitorRecords.forEach(record => {
+                      const time = record.checkInTime || record.scanTime || record.timeIn || record.checkoutTime || record.timeOut || '';
+                      if (time) {
+                        allTimes.push(time);
+                      }
+                    });
+
+                    // Sort times chronologically
+                    allTimes.sort((a, b) => {
+                      const timeA = new Date(`2000-01-01 ${a}`).getTime();
+                      const timeB = new Date(`2000-01-01 ${b}`).getTime();
+                      return timeA - timeB;
+                    });
+
+                    const displayTimeIn = allTimes.length > 0 ? allTimes[0] : (v.timeIn || '-');
+                    const displayTimeOut = allTimes.length > 0 ? allTimes[allTimes.length - 1] : (v.timeOut || '-');
+
+                    return (
+                      <tr key={v.id} style={{ borderBottom: '1px solid #eee' }} onMouseOver={(e) => e.currentTarget.style.background = '#fdf7f8'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                        <td style={{ padding: '10px 8px' }}>{v.name}</td>
+                        <td style={{ padding: '10px 8px' }}>{v.room}</td>
+                        <td style={{ padding: '10px 8px' }}>{v.patient}</td>
+                        <td style={{ padding: '10px 8px' }}>{v.contact}</td>
+                        <td style={{ padding: '10px 8px', fontWeight: '600', color: '#007bff' }}>{v.date}</td>
+                        <td style={{ padding: '10px 8px', fontWeight: '600', color: '#155724' }}>{displayTimeIn}</td>
+                        <td style={{ padding: '10px 8px', fontWeight: '600', color: displayTimeOut && displayTimeOut !== '-' ? '#721c24' : '#999' }}>{displayTimeOut}</td>
+                        <td style={{ padding: '10px 8px', fontWeight: '600', color: dischargeDate ? '#dc3545' : '#999' }}>{dischargeDate || '-'}</td>
+                        <td style={{ padding: '10px 8px', fontWeight: '600', color: dischargeTime ? '#dc3545' : '#999' }}>{dischargeTime || '-'}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               {dischargedVisitors.length === 0 && (
@@ -1011,81 +1075,95 @@ export default function SecurityDashboard({ onLogout }) {
           {/* Daily Log Table */}
           {securityTab === 'daily' && (
             <div style={{ flex: 1, background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', overflowY: 'auto' }}>
-              <h3 style={{ marginTop: 0, color: '#fd7e14', marginBottom: '20px' }}>Daily Time Log - All Check-In/Check-Out Records</h3>
+              <h3 style={{ marginTop: 0, color: '#fd7e14', marginBottom: '15px' }}>Daily Time Log - All Check-In/Check-Out Records</h3>
               
-              <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '20px' }}>
-                <strong>Total Records:</strong> {visitors.length}
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em' }}>
-                <thead style={{ background: '#fff3cd', position: 'sticky', top: 0 }}>
-                  <tr>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Date</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Visitor ID</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Name</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Room</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Patient</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time In</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time Out</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Discharge Date</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Discharge Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visitors && visitors.length > 0 ? (
-                    (() => {
-                      // Create visitor records sorted by date and time
-                      const visitorRecords = visitors
-                        .filter(v => v.timeIn) // Only include visitors with check-in time
-                        .sort((a, b) => {
-                          // Sort by date first
-                          const [maMonth, maDay, maYear] = a.date.split('-');
-                          const [mbMonth, mbDay, mbYear] = b.date.split('-');
-                          const dateA = new Date(`20${maYear}-${maMonth}-${maDay}`);
-                          const dateB = new Date(`20${mbYear}-${mbMonth}-${mbDay}`);
-                          
-                          if (dateA.getTime() !== dateB.getTime()) {
-                            return dateA.getTime() - dateB.getTime(); // oldest first
-                          }
-                          
-                          // Then sort by time in
-                          const timeA = new Date(`2000-01-01 ${a.timeIn}`).getTime();
-                          const timeB = new Date(`2000-01-01 ${b.timeIn}`).getTime();
-                          return timeA - timeB;
-                        });
-
-                      if (visitorRecords.length === 0) {
-                        return (
-                          <tr style={{ borderBottom: '1px solid #eee' }}>
-                            <td colSpan="9" style={{ padding: '40px 10px', textAlign: 'center', color: '#999' }}>
-                              No visitor records
-                            </td>
-                          </tr>
-                        );
+              <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center' }}>
+                <div>
+                  <strong>Date:</strong> 
+                  <input 
+                    type="date" 
+                    value={dailyLogDate ? (() => {
+                      const [month, day, year] = dailyLogDate.split('-');
+                      return `20${year}-${month}-${day}`;
+                    })() : ''} 
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const date = new Date(e.target.value);
+                        const formattedDate = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}-${String(date.getFullYear()).slice(-2)}`;
+                        setDailyLogDate(formattedDate);
                       }
+                    }}
+                    style={{ padding: '6px 10px', fontSize: '0.9em', border: '1px solid #ddd', borderRadius: '4px', marginLeft: '10px' }}
+                  />
+                </div>
+                <div>
+                  <strong>Total Records:</strong> {allAttendanceRecords.filter(r => (r.scanDate || r.checkInDate || r.checkOutDate || r.dischargeDate || r.date || '') === dailyLogDate).length}
+                </div>
+              </div>
 
-                      return visitorRecords.map((v, idx) => (
-                        <tr key={`${v.id}-${idx}`} style={{ borderBottom: '1px solid #eee', background: v.status === 'discharged' ? '#f8d7da' : 'transparent' }} onMouseOver={(e) => e.currentTarget.style.background = v.status === 'discharged' ? '#f5c6cb' : '#fffbf0'} onMouseOut={(e) => e.currentTarget.style.background = v.status === 'discharged' ? '#f8d7da' : 'transparent'}>
-                          <td style={{ padding: '10px 8px', fontWeight: '600', color: '#fd7e14' }}>{v.date}</td>
-                          <td style={{ padding: '10px 8px', fontSize: '0.85em', color: '#fd7e14', fontWeight: '600' }}>{v.id}</td>
-                          <td style={{ padding: '10px 8px' }}>{v.name}</td>
-                          <td style={{ padding: '10px 8px' }}>{v.room}</td>
-                          <td style={{ padding: '10px 8px' }}>{v.patient}</td>
-                          <td style={{ padding: '10px 8px', fontWeight: '600', color: '#155724' }}>{v.timeIn}</td>
-                          <td style={{ padding: '10px 8px', fontWeight: '600', color: v.timeOut ? '#721c24' : '#999' }}>{v.timeOut || '-'}</td>
-                          <td style={{ padding: '10px 8px', fontWeight: '600', color: v.dischargeTime ? '#dc3545' : '#999' }}>
-                            {v.dischargeTime ? new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }) : '-'}
-                          </td>
-                          <td style={{ padding: '10px 8px', fontWeight: '600', color: v.dischargeTime ? '#dc3545' : '#999' }}>
-                            {v.dischargeTime ? new Date(v.dischargeTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '-'}
-                          </td>
-                        </tr>
-                      ));
-                    })()
-                  ) : null}
-                </tbody>
-              </table>
-              {visitors.length === 0 && (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No visitor records found</div>
+              <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 380px)', minWidth: 0, border: '1px solid #ddd' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', minWidth: '100%' }}>
+                  <thead style={{ background: '#fff3cd', position: 'sticky', top: 0 }}>
+                    <tr>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Visitor Name</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Event Type</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Discharge Date</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Discharge Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allAttendanceRecords && allAttendanceRecords.length > 0 ? (
+                      allAttendanceRecords
+                        .filter(r => (r.scanDate || r.checkInDate || r.checkOutDate || r.dischargeDate || r.date || '') === dailyLogDate)
+                        .sort((a, b) => {
+                          const timeA = new Date(a.recordedAt || 0).getTime();
+                          const timeB = new Date(b.recordedAt || 0).getTime();
+                          return timeA - timeB; // oldest first
+                        })
+                        .map((record, idx) => {
+                          const isCheckout = record.eventType === 'checkout';
+                          const isCheckin = record.eventType === 'check-in';
+                          const isDischarge = record.eventType === 'discharge';
+                          
+                          const timeIn = isCheckin ? (record.checkInTime || record.scanTime || '') : '';
+                          const timeOut = isCheckout ? (record.checkoutTime || record.timeOut || '') : '';
+                          const dischargeDate = isDischarge ? (record.dischargeDate || '') : '';
+                          const dischargeTime = isDischarge ? (record.dischargeTime || '') : '';
+                          
+                          return (
+                            <tr key={record.id || idx} style={{ 
+                              borderBottom: '1px solid #eee', 
+                              background: isCheckout ? '#fff3cd' : isDischarge ? '#f8d7da' : 'transparent'
+                            }} onMouseOver={(e) => e.currentTarget.style.background = isCheckout ? '#ffeaa7' : isDischarge ? '#f5c6cb' : '#fffbf0'} onMouseOut={(e) => e.currentTarget.style.background = isCheckout ? '#fff3cd' : isDischarge ? '#f8d7da' : 'transparent'}>
+                              <td style={{ padding: '10px 8px', fontWeight: '600', color: '#fd7e14' }}>{record.scanDate || record.checkInDate || record.checkOutDate || record.dischargeDate || record.date || 'N/A'}</td>
+                              <td style={{ padding: '10px 8px' }}>{record.visitorName || 'N/A'}</td>
+                              <td style={{ padding: '10px 8px', fontWeight: '600', color: timeIn ? '#155724' : '#999' }}>{timeIn || '-'}</td>
+                              <td style={{ padding: '10px 8px', fontWeight: '600', color: timeOut ? '#dc3545' : '#999' }}>{timeOut || '-'}</td>
+                              <td style={{ padding: '10px 8px', fontSize: '0.85em' }}>
+                                <span style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '3px',
+                                  fontWeight: '600',
+                                  background: record.eventType === 'checkout' ? '#fff3cd' : record.eventType === 'check-in' ? '#d4edda' : '#f8d7da',
+                                  color: record.eventType === 'checkout' ? '#856404' : record.eventType === 'check-in' ? '#155724' : '#721c24'
+                                }}>
+                                  {record.eventType === 'checkout' ? 'Time Out' : record.eventType === 'check-in' ? 'Check In' : 'Discharge'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '10px 8px', fontWeight: '600', color: dischargeDate ? '#dc3545' : '#999' }}>{dischargeDate || '-'}</td>
+                              <td style={{ padding: '10px 8px', fontWeight: '600', color: dischargeTime ? '#dc3545' : '#999' }}>{dischargeTime || '-'}</td>
+                            </tr>
+                          );
+                        })
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+              {allAttendanceRecords.filter(r => (r.scanDate || r.checkInDate || r.checkOutDate || r.dischargeDate || r.date || '') === dailyLogDate).length === 0 && (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#999', marginTop: '20px' }}>No records found for selected date</div>
               )}
             </div>
           )}
