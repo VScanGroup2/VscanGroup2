@@ -954,11 +954,9 @@ export default function SecurityDashboard({ onLogout }) {
                 </thead>
                 <tbody>
                   {dischargedVisitors.map((v) => {
-                    // Get discharge record for this visitor
-                    const dischargeRecord = allAttendanceRecords.find(r => r.visitorId === v.id && r.eventType === 'discharge');
-                    const dischargeDate = dischargeRecord ? (dischargeRecord.dischargeDate || '') : (v.dischargeTime ? new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }) : '');
-                    const dischargeTime = dischargeRecord ? (dischargeRecord.dischargeTime || '') : (v.dischargeTime ? new Date(v.dischargeTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) : '');
-
+                    // Get ALL discharge records for this visitor
+                    const dischargeRecords = allAttendanceRecords.filter(r => r.visitorId === v.id && r.eventType === 'discharge');
+                    
                     // Get all attendance records for this visitor to extract time-in and time-out
                     const visitorRecords = allAttendanceRecords.filter(r => r.visitorId === v.id);
                     
@@ -980,6 +978,27 @@ export default function SecurityDashboard({ onLogout }) {
 
                     const displayTimeIn = allTimes.length > 0 ? allTimes[0] : (v.timeIn || '-');
                     const displayTimeOut = allTimes.length > 0 ? allTimes[allTimes.length - 1] : (v.timeOut || '-');
+                    
+                    // Build discharge dates and times from ALL records
+                    let allDischargeDates = [];
+                    let allDischargeTimes = [];
+                    
+                    dischargeRecords.forEach(record => {
+                      if (record.dischargeDate && !allDischargeDates.includes(record.dischargeDate)) {
+                        allDischargeDates.push(record.dischargeDate);
+                      }
+                      if (record.dischargeTime && !allDischargeTimes.includes(record.dischargeTime)) {
+                        allDischargeTimes.push(record.dischargeTime);
+                      }
+                    });
+                    
+                    // Fallback to visitor object if no records found
+                    if (allDischargeDates.length === 0 && v.dischargeTime) {
+                      allDischargeDates.push(new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }));
+                    }
+                    if (allDischargeTimes.length === 0 && v.dischargeTime) {
+                      allDischargeTimes.push(new Date(v.dischargeTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
+                    }
 
                     return (
                       <tr key={v.id} style={{ borderBottom: '1px solid #eee' }} onMouseOver={(e) => e.currentTarget.style.background = '#fdf7f8'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
@@ -990,8 +1009,28 @@ export default function SecurityDashboard({ onLogout }) {
                         <td style={{ padding: '10px 8px', fontWeight: '600', color: '#007bff' }}>{v.date}</td>
                         <td style={{ padding: '10px 8px', fontWeight: '600', color: '#155724' }}>{displayTimeIn}</td>
                         <td style={{ padding: '10px 8px', fontWeight: '600', color: displayTimeOut && displayTimeOut !== '-' ? '#721c24' : '#999' }}>{displayTimeOut}</td>
-                        <td style={{ padding: '10px 8px', fontWeight: '600', color: dischargeDate ? '#dc3545' : '#999' }}>{dischargeDate || '-'}</td>
-                        <td style={{ padding: '10px 8px', fontWeight: '600', color: dischargeTime ? '#dc3545' : '#999' }}>{dischargeTime || '-'}</td>
+                        <td style={{ padding: '10px 8px', fontWeight: '600', color: allDischargeDates.length > 0 ? '#dc3545' : '#999' }}>
+                          {allDischargeDates.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {allDischargeDates.map((date, idx) => (
+                                <div key={idx} style={{ padding: '4px 8px', background: '#ffcccc', borderRadius: '3px', fontSize: '0.85em' }}>
+                                  {date}
+                                </div>
+                              ))}
+                            </div>
+                          ) : '-'}
+                        </td>
+                        <td style={{ padding: '10px 8px', fontWeight: '600', color: allDischargeTimes.length > 0 ? '#dc3545' : '#999' }}>
+                          {allDischargeTimes.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {allDischargeTimes.map((time, idx) => (
+                                <div key={idx} style={{ padding: '4px 8px', background: '#ffcccc', borderRadius: '3px', fontSize: '0.85em' }}>
+                                  {time}
+                                </div>
+                              ))}
+                            </div>
+                          ) : '-'}
+                        </td>
                       </tr>
                     );
                   })}

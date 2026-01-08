@@ -1581,6 +1581,7 @@ export default function Dashboard({ onLogout }) {
                       <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Registration Date</th>
                       <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Time In</th>
                       <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Time Out</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Discharge Date(s)</th>
                       <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Status</th>
                       <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Action</th>
                     </tr>
@@ -1637,6 +1638,30 @@ export default function Dashboard({ onLogout }) {
                         }
                       }
                       
+                      // Get all discharge records for this visitor
+                      const dischargeRecords = allAttendanceRecords.filter(r => r.visitorId === v.id && r.eventType === 'discharge');
+                      
+                      // Build discharge dates from ALL records
+                      let allDischargeDates = [];
+                      dischargeRecords.forEach(record => {
+                        if (record.dischargeDate && !allDischargeDates.includes(record.dischargeDate)) {
+                          allDischargeDates.push(record.dischargeDate);
+                        }
+                      });
+                      
+                      // Fallback to visitor object if no records found
+                      if (allDischargeDates.length === 0 && v.dischargeTime) {
+                        const fallbackDate = typeof v.dischargeTime === 'string' ? v.dischargeTime : new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '-');
+                        if (fallbackDate) {
+                          allDischargeDates.push(fallbackDate);
+                        }
+                      }
+                      
+                      // Fallback to dischargeDate field if still empty
+                      if (allDischargeDates.length === 0 && v.dischargeDate) {
+                        allDischargeDates.push(v.dischargeDate);
+                      }
+                      
                       return (
                       <tr key={v.id}>
                         <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.name}</td>
@@ -1646,6 +1671,17 @@ export default function Dashboard({ onLogout }) {
                         <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.date}</td>
                         <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayTimeIn}</td>
                         <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayTimeOut || 'N/A'}</td>
+                        <td style={{ padding: '10px 8px', fontSize: '1em', fontWeight: '600', color: allDischargeDates.length > 0 ? '#721c24' : '#999' }}>
+                          {allDischargeDates.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {allDischargeDates.map((date, idx) => (
+                                <div key={idx} style={{ padding: '4px 8px', background: '#ffcccc', borderRadius: '3px', fontSize: '0.85em' }}>
+                                  {date}
+                                </div>
+                              ))}
+                            </div>
+                          ) : '-'}
+                        </td>
                         <td style={{ padding: '10px 8px', fontSize: '1em' }}>
                           <span style={{ 
                             padding: '6px 10px', 
@@ -1701,10 +1737,36 @@ export default function Dashboard({ onLogout }) {
                       <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Registration Date</th>
                       <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
                       <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Discharge Date(s)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRegisteredVisitors.map(v => (
+                    {filteredRegisteredVisitors.map(v => {
+                      // Get all discharge records for this visitor
+                      const dischargeRecords = allAttendanceRecords.filter(r => r.visitorId === v.id && r.eventType === 'discharge');
+                      
+                      // Build discharge dates from ALL records
+                      let allDischargeDates = [];
+                      dischargeRecords.forEach(record => {
+                        if (record.dischargeDate && !allDischargeDates.includes(record.dischargeDate)) {
+                          allDischargeDates.push(record.dischargeDate);
+                        }
+                      });
+                      
+                      // Fallback to visitor object if no records found
+                      if (allDischargeDates.length === 0 && v.dischargeTime) {
+                        const fallbackDate = typeof v.dischargeTime === 'string' ? v.dischargeTime : new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '-');
+                        if (fallbackDate) {
+                          allDischargeDates.push(fallbackDate);
+                        }
+                      }
+                      
+                      // Fallback to dischargeDate field if still empty
+                      if (allDischargeDates.length === 0 && v.dischargeDate) {
+                        allDischargeDates.push(v.dischargeDate);
+                      }
+                      
+                      return (
                       <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f9f9f9'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
                         <td style={{ padding: '10px 10px', fontSize: '0.95em', fontWeight: '600' }}>{v.name}</td>
                         <td style={{ padding: '10px 10px', fontSize: '0.95em' }}>{v.room}</td>
@@ -1712,8 +1774,20 @@ export default function Dashboard({ onLogout }) {
                         <td style={{ padding: '10px 10px', fontSize: '0.95em', color: '#007bff', fontWeight: '600' }}>{v.fullDate}</td>
                         <td style={{ padding: '10px 10px', fontSize: '0.95em', fontWeight: '600', color: v.timeIn ? '#155724' : '#999' }}>{v.timeIn || '-'}</td>
                         <td style={{ padding: '10px 10px', fontSize: '0.95em', fontWeight: '600', color: v.timeOut ? '#dc3545' : '#999' }}>{v.timeOut || '-'}</td>
+                        <td style={{ padding: '10px 10px', fontSize: '0.95em', fontWeight: '600', color: allDischargeDates.length > 0 ? '#721c24' : '#999' }}>
+                          {allDischargeDates.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {allDischargeDates.map((date, idx) => (
+                                <div key={idx} style={{ padding: '4px 8px', background: '#ffcccc', borderRadius: '3px', fontSize: '0.85em' }}>
+                                  {date}
+                                </div>
+                              ))}
+                            </div>
+                          ) : '-'}
+                        </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -1901,26 +1975,82 @@ export default function Dashboard({ onLogout }) {
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Registration Date</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Discharge Date</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Discharge Date(s)</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredMonitoringVisitors.filter(v => v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive').map((v) => (
-                          <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#fdf7f8'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                            <td style={{ padding: '10px 8px' }}>{v.name}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.room}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.patient}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.contact}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.date || 'N/A'}</td>
-                            <td style={{ padding: '10px 8px', fontWeight: '600', color: '#721c24' }}>
-                              {v.dischargeTime ? (
-                                typeof v.dischargeTime === 'string' ? v.dischargeTime : new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '-')
-                              ) : v.dischargeDate ? v.dischargeDate : 'N/A'}
-                            </td>
-                            <td style={{ padding: '10px 8px', fontWeight: '600', color: '#dc3545' }}>{v.timeOut || 'N/A'}</td>
-                          </tr>
-                        ))}
+                        {filteredMonitoringVisitors.filter(v => v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive').map((v) => {
+                          // Get ALL discharge records for this visitor
+                          const dischargeRecords = allAttendanceRecords.filter(r => r.visitorId === v.id && r.eventType === 'discharge');
+                          
+                          // Get all attendance records for this visitor to extract time-in and time-out
+                          const visitorRecords = allAttendanceRecords.filter(r => r.visitorId === v.id);
+                          
+                          // Extract all time values and sort them
+                          let allTimes = [];
+                          visitorRecords.forEach(record => {
+                            const time = record.checkInTime || record.scanTime || record.timeIn || record.checkoutTime || record.timeOut || '';
+                            if (time) {
+                              allTimes.push(time);
+                            }
+                          });
+
+                          // Sort times chronologically
+                          allTimes.sort((a, b) => {
+                            const timeA = new Date(`2000-01-01 ${a}`).getTime();
+                            const timeB = new Date(`2000-01-01 ${b}`).getTime();
+                            return timeA - timeB;
+                          });
+
+                          const displayTimeIn = allTimes.length > 0 ? allTimes[0] : (v.timeIn || '-');
+                          const displayTimeOut = allTimes.length > 0 ? allTimes[allTimes.length - 1] : (v.timeOut || '-');
+                          
+                          // Build discharge dates from ALL records
+                          let allDischargeDates = [];
+                          dischargeRecords.forEach(record => {
+                            if (record.dischargeDate && !allDischargeDates.includes(record.dischargeDate)) {
+                              allDischargeDates.push(record.dischargeDate);
+                            }
+                          });
+                          
+                          // Fallback to visitor object if no records found
+                          if (allDischargeDates.length === 0 && v.dischargeTime) {
+                            const fallbackDate = typeof v.dischargeTime === 'string' ? v.dischargeTime : new Date(v.dischargeTime).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '-');
+                            if (fallbackDate) {
+                              allDischargeDates.push(fallbackDate);
+                            }
+                          }
+                          
+                          // Fallback to dischargeDate field if still empty
+                          if (allDischargeDates.length === 0 && v.dischargeDate) {
+                            allDischargeDates.push(v.dischargeDate);
+                          }
+
+                          return (
+                            <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#fdf7f8'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                              <td style={{ padding: '10px 8px' }}>{v.name}</td>
+                              <td style={{ padding: '10px 8px' }}>{v.room}</td>
+                              <td style={{ padding: '10px 8px' }}>{v.patient}</td>
+                              <td style={{ padding: '10px 8px' }}>{v.contact}</td>
+                              <td style={{ padding: '10px 8px' }}>{v.date || 'N/A'}</td>
+                              <td style={{ padding: '10px 8px', fontWeight: '600', color: '#155724' }}>{displayTimeIn}</td>
+                              <td style={{ padding: '10px 8px', fontWeight: '600', color: displayTimeOut && displayTimeOut !== '-' ? '#721c24' : '#999' }}>{displayTimeOut}</td>
+                              <td style={{ padding: '10px 8px', fontWeight: '600', color: allDischargeDates.length > 0 ? '#721c24' : '#999' }}>
+                                {allDischargeDates.length > 0 ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    {allDischargeDates.map((date, idx) => (
+                                      <div key={idx} style={{ padding: '4px 8px', background: '#ffcccc', borderRadius: '3px', fontSize: '0.9em' }}>
+                                        {date}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : 'N/A'}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                     {filteredMonitoringVisitors.filter(v => v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive').length === 0 && (
@@ -2211,19 +2341,25 @@ export default function Dashboard({ onLogout }) {
                                     const recordDate = (records[0].scanDate || records[0].checkInDate || records[0].date || '').replace(/\//g, '-');
                                     const visitorName = records[0].visitorName || 'N/A';
                                     
-                                    // Use scan order: 1st, 3rd, 5th... = time-in (odd), 2nd, 4th, 6th... = time-out (even)
-                                    let timeIn = '';
-                                    let timeOut = null;
-                                    
-                                    // Get 1st scan (time-in) - index 0
-                                    const timeInRecord = records[0];
-                                    timeIn = timeInRecord.checkInTime || timeInRecord.timeIn || timeInRecord.scanTime || '';
-                                    
-                                    // Get 2nd scan (time-out) if it exists - index 1
-                                    if (records.length > 1) {
-                                      const timeOutRecord = records[1];
-                                      timeOut = timeOutRecord.checkOutTime || timeOutRecord.timeOut || timeOutRecord.checkInTime || timeOutRecord.timeIn || timeOutRecord.scanTime || '';
-                                    }
+                                    // Extract all time values and sort them chronologically
+                                    let allTimes = [];
+                                    records.forEach(record => {
+                                      const time = record.checkInTime || record.scanTime || record.timeIn || record.checkoutTime || record.timeOut || '';
+                                      if (time && time.trim() !== '') {
+                                        allTimes.push(time);
+                                      }
+                                    });
+
+                                    // Sort times by actual time value (HH:MM:SS AM/PM format)
+                                    allTimes.sort((a, b) => {
+                                      const timeA = new Date(`2000-01-01 ${a}`).getTime();
+                                      const timeB = new Date(`2000-01-01 ${b}`).getTime();
+                                      return timeA - timeB;
+                                    });
+
+                                    // Get earliest time (time-in) and latest time (time-out)
+                                    const timeIn = allTimes.length > 0 ? allTimes[0] : '';
+                                    const timeOut = allTimes.length > 1 ? allTimes[allTimes.length - 1] : (allTimes.length === 1 ? allTimes[0] : null);
                                     
                                     displayRecords.push({
                                       id: key,
@@ -2231,7 +2367,7 @@ export default function Dashboard({ onLogout }) {
                                       recordDate,
                                       timeIn,
                                       timeOut,
-                                      hasTimeOut: !!timeOut
+                                      hasTimeOut: !!timeOut && timeOut !== timeIn
                                     });
                                   });
                                   
@@ -2292,34 +2428,48 @@ export default function Dashboard({ onLogout }) {
                               const totalVisits = visitorCheckIns.length > 0 ? visitorCheckIns.length : 1;
                               
                               // Extract visit dates with their corresponding time-in and time-out values
-                              // Group check-ins by date, use 1st as time-in and 2nd (if exists) as time-out
+                              // Get all attendance records for this visitor
+                              const visitorRecords = allAttendanceRecords.filter(r => r.visitorId === v.id);
+                              
+                              // Group records by date
                               const uniqueVisits = {};
-                              visitorCheckIns.forEach(r => {
-                                const date = r.scanDate || r.checkInDate || r.date || '';
+                              visitorRecords.forEach(record => {
+                                const date = record.scanDate || record.checkInDate || record.checkOutDate || record.dischargeDate || record.date || '';
                                 if (date && date.trim() !== '') {
                                   if (!uniqueVisits[date]) {
-                                    // First check-in on this date = time-in
-                                    uniqueVisits[date] = {
-                                      timeIn: r.checkInTime || r.timeIn || '',
-                                      timeOut: null
-                                    };
-                                  } else {
-                                    // Second check-in on this date = time-out
-                                    uniqueVisits[date].timeOut = r.checkInTime || r.timeIn || '';
+                                    uniqueVisits[date] = [];
                                   }
+                                  uniqueVisits[date].push(record);
                                 }
                               });
                               
-                              const visitsData = Object.entries(uniqueVisits).map(([date, times]) => ({
-                                date,
-                                timeIn: times.timeIn,
-                                timeOut: times.timeOut
-                              }));
+                              // For each date, extract earliest and latest times
+                              const visitsData = Object.entries(uniqueVisits).map(([date, records]) => {
+                                let allTimes = [];
+                                records.forEach(record => {
+                                  const time = record.checkInTime || record.scanTime || record.timeIn || record.checkoutTime || record.timeOut || '';
+                                  if (time && time.trim() !== '') {
+                                    allTimes.push(time);
+                                  }
+                                });
+
+                                // Sort times chronologically
+                                allTimes.sort((a, b) => {
+                                  const timeA = new Date(`2000-01-01 ${a}`).getTime();
+                                  const timeB = new Date(`2000-01-01 ${b}`).getTime();
+                                  return timeA - timeB;
+                                });
+
+                                return {
+                                  date,
+                                  timeIn: allTimes.length > 0 ? allTimes[0] : '',
+                                  timeOut: allTimes.length > 1 ? allTimes[allTimes.length - 1] : ''
+                                };
+                              });
                               
-                              // Get latest time-in and time-out from all visits (use last entry for latest)
-                              const allTimesArray = visitsData;
-                              const latestTimeIn = allTimesArray.length > 0 ? allTimesArray[allTimesArray.length - 1].timeIn : v.timeIn || '';
-                              const latestTimeOut = allTimesArray.length > 0 ? allTimesArray[allTimesArray.length - 1].timeOut : v.timeOut || '';
+                              // Get latest time-in and time-out from all visits
+                              const latestTimeIn = visitsData.length > 0 ? visitsData[visitsData.length - 1].timeIn : (v.timeIn || '');
+                              const latestTimeOut = visitsData.length > 0 ? visitsData[visitsData.length - 1].timeOut : (v.timeOut || '');
                               
                               return (
                               <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f5f5f5'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
