@@ -2304,6 +2304,134 @@ export default function Dashboard({ onLogout }) {
                 </div>
               )}
 
+              {/* Tab Content - Daily Activity Report */}
+              {reportTab === 'daily' && (
+                <div style={{ animation: 'fadeInSlide 0.3s ease' }} data-report-print>
+                  <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f', marginBottom: '20px' }}>
+                    <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '15px', fontSize: '1.6em' }}>Daily Activity Report</h3>
+                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                      <div style={{ padding: '15px', background: '#d4edda', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
+                        <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '5px', fontWeight: '600' }}>Total Check-ins Today</div>
+                        <div style={{ fontSize: '2em', color: '#155724', fontWeight: 'bold' }}>
+                          {allAttendanceRecords.filter(r => {
+                            const now = new Date();
+                            const currentDate = now.toLocaleDateString('en-US', {
+                              month: '2-digit',
+                              day: '2-digit',
+                              year: '2-digit'
+                            }).replace(/\//g, '-');
+                            const recordDate = r.scanDate || r.checkInDate || r.date || '';
+                            return recordDate === currentDate && r.eventType === 'check-in';
+                          }).length}
+                        </div>
+                      </div>
+                      <div style={{ padding: '15px', background: '#f8d7da', borderRadius: '8px', border: '1px solid #f5c6cb' }}>
+                        <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '5px', fontWeight: '600' }}>Total Check-outs Today</div>
+                        <div style={{ fontSize: '2em', color: '#721c24', fontWeight: 'bold' }}>
+                          {allAttendanceRecords.filter(r => {
+                            const now = new Date();
+                            const currentDate = now.toLocaleDateString('en-US', {
+                              month: '2-digit',
+                              day: '2-digit',
+                              year: '2-digit'
+                            }).replace(/\//g, '-');
+                            const recordDate = r.scanDate || r.checkInDate || r.checkOutDate || r.date || '';
+                            return recordDate === currentDate && r.eventType === 'checkout';
+                          }).length}
+                        </div>
+                      </div>
+                      <div style={{ padding: '15px', background: '#cce5ff', borderRadius: '8px', border: '1px solid #b8daff' }}>
+                        <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '5px', fontWeight: '600' }}>Active Visitors</div>
+                        <div style={{ fontSize: '2em', color: '#004085', fontWeight: 'bold' }}>
+                          {visitors.filter(v => v.status === 'active').length}
+                        </div>
+                      </div>
+                    </div>
+
+                    <h4 style={{ color: '#1a8f6f', marginTop: '25px', marginBottom: '15px', fontSize: '1.3em', fontWeight: '700', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px' }}>Today's Activity Log</h4>
+                    
+                    <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 500px)', minWidth: 0, border: '1px solid #ddd' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.05em', background: 'white' }}>
+                        <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
+                          <tr>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Visitor Name</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Activity Type</th>
+                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allAttendanceRecords
+                            .filter(r => {
+                              const now = new Date();
+                              const currentDate = now.toLocaleDateString('en-US', {
+                                month: '2-digit',
+                                day: '2-digit',
+                                year: '2-digit'
+                              }).replace(/\//g, '-');
+                              const recordDate = r.scanDate || r.checkInDate || r.checkOutDate || r.date || '';
+                              return recordDate === currentDate;
+                            })
+                            .sort((a, b) => {
+                              const timeA = a.scanTime || a.checkInTime || a.checkoutTime || a.timeOut || '';
+                              const timeB = b.scanTime || b.checkInTime || b.checkoutTime || b.timeOut || '';
+                              const dateA = new Date(`2000-01-01 ${timeA}`).getTime();
+                              const dateB = new Date(`2000-01-01 ${timeB}`).getTime();
+                              return dateB - dateA;
+                            })
+                            .map((record, idx) => {
+                              const visitor = visitors.find(v => v.id === record.visitorId);
+                              return (
+                                <tr key={idx} style={{ borderBottom: '1px solid #eee', background: idx % 2 === 0 ? 'white' : '#f9f9f9' }}>
+                                  <td style={{ padding: '12px 10px', fontSize: '1.1em', fontWeight: '600', color: '#1a8f6f' }}>
+                                    {record.scanTime || record.checkInTime || record.checkoutTime || record.timeOut || 'N/A'}
+                                  </td>
+                                  <td style={{ padding: '12px 10px', fontSize: '1.1em', fontWeight: '600' }}>
+                                    {visitor ? visitor.name : 'Unknown'}
+                                  </td>
+                                  <td style={{ padding: '12px 10px', fontSize: '1em' }}>
+                                    {visitor ? visitor.room : 'N/A'}
+                                  </td>
+                                  <td style={{ padding: '12px 10px', fontSize: '1em', fontWeight: '600' }}>
+                                    <span style={{
+                                      padding: '6px 12px',
+                                      borderRadius: '20px',
+                                      background: record.eventType === 'checkout' ? '#f8d7da' : '#d4edda',
+                                      color: record.eventType === 'checkout' ? '#721c24' : '#155724',
+                                      fontSize: '0.9em',
+                                      fontWeight: '700'
+                                    }}>
+                                      {record.eventType === 'checkout' ? '🔴 CHECK-OUT' : '🟢 CHECK-IN'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '12px 10px', fontSize: '1em' }}>
+                                    {visitor ? visitor.contact : 'N/A'}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                      {allAttendanceRecords.filter(r => {
+                        const now = new Date();
+                        const currentDate = now.toLocaleDateString('en-US', {
+                          month: '2-digit',
+                          day: '2-digit',
+                          year: '2-digit'
+                        }).replace(/\//g, '-');
+                        const recordDate = r.scanDate || r.checkInDate || r.checkOutDate || r.date || '';
+                        return recordDate === currentDate;
+                      }).length === 0 && (
+                        <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No activity recorded today</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <style>
                 {`
                   @keyframes fadeInSlide {
