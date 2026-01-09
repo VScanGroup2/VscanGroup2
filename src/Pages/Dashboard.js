@@ -20,7 +20,7 @@ export default function Dashboard({ onLogout }) {
   const [allAttendanceRecords, setAllAttendanceRecords] = useState([]);
   const [reportSearchQuery, setReportSearchQuery] = useState('');
   const [reportDateFilter, setReportDateFilter] = useState('');
-  const [reportTab, setReportTab] = useState('summary'); // 'summary' only
+  const [reportTab, setReportTab] = useState('summary'); // 'summary' or 'daily'
   const [securitySearchQuery, setSecuritySearchQuery] = useState('');
   const [securityTab, setSecurityTab] = useState('active');
   // Registration form state
@@ -1212,7 +1212,7 @@ export default function Dashboard({ onLogout }) {
           aria-hidden="true"
         />
         {currentView === 'monitoring' && (
-        <div style={{ width: 360, background: 'white', borderRadius: 12, padding: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', position: 'sticky', top: '20px', height: 'calc(100vh - 60px)', maxHeight: '100vh' }}>
+        <div style={{ width: 240, background: 'white', borderRadius: 12, padding: 15, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', position: 'sticky', top: '20px', height: 'calc(100vh - 60px)', maxHeight: '100vh' }}>
           {!scannedVisitorData && (
             <>
               <h2 style={{ color: '#1a8f6f', marginBottom: '18px', fontSize: '1.3em', textAlign: 'center', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px', fontWeight: '700' }}> SCANNER</h2>
@@ -1531,14 +1531,14 @@ export default function Dashboard({ onLogout }) {
 
           {currentView === 'dashboard' && (
             <>
-              <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '200px', background: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '1.4em', color: '#27ae60', fontWeight: 'bold' }}>Active Visitors</div>
-                  <div style={{ fontSize: '2em', color: '#1a8f6f', fontWeight: '700' }}>{activeVisitors.length}</div>
+              <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '180px', background: '#f8f9fa', padding: '10px 12px', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '1.1em', color: '#27ae60', fontWeight: 'bold' }}>Active Visitors</div>
+                  <div style={{ fontSize: '1.6em', color: '#1a8f6f', fontWeight: '700' }}>{activeVisitors.length}</div>
                 </div>
-                <div style={{ background: '#1a8f6f', color: 'white', padding: '15px 25px', borderRadius: '8px', fontWeight: '700' }}>
-                  <div style={{ fontSize: '1.1em', marginBottom: '5px' }}>DATE: {currentDate}</div>
-                  <div style={{ fontSize: '1.3em' }}>TIME: {currentTime}</div>
+                <div style={{ background: '#1a8f6f', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: '700' }}>
+                  <div style={{ fontSize: '0.9em', marginBottom: '3px' }}>DATE: {currentDate}</div>
+                  <div style={{ fontSize: '1.1em' }}>TIME: {currentTime}</div>
                 </div>
               </div>
 
@@ -1881,7 +1881,6 @@ export default function Dashboard({ onLogout }) {
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Reg Date</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Next Scan</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Status</th>
                         </tr>
                       </thead>
@@ -1935,31 +1934,6 @@ export default function Dashboard({ onLogout }) {
                                 </span>
                               ) : (
                                 'Pending'
-                              )}
-                            </td>
-                            <td style={{ padding: '10px 8px', fontSize: '0.9em', fontWeight: '600' }}>
-                              {latestTimeOut ? (
-                                <span style={{
-                                  padding: '4px 10px',
-                                  borderRadius: '12px',
-                                  fontSize: '0.85em',
-                                  fontWeight: 'bold',
-                                  background: '#fff3cd',
-                                  color: '#856404'
-                                }}>
-                                  Complete
-                                </span>
-                              ) : (
-                                <span style={{
-                                  padding: '4px 10px',
-                                  borderRadius: '12px',
-                                  fontSize: '0.85em',
-                                  fontWeight: 'bold',
-                                  background: '#cfe2ff',
-                                  color: '#084298'
-                                }}>
-                                  Next: {getNextScanPrediction(v.id)}
-                                </span>
                               )}
                             </td>
                             <td style={{ padding: '10px 8px', fontSize: '0.9em' }}>
@@ -2128,6 +2102,43 @@ export default function Dashboard({ onLogout }) {
                 >
                   Refresh Report
                 </button>
+                <button
+                  onClick={() => {
+                    const printContent = document.querySelector('[data-report-print]');
+                    if (printContent) {
+                      const printWindow = window.open('', '_blank');
+                      printWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Visitor Report</title>
+                            <style>
+                              body { font-family: Arial, sans-serif; margin: 20px; background: white; }
+                              h1 { color: #1a8f6f; text-align: center; margin-bottom: 10px; }
+                              .report-info { text-align: center; margin-bottom: 20px; font-size: 14px; color: #666; }
+                              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                              thead { background: #1a8f6f; color: white; }
+                              th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 12px; }
+                              tbody tr:nth-child(even) { background: #f9f9f9; }
+                              .page-break { page-break-after: always; }
+                              @media print {
+                                body { margin: 0; }
+                                .print-btn { display: none; }
+                              }
+                            </style>
+                          </head>
+                          <body>
+                            ${printContent.innerHTML}
+                          </body>
+                        </html>
+                      `);
+                      printWindow.document.close();
+                      setTimeout(() => printWindow.print(), 250);
+                    }
+                  }}
+                  style={{ padding: '10px 20px', background: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em' }}
+                >
+                  🖨️ Print Report
+                </button>
               </div>
 
               {/* Tab Navigation */}
@@ -2150,13 +2161,32 @@ export default function Dashboard({ onLogout }) {
                 >
                   Visitor Summary
                 </button>
+                <button
+                  onClick={() => setReportTab('daily')}
+                  style={{
+                    flex: 1,
+                    padding: '16px 20px',
+                    border: 'none',
+                    background: reportTab === 'daily' ? '#1a8f6f' : 'transparent',
+                    color: reportTab === 'daily' ? 'white' : '#666',
+                    fontWeight: reportTab === 'daily' ? '700' : '600',
+                    fontSize: '1em',
+                    cursor: 'pointer',
+                    borderRadius: '0 8px 0 0',
+                    transition: 'all 0.3s ease',
+                    boxShadow: reportTab === 'daily' ? '0 2px 8px rgba(26, 143, 111, 0.3)' : 'none'
+                  }}
+                >
+                  Daily Activity
+                </button>
               </div>
               
               {/* Tab Content - Visitor Summary */}
               {reportTab === 'summary' && (
-                <div style={{ animation: 'fadeInSlide 0.3s ease' }}>
+                <div style={{ animation: 'fadeInSlide 0.3s ease' }} data-report-print>
                   <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f', marginBottom: '20px' }}>
                     <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '15px', fontSize: '1.6em' }}>Visitor Summary Report</h3>
+                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
                     <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Total visitors: <strong>{visitors.length}</strong></p>
                     
                     <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 280px)', minWidth: 0, border: '1px solid #ddd' }}>
