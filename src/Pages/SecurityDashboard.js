@@ -461,6 +461,27 @@ export default function SecurityDashboard({ onLogout }) {
   const activeVisitors = filteredVisitors.filter(v => v.status === 'active');
   const dischargedVisitors = filteredVisitors.filter(v => v.status === 'discharged');
 
+  // Get visitors who haven't timed out after visiting hours (8 AM - 6 PM)
+  const getVisitorReminders = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const visitingEndTime = 18; // 6 PM
+    const visitingStartTime = 8; // 8 AM
+    
+    // Only show reminders after 6 PM
+    if (currentHour < visitingEndTime) {
+      return [];
+    }
+    
+    return activeVisitors.filter(v => {
+      // Check if visitor hasn't timed out
+      return !v.timeOut;
+    });
+  };
+  
+  const visitorReminders = getVisitorReminders();
+
   const inputStyle = {
     padding: '10px 12px',
     fontSize: '1em',
@@ -784,6 +805,23 @@ export default function SecurityDashboard({ onLogout }) {
               Discharged ({dischargedVisitors.length})
             </button>
             <button
+              onClick={() => setSecurityTab('reminders')}
+              style={{
+                flex: 1,
+                padding: '12px 20px',
+                fontSize: '1em',
+                fontWeight: securityTab === 'reminders' ? '700' : '500',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderBottom: securityTab === 'reminders' ? '4px solid #ff9800' : 'none',
+                color: securityTab === 'reminders' ? '#ff9800' : '#666',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Reminders ({visitorReminders.length})
+            </button>
+            <button
               onClick={() => setSecurityTab('history')}
               style={{
                 flex: 1,
@@ -918,6 +956,58 @@ export default function SecurityDashboard({ onLogout }) {
               </table>
               {activeVisitors.length === 0 && (
                 <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>No active visitors</div>
+              )}
+            </div>
+          )}
+
+          {/* Reminders - Visitors Not Timed Out After 6 PM */}
+          {securityTab === 'reminders' && (
+            <div style={{ flex: 1, background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', overflowY: 'auto' }}>
+              {visitorReminders.length > 0 ? (
+                <>
+                  <div style={{ marginBottom: '20px', padding: '15px', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '8px', color: '#856404' }}>
+                    <div style={{ fontWeight: '700', fontSize: '1em', marginBottom: '5px' }}>Visiting Hours Exceeded</div>
+                    <div style={{ fontSize: '0.9em' }}>The following visitors did not time out after the visiting hours (8:00 AM - 6:00 PM). Please remind them to check out.</div>
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em' }}>
+                    <thead style={{ background: '#fff3cd', position: 'sticky', top: 0 }}>
+                      <tr>
+                        <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Name</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Room</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Patient Name</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Contact</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time In</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Hours Visited</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visitorReminders.map((v) => {
+                        const timeInParts = v.timeIn.split(':');
+                        const timeInDate = new Date();
+                        timeInDate.setHours(parseInt(timeInParts[0]), parseInt(timeInParts[1]), parseInt(timeInParts[2]) || 0);
+                        const now = new Date();
+                        const hoursVisited = ((now - timeInDate) / (1000 * 60 * 60)).toFixed(1);
+                        
+                        return (
+                          <tr key={v.id} style={{ borderBottom: '1px solid #eee', background: '#fffbf0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff8e1'} onMouseOut={(e) => e.currentTarget.style.background = '#fffbf0'}>
+                            <td style={{ padding: '10px 8px', fontWeight: '600' }}>{v.name}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.room}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.patient}</td>
+                            <td style={{ padding: '10px 8px' }}>{v.contact}</td>
+                            <td style={{ padding: '10px 8px', color: '#155724', fontWeight: '600' }}>{v.timeIn}</td>
+                            <td style={{ padding: '10px 8px', color: '#ff9800', fontWeight: '600', fontSize: '1.1em' }}>{hoursVisited} hrs</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </>
+              ) : (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>
+                  <div style={{ fontSize: '3em', marginBottom: '10px' }}>✓</div>
+                  <div style={{ fontSize: '1em', fontWeight: '600' }}>All visitors checked out</div>
+                  <div style={{ fontSize: '0.9em', marginTop: '5px' }}>No reminders needed at this time</div>
+                </div>
               )}
             </div>
           )}

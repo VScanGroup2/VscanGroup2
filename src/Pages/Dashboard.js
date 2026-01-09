@@ -2530,7 +2530,7 @@ export default function Dashboard({ onLogout }) {
                     </div>
                     
                     <div style={{ textAlign: 'center', background: 'white', padding: '15px', borderRadius: '8px' }}>
-                      <img src={qrCodeUrl} alt="Visitor QR Code" style={{ borderRadius: '8px', border: '3px solid #1a8f6f', display: 'block', width: '600px', height: '600px' }} />
+                      <img src={qrCodeUrl} alt="Visitor QR Code" style={{ borderRadius: '8px', border: '3px solid #1a8f6f', display: 'block', width: '350px', height: '350px' }} />
                       <p style={{ marginTop: '12px', fontSize: '0.9em', color: '#666', fontWeight: 'bold' }}>Scan to view visitor info</p>
                     </div>
                   </div>
