@@ -827,12 +827,11 @@ export default function SecurityDashboard({ onLogout }) {
                   <tr>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Name</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Room</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Patient</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Patient Name</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Contact</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Date</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time In</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time Out</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Next Scan</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Action</th>
                   </tr>
                 </thead>
@@ -880,18 +879,6 @@ export default function SecurityDashboard({ onLogout }) {
                         <td style={{ padding: '10px 8px' }}>{v.date}</td>
                         <td style={{ padding: '10px 8px', fontWeight: '600', color: earliestTimeIn ? '#155724' : '#999' }}>{earliestTimeIn || 'N/A'}</td>
                         <td style={{ padding: '10px 8px', fontWeight: '600', color: latestTimeOut ? '#dc3545' : '#999' }}>{latestTimeOut || '-'}</td>
-                        <td style={{ padding: '10px 8px', fontSize: '0.85em', fontWeight: '600' }}>
-                          <span style={{
-                            padding: '4px 10px',
-                            borderRadius: '12px',
-                            fontSize: '0.85em',
-                            fontWeight: 'bold',
-                            background: '#cfe2ff',
-                            color: '#084298'
-                          }}>
-                            {getNextScanPrediction(v.id)}
-                          </span>
-                        </td>
                         <td style={{ padding: '10px 8px', display: 'flex', gap: '6px' }}>
                           <button
                             onClick={() => handleCheckOut(v.id)}
@@ -943,7 +930,7 @@ export default function SecurityDashboard({ onLogout }) {
                   <tr>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Name</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Room</th>
-                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Patient</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Patient Name</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Contact</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Reg Date</th>
                     <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600' }}>Time In</th>

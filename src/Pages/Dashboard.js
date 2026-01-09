@@ -20,7 +20,7 @@ export default function Dashboard({ onLogout }) {
   const [allAttendanceRecords, setAllAttendanceRecords] = useState([]);
   const [reportSearchQuery, setReportSearchQuery] = useState('');
   const [reportDateFilter, setReportDateFilter] = useState('');
-  const [reportTab, setReportTab] = useState('summary'); // 'summary' or 'daily'
+  const [reportTab, setReportTab] = useState('summary'); // 'summary' only
   const [securitySearchQuery, setSecuritySearchQuery] = useState('');
   const [securityTab, setSecurityTab] = useState('active');
   // Registration form state
@@ -1059,12 +1059,46 @@ export default function Dashboard({ onLogout }) {
     return false;
   };
 
-  const activateUsbScanner = () => {
-    setScannerBuffer('');
-    setScannerActive(true);
-    setTimeout(() => scannerInputRef.current && scannerInputRef.current.focus(), 50);
-    setMessage({ type: 'success', text: 'USB scanner activated — ready to scan.' });
-    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+  const activateUsbScanner = async () => {
+    try {
+      setCameraError('');
+      // Request only USB cameras, not laptop camera
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      
+      // Filter for USB cameras only
+      const usbDevices = videoDevices.filter(device => 
+        device.label && (device.label.toLowerCase().includes('usb') || device.label.toLowerCase().includes('webcam'))
+      );
+      
+      if (usbDevices.length === 0) {
+        setCameraError('No USB camera detected. Please connect a USB Web Camera.');
+        setMessage({ type: 'error', text: 'No USB Web Camera found. Please connect a USB camera and try again.' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+        return;
+      }
+      
+      const deviceId = usbDevices[0].deviceId;
+      
+      const constraints = {
+        video: { deviceId: { exact: deviceId } }
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        setIsCameraActive(true);
+        setMessage({ type: 'success', text: 'USB Web Camera activated — ready to capture face.' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      setCameraError('Unable to access USB camera. Please check camera connection and permissions.');
+      setMessage({ type: 'error', text: 'Cannot access USB camera. Check connection and camera permissions.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
   };
 
   const handleScannerKeyDown = (e) => {
@@ -1196,7 +1230,7 @@ export default function Dashboard({ onLogout }) {
       <div style={{ background: '#1a8f6f', color: 'white', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ textAlign: 'center', flex: 1 }}>
           <div style={{ fontSize: '2.5em', fontWeight: 'bold', letterSpacing: '2px', marginBottom: '5px' }}>IGNACIO LACSON ARROYO MEMORIAL HOSPITAL</div>
-          <div style={{ fontSize: '1em', fontWeight: '600', letterSpacing: '1px', backgroundColor: 'rgba(255,255,255,0.2)', display: 'inline-block', padding: '6px 16px', borderRadius: '20px' }}>👤 ADMIN DASHBOARD</div>
+          <div style={{ fontSize: '1em', fontWeight: '600', letterSpacing: '1px', backgroundColor: 'rgba(255,255,255,0.2)', display: 'inline-block', padding: '6px 16px', borderRadius: '20px' }}>ADMIN DASHBOARD</div>
         </div>
         <button onClick={handleLogout} style={{ padding: '12px 30px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1em', fontWeight: 'bold', cursor: 'pointer' }}>Logout</button>
       </div>
@@ -1359,7 +1393,7 @@ export default function Dashboard({ onLogout }) {
                   onMouseOver={(e) => e.target.style.background = '#c82333'}
                   onMouseOut={(e) => e.target.style.background = '#dc3545'}
                 >
-                  ⏹ STOP
+                  STOP
                 </button>
               </div>
             )}
@@ -1402,7 +1436,7 @@ export default function Dashboard({ onLogout }) {
                   onMouseOver={(e) => e.target.style.background = '#c82333'}
                   onMouseOut={(e) => e.target.style.background = '#dc3545'}
                 >
-                  × Clear
+                  Clear
                 </button>
               </div>
 
@@ -1510,7 +1544,7 @@ export default function Dashboard({ onLogout }) {
                             <td style={{ padding: '10px', fontWeight: '600', color: '#333' }}>{record.scanDate || record.checkInDate || record.date || 'N/A'}</td>
                             <td style={{ padding: '10px', fontWeight: '600', color: '#333' }}>{record.scanTime || record.checkInTime || record.checkoutTime || record.timeOut || 'N/A'}</td>
                             <td style={{ padding: '10px', fontWeight: '700', color: record.eventType === 'checkout' ? '#dc3545' : '#28a745' }}>
-                              {record.eventType === 'checkout' ? '🔴 TIME-OUT' : '🟢 TIME-IN'}
+                              {record.eventType === 'checkout' ? 'TIME-OUT' : 'TIME-IN'}
                             </td>
                           </tr>
                         ))}
@@ -2137,7 +2171,7 @@ export default function Dashboard({ onLogout }) {
                   }}
                   style={{ padding: '10px 20px', background: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em' }}
                 >
-                  🖨️ Print Report
+                  Print Report
                 </button>
               </div>
 
@@ -2160,24 +2194,6 @@ export default function Dashboard({ onLogout }) {
                   }}
                 >
                   Visitor Summary
-                </button>
-                <button
-                  onClick={() => setReportTab('daily')}
-                  style={{
-                    flex: 1,
-                    padding: '16px 20px',
-                    border: 'none',
-                    background: reportTab === 'daily' ? '#1a8f6f' : 'transparent',
-                    color: reportTab === 'daily' ? 'white' : '#666',
-                    fontWeight: reportTab === 'daily' ? '700' : '600',
-                    fontSize: '1em',
-                    cursor: 'pointer',
-                    borderRadius: '0 8px 0 0',
-                    transition: 'all 0.3s ease',
-                    boxShadow: reportTab === 'daily' ? '0 2px 8px rgba(26, 143, 111, 0.3)' : 'none'
-                  }}
-                >
-                  Daily Activity
                 </button>
               </div>
               
@@ -2282,8 +2298,8 @@ export default function Dashboard({ onLogout }) {
                                           }}
                                         >
                                           <div style={{ fontSize: '0.9em', fontWeight: '600' }}>{visit.date}</div>
-                                          {visit.timeIn && <div style={{ fontSize: '0.85em', color: '#0097a7', marginTop: '2px' }}>↓ Time-In: {visit.timeIn}</div>}
-                                          {visit.timeOut && <div style={{ fontSize: '0.85em', color: '#d32f2f', marginTop: '2px' }}>↑ Check-out: {visit.timeOut}</div>}
+                                          {visit.timeIn && <div style={{ fontSize: '0.85em', color: '#0097a7', marginTop: '2px' }}>Time-In: {visit.timeIn}</div>}
+                                          {visit.timeOut && <div style={{ fontSize: '0.85em', color: '#d32f2f', marginTop: '2px' }}>Check-out: {visit.timeOut}</div>}
                                         </div>
                                       ))}
                                     </div>
@@ -2298,134 +2314,6 @@ export default function Dashboard({ onLogout }) {
                       </table>
                       {visitors.length === 0 && (
                         <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found</div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab Content - Daily Activity Report */}
-              {reportTab === 'daily' && (
-                <div style={{ animation: 'fadeInSlide 0.3s ease' }} data-report-print>
-                  <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f', marginBottom: '20px' }}>
-                    <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '15px', fontSize: '1.6em' }}>Daily Activity Report</h3>
-                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '20px' }}>
-                      <div style={{ padding: '15px', background: '#d4edda', borderRadius: '8px', border: '1px solid #c3e6cb' }}>
-                        <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '5px', fontWeight: '600' }}>Total Check-ins Today</div>
-                        <div style={{ fontSize: '2em', color: '#155724', fontWeight: 'bold' }}>
-                          {allAttendanceRecords.filter(r => {
-                            const now = new Date();
-                            const currentDate = now.toLocaleDateString('en-US', {
-                              month: '2-digit',
-                              day: '2-digit',
-                              year: '2-digit'
-                            }).replace(/\//g, '-');
-                            const recordDate = r.scanDate || r.checkInDate || r.date || '';
-                            return recordDate === currentDate && r.eventType === 'check-in';
-                          }).length}
-                        </div>
-                      </div>
-                      <div style={{ padding: '15px', background: '#f8d7da', borderRadius: '8px', border: '1px solid #f5c6cb' }}>
-                        <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '5px', fontWeight: '600' }}>Total Check-outs Today</div>
-                        <div style={{ fontSize: '2em', color: '#721c24', fontWeight: 'bold' }}>
-                          {allAttendanceRecords.filter(r => {
-                            const now = new Date();
-                            const currentDate = now.toLocaleDateString('en-US', {
-                              month: '2-digit',
-                              day: '2-digit',
-                              year: '2-digit'
-                            }).replace(/\//g, '-');
-                            const recordDate = r.scanDate || r.checkInDate || r.checkOutDate || r.date || '';
-                            return recordDate === currentDate && r.eventType === 'checkout';
-                          }).length}
-                        </div>
-                      </div>
-                      <div style={{ padding: '15px', background: '#cce5ff', borderRadius: '8px', border: '1px solid #b8daff' }}>
-                        <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '5px', fontWeight: '600' }}>Active Visitors</div>
-                        <div style={{ fontSize: '2em', color: '#004085', fontWeight: 'bold' }}>
-                          {visitors.filter(v => v.status === 'active').length}
-                        </div>
-                      </div>
-                    </div>
-
-                    <h4 style={{ color: '#1a8f6f', marginTop: '25px', marginBottom: '15px', fontSize: '1.3em', fontWeight: '700', borderBottom: '2px solid #1a8f6f', paddingBottom: '10px' }}>Today's Activity Log</h4>
-                    
-                    <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 500px)', minWidth: 0, border: '1px solid #ddd' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.05em', background: 'white' }}>
-                        <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
-                          <tr>
-                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time</th>
-                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Visitor Name</th>
-                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
-                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Activity Type</th>
-                            <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {allAttendanceRecords
-                            .filter(r => {
-                              const now = new Date();
-                              const currentDate = now.toLocaleDateString('en-US', {
-                                month: '2-digit',
-                                day: '2-digit',
-                                year: '2-digit'
-                              }).replace(/\//g, '-');
-                              const recordDate = r.scanDate || r.checkInDate || r.checkOutDate || r.date || '';
-                              return recordDate === currentDate;
-                            })
-                            .sort((a, b) => {
-                              const timeA = a.scanTime || a.checkInTime || a.checkoutTime || a.timeOut || '';
-                              const timeB = b.scanTime || b.checkInTime || b.checkoutTime || b.timeOut || '';
-                              const dateA = new Date(`2000-01-01 ${timeA}`).getTime();
-                              const dateB = new Date(`2000-01-01 ${timeB}`).getTime();
-                              return dateB - dateA;
-                            })
-                            .map((record, idx) => {
-                              const visitor = visitors.find(v => v.id === record.visitorId);
-                              return (
-                                <tr key={idx} style={{ borderBottom: '1px solid #eee', background: idx % 2 === 0 ? 'white' : '#f9f9f9' }}>
-                                  <td style={{ padding: '12px 10px', fontSize: '1.1em', fontWeight: '600', color: '#1a8f6f' }}>
-                                    {record.scanTime || record.checkInTime || record.checkoutTime || record.timeOut || 'N/A'}
-                                  </td>
-                                  <td style={{ padding: '12px 10px', fontSize: '1.1em', fontWeight: '600' }}>
-                                    {visitor ? visitor.name : 'Unknown'}
-                                  </td>
-                                  <td style={{ padding: '12px 10px', fontSize: '1em' }}>
-                                    {visitor ? visitor.room : 'N/A'}
-                                  </td>
-                                  <td style={{ padding: '12px 10px', fontSize: '1em', fontWeight: '600' }}>
-                                    <span style={{
-                                      padding: '6px 12px',
-                                      borderRadius: '20px',
-                                      background: record.eventType === 'checkout' ? '#f8d7da' : '#d4edda',
-                                      color: record.eventType === 'checkout' ? '#721c24' : '#155724',
-                                      fontSize: '0.9em',
-                                      fontWeight: '700'
-                                    }}>
-                                      {record.eventType === 'checkout' ? '🔴 CHECK-OUT' : '🟢 CHECK-IN'}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '12px 10px', fontSize: '1em' }}>
-                                    {visitor ? visitor.contact : 'N/A'}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                        </tbody>
-                      </table>
-                      {allAttendanceRecords.filter(r => {
-                        const now = new Date();
-                        const currentDate = now.toLocaleDateString('en-US', {
-                          month: '2-digit',
-                          day: '2-digit',
-                          year: '2-digit'
-                        }).replace(/\//g, '-');
-                        const recordDate = r.scanDate || r.checkInDate || r.checkOutDate || r.date || '';
-                        return recordDate === currentDate;
-                      }).length === 0 && (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No activity recorded today</div>
                       )}
                     </div>
                   </div>
@@ -2634,12 +2522,6 @@ export default function Dashboard({ onLogout }) {
                         <strong style={{ color: '#1a8f6f' }}>Name:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.name}</span>
                       </div>
                       <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                        <strong style={{ color: '#1a8f6f' }}>Room:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.room}</span>
-                      </div>
-                      <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
-                        <strong style={{ color: '#1a8f6f' }}>Patient Name:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.patient}</span>
-                      </div>
-                      <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
                         <strong style={{ color: '#1a8f6f' }}>Contact Number:</strong> <span style={{ marginLeft: '8px' }}>{registeredVisitorData.contact}</span>
                       </div>
                       <div style={{ marginBottom: '10px', padding: '8px', background: 'white', borderRadius: '6px' }}>
@@ -2676,7 +2558,7 @@ export default function Dashboard({ onLogout }) {
                       onMouseOver={(e) => e.target.style.background = '#5c636a'}
                       onMouseOut={(e) => e.target.style.background = '#6c757d'}
                     >
-                      × Close
+                      Close
                     </button>
                   </div>
                 </div>
@@ -2689,26 +2571,121 @@ export default function Dashboard({ onLogout }) {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Room Number:</label>
-                  <input type="text" name="roomNumber" value={formData.roomNumber} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter room number" />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Patient Name:</label>
-                  <input type="text" name="patientName" value={formData.patientName} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '16px' }} placeholder="Enter patient's name" />
-                </div>
-
-                <div>
                   <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Contact Number:</label>
                   <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '4px' }} placeholder="Enter 11-digit contact number" />
                   <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '16px' }}>Must be 11 digits</div>
                 </div>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Photo (optional):</label>
-                <input type="file" accept="image/*" onChange={handleFileChange} style={{ marginBottom: '8px' }} />
-                {previewUrl && <img src={previewUrl} alt="preview" style={{ maxWidth: '200px', marginTop: '8px', borderRadius: '8px' }} />}
+              <div style={{ marginBottom: '20px', padding: '16px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f' }}>
+                <label style={{ display: 'block', fontWeight: 'bold', color: '#1a8f6f', marginBottom: '12px', fontSize: '1.1em' }}>Face Recognition (USB Web Cam):</label>
+                
+                {!isCameraActive ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ marginBottom: '10px' }}></div>
+                    <button 
+                      onClick={activateUsbScanner}
+                      style={{ 
+                        width: '100%', 
+                        padding: '12px', 
+                        background: '#1a8f6f', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: '6px', 
+                        cursor: 'pointer',
+                        fontWeight: '700',
+                        fontSize: '1em',
+                        transition: 'all 0.3s',
+                        boxShadow: '0 2px 6px rgba(26, 143, 111, 0.2)'
+                      }}
+                      onMouseOver={(e) => e.target.style.background = '#158f6f'}
+                      onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
+                    >
+                      ACTIVATE CAMERA
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <video 
+                      ref={videoRef}
+                      style={{ 
+                        width: '100%', 
+                        height: '300px',
+                        borderRadius: '8px', 
+                        border: '3px solid #1a8f6f',
+                        display: 'block',
+                        background: '#000',
+                        objectFit: 'cover',
+                        marginBottom: '12px',
+                        boxShadow: '0 2px 8px rgba(26, 143, 111, 0.15)'
+                      }}
+                      autoPlay
+                      playsInline
+                    />
+                    <canvas ref={canvasRef} style={{ display: 'none' }} />
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button 
+                        onClick={() => {
+                          const canvas = canvasRef.current;
+                          const video = videoRef.current;
+                          if (canvas && video) {
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(video, 0, 0);
+                            const imageData = canvas.toDataURL('image/jpeg');
+                            setPreviewUrl(imageData);
+                            setMessage({ type: 'success', text: 'Face captured successfully!' });
+                          }
+                        }}
+                        style={{ 
+                          flex: 1, 
+                          padding: '10px', 
+                          background: '#28a745', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '6px', 
+                          cursor: 'pointer',
+                          fontWeight: '700',
+                          fontSize: '0.95em',
+                          transition: 'all 0.3s',
+                          boxShadow: '0 2px 6px rgba(40, 167, 69, 0.2)'
+                        }}
+                        onMouseOver={(e) => e.target.style.background = '#218838'}
+                        onMouseOut={(e) => e.target.style.background = '#28a745'}
+                      >
+                        CAPTURE
+                      </button>
+                      <button 
+                        onClick={stopCamera}
+                        style={{ 
+                          flex: 1, 
+                          padding: '10px',
+                          background: '#dc3545', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '6px', 
+                          cursor: 'pointer',
+                          fontWeight: '700',
+                          fontSize: '0.95em',
+                          transition: 'all 0.3s',
+                          boxShadow: '0 2px 6px rgba(220, 53, 69, 0.2)'
+                        }}
+                        onMouseOver={(e) => e.target.style.background = '#c82333'}
+                        onMouseOut={(e) => e.target.style.background = '#dc3545'}
+                      >
+                        STOP
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {previewUrl && (
+                  <div style={{ marginTop: '12px', textAlign: 'center', padding: '10px', background: 'white', borderRadius: '6px' }}>
+                    <img src={previewUrl} alt="Captured Face" style={{ maxWidth: '100%', height: 'auto', borderRadius: '6px', maxHeight: '200px' }} />
+                    <div style={{ fontSize: '0.85em', color: '#155724', fontWeight: '600', marginTop: '8px' }}>Face captured</div>
+                  </div>
+                )}
               </div>
 
               <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ width: '100%', padding: '18px', background: loading || uploadingImage ? '#ccc' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.2em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'background 0.3s' }}>
