@@ -41,9 +41,17 @@ const HospitalIDScanner = () => {
       });
       
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      
+      // Use setTimeout to ensure video element is rendered before assigning stream
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        } else {
+          console.error('Video element not initialized');
+          showErrorMessage('Video element not initialized. Please try again.');
+          closeScanner();
+        }
+      }, 0);
     } catch (error) {
       console.error('Error accessing camera:', error);
       showErrorMessage('Unable to access camera. Please check permissions and try again.');

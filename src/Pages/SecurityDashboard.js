@@ -409,12 +409,22 @@ export default function SecurityDashboard({ onLogout }) {
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsCameraActive(true);
-        setCameraError('');
-        scanQRCode();
-      }
+      
+      // Set camera active first to render video element
+      setIsCameraActive(true);
+      setCameraError('');
+      
+      // Then assign stream once video element is rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          scanQRCode();
+        } else {
+          console.error('Video element not initialized');
+          setCameraError('Video element not initialized. Please try again.');
+          setIsCameraActive(false);
+        }
+      }, 0);
     } catch (err) {
       setCameraError('Unable to access camera. Please check permissions.');
     }

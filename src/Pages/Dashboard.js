@@ -36,9 +36,12 @@ export default function Dashboard({ onLogout }) {
   const [qrScanInput, setQrScanInput] = useState('');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [autoCaptureAttempted, setAutoCaptureAttempted] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanIntervalRef = useRef(null);
+  const faceDetectionIntervalRef = useRef(null);
   // USB scanner (keyboard-wedge) support
   const [scannerBuffer, setScannerBuffer] = useState('');
   const scannerInputRef = useRef(null);
@@ -1066,19 +1069,36 @@ export default function Dashboard({ onLogout }) {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
       
-      // Filter for USB cameras only
+      // Filter for USB cameras only - check for common USB camera indicators
       const usbDevices = videoDevices.filter(device => 
-        device.label && (device.label.toLowerCase().includes('usb') || device.label.toLowerCase().includes('webcam'))
+        device.label && (
+          device.label.toLowerCase().includes('usb') || 
+          device.label.toLowerCase().includes('webcam') ||
+          device.label.toLowerCase().includes('camera') ||
+          device.label.toLowerCase().includes('external')
+        )
       );
       
-      if (usbDevices.length === 0) {
-        setCameraError('No USB camera detected. Please connect a USB Web Camera.');
-        setMessage({ type: 'error', text: 'No USB Web Camera found. Please connect a USB camera and try again.' });
+      // If no obvious USB devices found, use any available video device except built-in/integrated ones
+      let selectedDevice = usbDevices.length > 0 ? usbDevices[0] : null;
+      
+      if (!selectedDevice && videoDevices.length > 0) {
+        // Try to exclude integrated cameras and use the first external camera
+        selectedDevice = videoDevices.find(device => 
+          !device.label.toLowerCase().includes('integrated') && 
+          !device.label.toLowerCase().includes('built-in') &&
+          !device.label.toLowerCase().includes('facetime')
+        ) || videoDevices[0];
+      }
+      
+      if (!selectedDevice) {
+        setCameraError('No camera device found. Please connect a USB Web Camera.');
+        setMessage({ type: 'error', text: 'No camera found. Please connect a USB camera and try again.' });
         setTimeout(() => setMessage({ type: '', text: '' }), 5000);
         return;
       }
       
-      const deviceId = usbDevices[0].deviceId;
+      const deviceId = selectedDevice.deviceId;
       
       const constraints = {
         video: { deviceId: { exact: deviceId } }
@@ -1086,20 +1106,147 @@ export default function Dashboard({ onLogout }) {
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        setIsCameraActive(true);
-        setMessage({ type: 'success', text: 'USB Web Camera activated — ready to capture face.' });
-        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
-      }
+      // First, activate camera to render the video element
+      setIsCameraActive(true);
+      
+      // Then, assign stream to video element once it's rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          
+          // Wait for video to be ready before marking as ready
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().catch(err => {
+              console.error('Play error:', err);
+              setMessage({ type: 'error', text: 'Failed to start video playback.' });
+            });
+            setMessage({ type: 'success', text: 'Camera activated — ready to capture face.' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          };
+        } else {
+          console.error('videoRef.current is null after rendering');
+          setMessage({ type: 'error', text: 'Video element not initialized.' });
+          setIsCameraActive(false);
+        }
+      }, 0);
+      
     } catch (error) {
       console.error('Camera error:', error);
-      setCameraError('Unable to access USB camera. Please check camera connection and permissions.');
-      setMessage({ type: 'error', text: 'Cannot access USB camera. Check connection and camera permissions.' });
+      setCameraError('Unable to access camera. Please check camera connection and permissions.');
+      setMessage({ type: 'error', text: 'Cannot access camera. Check connection and camera permissions.' });
       setTimeout(() => setMessage({ type: '', text: '' }), 5000);
     }
   };
+
+  // Face detection and auto-capture functionality
+  const detectFaceAndAutoCapture = () => {
+    if (!videoRef.current || !canvasRef.current || !isCameraActive) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    // Check if video has valid dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    // Get image data for face detection
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // Simple brightness/contrast analysis to detect if someone is in front of camera
+    // Calculate average brightness and check for significant variations (face detection)
+    let brightPixels = 0;
+    let totalPixels = 0;
+
+    // Sample every 10th pixel for performance
+    for (let i = 0; i < data.length; i += 40) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      // Calculate luminance
+      const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+      // Count pixels that are in typical skin tone range or have significant color
+      if (
+        (r > 50 && g > 50 && b > 50 && r < 250 && g < 250 && b < 250) ||
+        (Math.abs(r - g) > 10 || Math.abs(g - b) > 10 || Math.abs(r - b) > 10)
+      ) {
+        brightPixels++;
+      }
+      totalPixels++;
+    }
+
+    // Calculate face presence percentage
+    const facePresencePercentage = (brightPixels / totalPixels) * 100;
+
+    // If significant face/person detected (30-95% of image has face-like features)
+    if (facePresencePercentage > 30 && facePresencePercentage < 95) {
+      setFaceDetected(true);
+
+      // Auto-capture if not already attempted in this session
+      if (!autoCaptureAttempted && previewUrl === null) {
+        console.log('[Face Detection] Face detected! Auto-capturing...');
+        setAutoCaptureAttempted(true);
+
+        // Get current time and check readiness
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          try {
+            // Create a new canvas for capture
+            const captureCanvas = document.createElement('canvas');
+            captureCanvas.width = video.videoWidth;
+            captureCanvas.height = video.videoHeight;
+            const captureCtx = captureCanvas.getContext('2d');
+            captureCtx.drawImage(video, 0, 0);
+
+            // Convert to image data
+            const imageDataUrl = captureCanvas.toDataURL('image/jpeg', 0.95);
+
+            setPreviewUrl(imageDataUrl);
+            setMessage({
+              type: 'success',
+              text: '✓ Face captured automatically! Ready to register.'
+            });
+
+            setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+
+            // Stop the face detection after capture
+            if (faceDetectionIntervalRef.current) {
+              clearInterval(faceDetectionIntervalRef.current);
+              faceDetectionIntervalRef.current = null;
+            }
+          } catch (error) {
+            console.error('[Face Detection] Auto-capture error:', error);
+            setAutoCaptureAttempted(false);
+          }
+        }
+      }
+    } else {
+      setFaceDetected(false);
+    }
+  };
+
+  // Start face detection when camera is active
+  useEffect(() => {
+    if (isCameraActive && currentView === 'register' && !previewUrl && !autoCaptureAttempted) {
+      // Start face detection every 300ms
+      faceDetectionIntervalRef.current = setInterval(() => {
+        detectFaceAndAutoCapture();
+      }, 300);
+
+      return () => {
+        if (faceDetectionIntervalRef.current) {
+          clearInterval(faceDetectionIntervalRef.current);
+          faceDetectionIntervalRef.current = null;
+        }
+      };
+    }
+  }, [isCameraActive, currentView, previewUrl, autoCaptureAttempted]);
 
   const handleScannerKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -1148,8 +1295,14 @@ export default function Dashboard({ onLogout }) {
       clearInterval(scanIntervalRef.current);
       scanIntervalRef.current = null;
     }
+
+    if (faceDetectionIntervalRef.current) {
+      clearInterval(faceDetectionIntervalRef.current);
+      faceDetectionIntervalRef.current = null;
+    }
     
     setIsCameraActive(false);
+    setFaceDetected(false);
   };
 
   const scanQRCode = () => {
@@ -2496,20 +2649,29 @@ export default function Dashboard({ onLogout }) {
                       transform: translateY(0);
                     }
                   }
+                  @keyframes pulse {
+                    0%, 100% {
+                      opacity: 1;
+                    }
+                    50% {
+                      opacity: 0.7;
+                    }
+                  }
                 `}
               </style>
             </div>
           )}
 
           {currentView === 'register' && (
-            <div>
-              {message.text && (
-                <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', background: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24', border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`, fontSize: '1em' }}>
-                  {message.text}
-                </div>
-              )}
+            <>
+              <div>
+                {message.text && (
+                  <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', background: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24', border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`, fontSize: '1em' }}>
+                    {message.text}
+                  </div>
+                )}
 
-              {qrCodeUrl && registeredVisitorData && (
+                {qrCodeUrl && registeredVisitorData && (
                 <div style={{ marginBottom: '20px', padding: '20px', background: '#f8f9fa', borderRadius: '12px', border: '2px solid #1a8f6f' }}>
                   <h3 style={{ color: '#1a8f6f', marginBottom: '16px', textAlign: 'center', fontSize: '1.5em' }}> Registration Successful!</h3>
                   
@@ -2580,118 +2742,217 @@ export default function Dashboard({ onLogout }) {
               <div style={{ marginBottom: '20px', padding: '16px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f' }}>
                 <label style={{ display: 'block', fontWeight: 'bold', color: '#1a8f6f', marginBottom: '12px', fontSize: '1.1em' }}>Face Recognition (USB Web Cam):</label>
                 
-                {!isCameraActive ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ marginBottom: '10px' }}></div>
-                    <button 
-                      onClick={activateUsbScanner}
-                      style={{ 
-                        width: '100%', 
-                        padding: '12px', 
-                        background: '#1a8f6f', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: '6px', 
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        fontSize: '1em',
-                        transition: 'all 0.3s',
-                        boxShadow: '0 2px 6px rgba(26, 143, 111, 0.2)'
-                      }}
-                      onMouseOver={(e) => e.target.style.background = '#158f6f'}
-                      onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
-                    >
-                      ACTIVATE CAMERA
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <video 
-                      ref={videoRef}
-                      style={{ 
-                        width: '100%', 
-                        height: '300px',
-                        borderRadius: '8px', 
-                        border: '3px solid #1a8f6f',
-                        display: 'block',
-                        background: '#000',
-                        objectFit: 'cover',
-                        marginBottom: '12px',
-                        boxShadow: '0 2px 8px rgba(26, 143, 111, 0.15)'
-                      }}
-                      autoPlay
-                      playsInline
-                    />
+                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                  <button 
+                    onClick={activateUsbScanner}
+                    style={{ 
+                      width: '100%', 
+                      padding: '12px', 
+                      background: '#1a8f6f', 
+                      color: 'white', 
+                      border: 'none', 
+                      borderRadius: '6px', 
+                      cursor: 'pointer',
+                      fontWeight: '700',
+                      fontSize: '1em',
+                      transition: 'all 0.3s',
+                      boxShadow: '0 2px 6px rgba(26, 143, 111, 0.2)'
+                    }}
+                    onMouseOver={(e) => e.target.style.background = '#158f6f'}
+                    onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
+                  >
+                    ACTIVATE CAMERA
+                  </button>
+                </div>
+
+                {/* Live Feed - Always Visible */}
+                <div style={{ marginTop: '15px' }}>
+                  <div style={{ 
+                    marginBottom: '15px', 
+                    padding: '12px', 
+                    background: '#f0f8f5', 
+                    borderRadius: '10px', 
+                    border: '2px solid #1a8f6f',
+                    boxShadow: '0 2px 8px rgba(26, 143, 111, 0.1)'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      marginBottom: '10px',
+                      fontSize: '0.9em',
+                      color: '#1a8f6f',
+                      fontWeight: '600'
+                    }}>
+                      Live Webcam Feed {isCameraActive && '(Active)'}
+                      {faceDetected && (
+                        <span style={{ 
+                          marginLeft: '12px', 
+                          padding: '4px 10px',
+                          background: '#28a745',
+                          color: 'white',
+                          borderRadius: '20px',
+                          fontSize: '0.85em',
+                          fontWeight: 'bold',
+                          animation: 'pulse 1s infinite'
+                        }}>
+                          ● Face Detected
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ 
+                      position: 'relative',
+                      background: '#000000',
+                      borderRadius: '8px',
+                      border: '3px solid #1a8f6f',
+                      overflow: 'hidden'
+                    }}>
+                      <video 
+                        ref={videoRef}
+                        style={{ 
+                          width: '100%', 
+                          height: '400px',
+                          display: 'block',
+                          background: '#000000',
+                          objectFit: 'cover',
+                          boxShadow: '0 2px 8px rgba(26, 143, 111, 0.15)'
+                        }}
+                        autoPlay
+                        playsInline
+                        muted
+                      />
+                      {!isCameraActive && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'rgba(0, 0, 0, 0.7)',
+                          color: '#999'
+                        }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '2.5em', marginBottom: '10px' }}>📷</div>
+                            <div style={{ fontSize: '0.9em', fontWeight: '600' }}>Camera Inactive</div>
+                            <div style={{ fontSize: '0.85em', marginTop: '5px' }}>Click "Activate Camera" to start the webcam</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <canvas ref={canvasRef} style={{ display: 'none' }} />
+                  </div>
+
+                  {isCameraActive && (
                     <div style={{ display: 'flex', gap: '10px' }}>
                       <button 
                         onClick={() => {
-                          const canvas = canvasRef.current;
                           const video = videoRef.current;
-                          if (canvas && video) {
-                            canvas.width = video.videoWidth;
-                            canvas.height = video.videoHeight;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(video, 0, 0);
-                            const imageData = canvas.toDataURL('image/jpeg');
-                            setPreviewUrl(imageData);
-                            setMessage({ type: 'success', text: 'Face captured successfully!' });
-                          }
-                        }}
-                        style={{ 
-                          flex: 1, 
-                          padding: '10px', 
-                          background: '#28a745', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '6px', 
-                          cursor: 'pointer',
-                          fontWeight: '700',
-                          fontSize: '0.95em',
-                          transition: 'all 0.3s',
-                          boxShadow: '0 2px 6px rgba(40, 167, 69, 0.2)'
-                        }}
-                        onMouseOver={(e) => e.target.style.background = '#218838'}
-                        onMouseOut={(e) => e.target.style.background = '#28a745'}
-                      >
-                        CAPTURE
-                      </button>
-                      <button 
-                        onClick={stopCamera}
-                        style={{ 
-                          flex: 1, 
-                          padding: '10px',
-                          background: '#dc3545', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '6px', 
-                          cursor: 'pointer',
-                          fontWeight: '700',
-                          fontSize: '0.95em',
-                          transition: 'all 0.3s',
-                          boxShadow: '0 2px 6px rgba(220, 53, 69, 0.2)'
-                        }}
-                        onMouseOver={(e) => e.target.style.background = '#c82333'}
-                        onMouseOut={(e) => e.target.style.background = '#dc3545'}
-                      >
-                        STOP
-                      </button>
-                    </div>
+                          const canvas = canvasRef.current;
+                          
+                          if (!video) {
+                            console.error('videoRef.current is null');
+                              setMessage({ type: 'error', text: 'Camera not initialized. Please activate camera first.' });
+                              return;
+                            }
+                            
+                            if (!canvas) {
+                              console.error('canvasRef.current is null');
+                              setMessage({ type: 'error', text: 'Canvas element not found.' });
+                              return;
+                            }
+                            
+                            if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+                              setMessage({ type: 'error', text: 'Camera still loading. Please wait a moment and try again.' });
+                              return;
+                            }
+                            
+                            try {
+                              canvas.width = video.videoWidth;
+                              canvas.height = video.videoHeight;
+                              
+                              if (canvas.width === 0 || canvas.height === 0) {
+                                console.error('Invalid video dimensions:', canvas.width, 'x', canvas.height);
+                                setMessage({ type: 'error', text: 'Invalid video dimensions. Camera may not be ready.' });
+                                return;
+                              }
+                              
+                              const ctx = canvas.getContext('2d');
+                              ctx.drawImage(video, 0, 0);
+                              const imageData = canvas.toDataURL('image/jpeg', 0.95);
+                              
+                              if (imageData && imageData.length > 100) {
+                                setPreviewUrl(imageData);
+                                setMessage({ type: 'success', text: 'Face captured successfully!' });
+                                setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                              } else {
+                                console.error('Invalid image data');
+                                setMessage({ type: 'error', text: 'Failed to capture image. Please try again.' });
+                              }
+                            } catch (error) {
+                              console.error('Capture error:', error);
+                              setMessage({ type: 'error', text: `Error capturing face: ${error.message}` });
+                            }
+                          }}
+                          style={{ 
+                            flex: 1, 
+                            padding: '10px', 
+                            background: '#28a745', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '6px', 
+                            cursor: 'pointer',
+                            fontWeight: '700',
+                            fontSize: '0.95em',
+                            transition: 'all 0.3s',
+                            boxShadow: '0 2px 6px rgba(40, 167, 69, 0.2)'
+                          }}
+                          onMouseOver={(e) => e.target.style.background = '#218838'}
+                          onMouseOut={(e) => e.target.style.background = '#28a745'}
+                        >
+                          CAPTURE
+                        </button>
+                        <button 
+                          onClick={stopCamera}
+                          style={{ 
+                            flex: 1, 
+                            padding: '10px',
+                            background: '#dc3545', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '6px', 
+                            cursor: 'pointer',
+                            fontWeight: '700',
+                            fontSize: '0.95em',
+                            transition: 'all 0.3s',
+                            boxShadow: '0 2px 6px rgba(220, 53, 69, 0.2)'
+                          }}
+                          onMouseOver={(e) => e.target.style.background = '#c82333'}
+                          onMouseOut={(e) => e.target.style.background = '#dc3545'}
+                        >
+                          STOP
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
                 
                 {previewUrl && (
-                  <div style={{ marginTop: '12px', textAlign: 'center', padding: '10px', background: 'white', borderRadius: '6px' }}>
-                    <img src={previewUrl} alt="Captured Face" style={{ maxWidth: '100%', height: 'auto', borderRadius: '6px', maxHeight: '200px' }} />
-                    <div style={{ fontSize: '0.85em', color: '#155724', fontWeight: '600', marginTop: '8px' }}>Face captured</div>
+                  <div style={{ marginTop: '15px', padding: '12px', background: '#d4edda', borderRadius: '10px', border: '2px solid #28a745', boxShadow: '0 2px 8px rgba(40, 167, 69, 0.15)' }}>
+                    <div style={{ fontSize: '0.9em', fontWeight: '600', color: '#155724', marginBottom: '10px' }}>Face Captured Successfully!</div>
+                    <div style={{ textAlign: 'center', padding: '10px', background: 'white', borderRadius: '8px' }}>
+                      <img src={previewUrl} alt="Captured Face" style={{ maxWidth: '100%', height: 'auto', borderRadius: '6px', maxHeight: '250px', border: '2px solid #28a745' }} />
+                    </div>
+                    <div style={{ fontSize: '0.85em', color: '#155724', fontWeight: '600', marginTop: '10px', textAlign: 'center' }}>Ready to register visitor</div>
                   </div>
                 )}
               </div>
 
-              <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ width: '100%', padding: '18px', background: loading || uploadingImage ? '#ccc' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.2em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'background 0.3s' }}>
+              <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ width: '100%', padding: '18px', marginTop: '20px', background: loading || uploadingImage ? '#ccc' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.2em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'background 0.3s' }}>
                 {uploadingImage ? 'UPLOADING IMAGE...' : loading ? 'REGISTERING...' : 'REGISTER'}
               </button>
-            </div>
+            </>
           )}
         </div>
 
