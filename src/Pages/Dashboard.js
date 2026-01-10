@@ -40,6 +40,7 @@ export default function Dashboard({ onLogout }) {
   const [autoCaptureAttempted, setAutoCaptureAttempted] = useState(false);
   const [showVisitorSelector, setShowVisitorSelector] = useState(false);
   const [selectedVisitorForRegistration, setSelectedVisitorForRegistration] = useState(null);
+  const [patientFormData, setPatientFormData] = useState({ patientName: '', roomNumber: '' });
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanIntervalRef = useRef(null);
@@ -1652,7 +1653,7 @@ export default function Dashboard({ onLogout }) {
         )}
         
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable', position: 'relative' }}>
-          <h1 style={{ color: '#1a8f6f', marginBottom: '20px', fontSize: '2em', fontWeight: 'bold', position: 'sticky', top: 0, backgroundColor: 'white', paddingBottom: '10px', zIndex: 5 }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'report' ? 'VISITOR REPORT' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
+          <h1 style={{ color: '#1a8f6f', marginBottom: '20px', fontSize: '2em', fontWeight: 'bold', position: 'sticky', top: 0, backgroundColor: 'white', paddingBottom: '10px', zIndex: 5 }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'report' ? 'VISITOR REPORT' : currentView === 'patientData' ? 'PATIENT DATA' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
 
           {currentView === 'dashboard' && (
             <>
@@ -2600,6 +2601,121 @@ export default function Dashboard({ onLogout }) {
             </div>
           )}
 
+          {currentView === 'patientData' && (
+            <div>
+              {message.text && (
+                <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', background: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24', border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`, fontSize: '1em' }}>
+                  {message.text}
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '30px' }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Patient Name:</label>
+                  <input 
+                    type="text" 
+                    value={patientFormData.patientName} 
+                    onChange={(e) => setPatientFormData({ ...patientFormData, patientName: e.target.value })} 
+                    style={{ ...inputStyle, marginBottom: '16px' }} 
+                    placeholder="Enter patient name" 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Room Number:</label>
+                  <input 
+                    type="text" 
+                    value={patientFormData.roomNumber} 
+                    onChange={(e) => setPatientFormData({ ...patientFormData, roomNumber: e.target.value })} 
+                    style={{ ...inputStyle, marginBottom: '16px' }} 
+                    placeholder="Enter room number" 
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (!patientFormData.patientName || !patientFormData.roomNumber) {
+                    setMessage({ type: 'error', text: 'Please fill in all fields!' });
+                    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                    return;
+                  }
+
+                  // Check if this patient already exists
+                  const existingPatient = visitors.find(v => v.patient?.toLowerCase() === patientFormData.patientName.toLowerCase() && v.room === patientFormData.roomNumber);
+                  if (existingPatient) {
+                    setMessage({ type: 'error', text: 'This patient and room combination already exists!' });
+                    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                    return;
+                  }
+
+                  // Add new patient to visitors list
+                  const newPatient = {
+                    id: `patient-${Date.now()}`,
+                    name: patientFormData.patientName,
+                    patient: patientFormData.patientName,
+                    room: patientFormData.roomNumber,
+                    contact: '',
+                    status: 'inactive',
+                    date: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '-')
+                  };
+
+                  // Here you would typically call an API to save to Firestore
+                  // For now, we'll just update the local state
+                  setMessage({ type: 'success', text: `Patient "${patientFormData.patientName}" (Room ${patientFormData.roomNumber}) added successfully!` });
+                  setPatientFormData({ patientName: '', roomNumber: '' });
+                  setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                }}
+                style={{ padding: '14px 24px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1em', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s', marginBottom: '30px' }}
+                onMouseOver={(e) => e.target.style.background = '#158f6f'}
+                onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
+              >
+                ADD PATIENT
+              </button>
+
+              <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f' }}>
+                <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '20px', fontSize: '1.4em' }}>Available Patients</h3>
+                
+                {visitors.length > 0 ? (
+                  <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 300px)', scrollbarGutter: 'stable' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Patient Name</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Room Number</th>
+                          <th style={{ padding: '12px', textAlign: 'center', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visitors.map((visitor, idx) => (
+                          <tr key={idx} style={{ background: idx % 2 === 0 ? 'white' : '#f9fdf7', borderBottom: '1px solid #ddd' }}>
+                            <td style={{ padding: '12px', fontWeight: '600', color: '#333' }}>{visitor.patient}</td>
+                            <td style={{ padding: '12px', fontWeight: '600', color: '#333' }}>{visitor.room}</td>
+                            <td style={{ padding: '12px', textAlign: 'center' }}>
+                              <button
+                                onClick={() => {
+                                  setMessage({ type: 'success', text: `Patient removed!` });
+                                  setTimeout(() => setMessage({ type: '', text: '' }), 2000);
+                                }}
+                                style={{ padding: '6px 12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9em', fontWeight: '600', transition: 'background 0.3s' }}
+                                onMouseOver={(e) => e.target.style.background = '#c82333'}
+                                onMouseOut={(e) => e.target.style.background = '#dc3545'}
+                              >
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#666', fontSize: '1.1em' }}>No patients added yet</div>
+                )}
+              </div>
+            </div>
+          )}
+
           {currentView === 'register' && (
             <>
               <div>
@@ -3084,7 +3200,8 @@ export default function Dashboard({ onLogout }) {
           <div onClick={() => showView('visitorInfo')} style={{ padding: 12, marginBottom: 10, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'visitorInfo' ? '600' : '500' }}>List of Visitors</div>
           <div onClick={() => showView('registered')} style={{ padding: 12, marginBottom: 10, background: currentView === 'registered' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'registered' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'registered' ? '600' : '500' }}>Registered Visitor</div>
           <div onClick={() => showView('monitoring')} style={{ padding: 12, marginBottom: 10, background: currentView === 'monitoring' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'monitoring' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'monitoring' ? '600' : '500' }}>Monitoring</div>
-          <div onClick={() => showView('report')} style={{ padding: 12, marginBottom: 16, background: currentView === 'report' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'report' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'report' ? '600' : '500' }}>Report</div>
+          <div onClick={() => showView('report')} style={{ padding: 12, marginBottom: 10, background: currentView === 'report' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'report' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'report' ? '600' : '500' }}>Report</div>
+          <div onClick={() => showView('patientData')} style={{ padding: 12, marginBottom: 16, background: currentView === 'patientData' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'patientData' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'patientData' ? '600' : '500' }}>Patient Data</div>
           
           <button onClick={() => showView('register')} style={{ width: '100%', padding: 14, background: '#1a8f6f', color: 'white', border: 'none', borderRadius: 30, cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1em' }}>REGISTER</button>
         </div>
