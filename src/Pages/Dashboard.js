@@ -2634,7 +2634,7 @@ export default function Dashboard({ onLogout }) {
               </div>
 
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!patientFormData.patientName || !patientFormData.roomNumber) {
                     setMessage({ type: 'error', text: 'Please fill in all fields!' });
                     setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -2657,14 +2657,23 @@ export default function Dashboard({ onLogout }) {
                     room: patientFormData.roomNumber,
                     contact: '',
                     status: 'inactive',
-                    date: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '-')
+                    date: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' }).replace(/\//g, '-'),
+                    timestamp: new Date().toISOString()
                   };
 
-                  // Here you would typically call an API to save to Firestore
-                  // For now, we'll just update the local state
-                  setMessage({ type: 'success', text: `Patient "${patientFormData.patientName}" (Room ${patientFormData.roomNumber}) added successfully!` });
-                  setPatientFormData({ patientName: '', roomNumber: '' });
-                  setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                  // Save to Firestore
+                  try {
+                    await addVisitorDoc(newPatient);
+                    // Update local state
+                    setVisitors([newPatient, ...visitors]);
+                    setMessage({ type: 'success', text: `Patient "${patientFormData.patientName}" (Room ${patientFormData.roomNumber}) added successfully!` });
+                    setPatientFormData({ patientName: '', roomNumber: '' });
+                    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                  } catch (err) {
+                    console.error('[Dashboard] Error adding patient:', err);
+                    setMessage({ type: 'error', text: 'Failed to add patient. Please try again.' });
+                    setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                  }
                 }}
                 style={{ padding: '14px 24px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1em', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.3s', marginBottom: '30px' }}
                 onMouseOver={(e) => e.target.style.background = '#158f6f'}
@@ -2693,9 +2702,17 @@ export default function Dashboard({ onLogout }) {
                             <td style={{ padding: '12px', fontWeight: '600', color: '#333' }}>{visitor.room}</td>
                             <td style={{ padding: '12px', textAlign: 'center' }}>
                               <button
-                                onClick={() => {
-                                  setMessage({ type: 'success', text: `Patient removed!` });
-                                  setTimeout(() => setMessage({ type: '', text: '' }), 2000);
+                                onClick={async () => {
+                                  try {
+                                    await deleteVisitor(visitor.id);
+                                    setVisitors(visitors.filter(v => v.id !== visitor.id));
+                                    setMessage({ type: 'success', text: `Patient removed!` });
+                                    setTimeout(() => setMessage({ type: '', text: '' }), 2000);
+                                  } catch (err) {
+                                    console.error('[Dashboard] Error removing patient:', err);
+                                    setMessage({ type: 'error', text: 'Failed to remove patient. Please try again.' });
+                                    setTimeout(() => setMessage({ type: '', text: '' }), 2000);
+                                  }
                                 }}
                                 style={{ padding: '6px 12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9em', fontWeight: '600', transition: 'background 0.3s' }}
                                 onMouseOver={(e) => e.target.style.background = '#c82333'}
