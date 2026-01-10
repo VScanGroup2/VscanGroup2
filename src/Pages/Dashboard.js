@@ -38,6 +38,8 @@ export default function Dashboard({ onLogout }) {
   const [cameraError, setCameraError] = useState('');
   const [faceDetected, setFaceDetected] = useState(false);
   const [autoCaptureAttempted, setAutoCaptureAttempted] = useState(false);
+  const [showVisitorSelector, setShowVisitorSelector] = useState(false);
+  const [selectedVisitorForRegistration, setSelectedVisitorForRegistration] = useState(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanIntervalRef = useRef(null);
@@ -261,8 +263,22 @@ export default function Dashboard({ onLogout }) {
 
   // Register a new visitor (called by the Register button)
   const handleRegister = async () => {
-    if (!formData.visitorName || !formData.roomNumber || !formData.patientName || !formData.contactNumber) {
-      setMessage({ type: 'error', text: 'Please fill in all fields!' });
+    if (!formData.visitorName || !formData.contactNumber) {
+      setMessage({ type: 'error', text: 'Please fill in visitor name and contact number!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
+    // Check if a visitor was selected
+    if (!selectedVisitorForRegistration) {
+      setMessage({ type: 'error', text: 'Please select a visitor and room!' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
+    // Check if a face photo was captured
+    if (!previewUrl) {
+      setMessage({ type: 'error', text: 'Please capture a face photo first!' });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       return;
     }
@@ -278,23 +294,31 @@ export default function Dashboard({ onLogout }) {
     setLoading(true);
     try {
       let photoUrl = null;
-      if (selectedFile) {
+      
+      // Convert captured photo (Data URL) to Blob and upload
+      if (previewUrl) {
         try {
           setUploadingImage(true);
-          console.log('[Dashboard] Starting image upload for file:', selectedFile.name, 'Size:', (selectedFile.size / 1024).toFixed(2) + 'KB');
-          const uploadRes = await uploadImageToCloudinary(selectedFile);
+          console.log('[Dashboard] Starting face photo upload from camera capture');
+          
+          // Convert Data URL to Blob
+          const response = await fetch(previewUrl);
+          const blob = await response.blob();
+          const file = new File([blob], `face-${Date.now()}.jpg`, { type: 'image/jpeg' });
+          
+          const uploadRes = await uploadImageToCloudinary(file);
           photoUrl = uploadRes.secure_url || uploadRes.url || null;
-          console.log('[Dashboard] Image uploaded successfully:', photoUrl);
+          console.log('[Dashboard] Face photo uploaded successfully:', photoUrl);
         } catch (err) {
-          console.error('[Dashboard] Image upload error:', err);
-          let msg = 'Image upload failed. ';
+          console.error('[Dashboard] Face photo upload error:', err);
+          let msg = 'Face photo upload failed. ';
           
           if (err.message.includes('too large')) {
-            msg += 'File is too large. Please use an image smaller than 10MB.';
+            msg += 'File is too large. Please try capturing again.';
           } else if (err.message.includes('Network error') || err.message.includes('Failed to fetch')) {
-            msg += 'Network error - check your internet connection. If problem persists, verify your Cloudinary credentials in .env.local';
+            msg += 'Network error - check your internet connection.';
           } else if (err.message.includes('configuration missing')) {
-            msg += 'Cloudinary is not configured. Please set REACT_APP_CLOUDINARY_CLOUD_NAME and REACT_APP_CLOUDINARY_UPLOAD_PRESET in .env.local';
+            msg += 'Cloudinary is not configured. Please contact administrator.';
           } else {
             msg += err.message;
           }
@@ -327,8 +351,8 @@ export default function Dashboard({ onLogout }) {
 
       const visitorData = {
         visitorName: formData.visitorName,
-        roomNumber: formData.roomNumber,
-        patientName: formData.patientName,
+        roomNumber: selectedVisitorForRegistration.room,
+        patientName: selectedVisitorForRegistration.patient,
         contactNumber: formData.contactNumber,
         timestamp: now.toISOString(),
         registrationFullDate: registrationDateTime,
@@ -368,8 +392,8 @@ export default function Dashboard({ onLogout }) {
       const qrData = JSON.stringify({
         id: docId,
         name: formData.visitorName,
-        room: formData.roomNumber,
-        patient: formData.patientName,
+        room: selectedVisitorForRegistration.room,
+        patient: selectedVisitorForRegistration.patient,
         contact: formData.contactNumber,
         checkIn: visitorData.checkInTime,
         date: registrationDate,
@@ -390,8 +414,8 @@ export default function Dashboard({ onLogout }) {
       setRegisteredVisitorData({
         id: docId,
         name: formData.visitorName,
-        room: formData.roomNumber,
-        patient: formData.patientName,
+        room: selectedVisitorForRegistration.room,
+        patient: selectedVisitorForRegistration.patient,
         contact: formData.contactNumber,
         checkIn: visitorData.checkInTime,
         registrationDateTime: registrationDateTime,
@@ -399,9 +423,13 @@ export default function Dashboard({ onLogout }) {
       });
       
       setMessage({ type: 'success', text: `Visitor registered successfully!` });
-      setFormData({ visitorName: '', roomNumber: '', patientName: '', contactNumber: '' });
+      setFormData({ visitorName: '', contactNumber: '' });
+      setSelectedVisitorForRegistration(null);
       setSelectedFile(null);
       setPreviewUrl(null);
+      setIsCameraActive(false);
+      setFaceDetected(false);
+      setAutoCaptureAttempted(false);
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
       console.error('Registration error:', error);
@@ -1341,6 +1369,14 @@ export default function Dashboard({ onLogout }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (currentView === 'monitoring' && scannerInputRef.current) {
+      setTimeout(() => {
+        scannerInputRef.current?.focus();
+      }, 100);
+    }
+  }, [currentView]);
+
   const activeVisitors = visitors.filter(v => v.status === 'active');
   const filteredVisitors = visitors.filter(v => {
     const q = searchQuery.toLowerCase();
@@ -1406,150 +1442,52 @@ export default function Dashboard({ onLogout }) {
               
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', scrollbarGutter: 'stable' }}>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontWeight: '600', color: '#333', marginBottom: '10px', fontSize: '1.1em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Scan QR:</label>
-                
-                {!isCameraActive ? (
-              <div style={{ 
-                background: '#f8f9fa', 
-                padding: '18px', 
-                borderRadius: '8px', 
-                border: '2px dashed #1a8f6f',
-                textAlign: 'center',
-                marginBottom: '12px'
-              }}>
-                <div style={{ fontSize: '3.2em', marginBottom: '8px' }}></div>
-                <div style={{ fontSize: '1em', color: '#666', marginBottom: '12px', lineHeight: '1.4' }}>Ready to scan</div>
-                <button 
-                  onClick={activateUsbScanner}
-                  style={{ 
-                    width: '100%', 
-                    padding: '12px', 
-                    background: '#1a8f6f', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '6px', 
-                    cursor: 'pointer',
-                    fontWeight: '700',
-                    fontSize: '0.95em',
-                    transition: 'all 0.3s',
-                    boxShadow: '0 2px 6px rgba(26, 143, 111, 0.2)'
-                  }}
-                  onMouseOver={(e) => e.target.style.background = '#158f6f'}
-                  onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
-                >
-                  ACTIVATE
-                </button>
-
-              </div>
-            ) : (
-              <div style={{ 
-                marginBottom: '12px',
-                position: 'relative'
-              }}>
-                <video 
-                  ref={videoRef}
-                  style={{ 
-                    width: '100%', 
-                    height: '280px',
-                    borderRadius: '8px', 
-                    border: '3px solid #1a8f6f',
-                    display: 'block',
-                    background: '#000',
-                    objectFit: 'cover',
-                    boxShadow: '0 2px 8px rgba(26, 143, 111, 0.15)'
-                  }}
-                  autoPlay
-                  playsInline
-                />
-                <canvas ref={canvasRef} style={{ display: 'none' }} />
-                <div style={{ 
-                  position: 'absolute', 
-                  top: '50%', 
-                  left: '50%', 
-                  transform: 'translate(-50%, -50%)',
-                  width: '220px',
-                  height: '220px',
-                  border: '4px solid #1a8f6f',
-                  borderRadius: '12px',
-                  boxShadow: '0 0 0 99999px rgba(0, 0, 0, 0.4)',
-                  pointerEvents: 'none'
-                }}>
-                  <div style={{ 
-                    position: 'absolute',
-                    top: '-2px',
-                    left: '-2px',
-                    width: '22px',
-                    height: '22px',
-                    borderTop: '4px solid #1a8f6f',
-                    borderLeft: '4px solid #1a8f6f'
-                  }}></div>
-                  <div style={{ 
-                    position: 'absolute',
-                    top: '-2px',
-                    right: '-2px',
-                    width: '22px',
-                    height: '22px',
-                    borderTop: '4px solid #1a8f6f',
-                    borderRight: '4px solid #1a8f6f'
-                  }}></div>
-                  <div style={{ 
-                    position: 'absolute',
-                    bottom: '-2px',
-                    left: '-2px',
-                    width: '22px',
-                    height: '22px',
-                    borderBottom: '4px solid #1a8f6f',
-                    borderLeft: '4px solid #1a8f6f'
-                  }}></div>
-                  <div style={{ 
-                    position: 'absolute',
-                    bottom: '-2px',
-                    right: '-2px',
-                    width: '22px',
-                    height: '22px',
-                    borderBottom: '4px solid #1a8f6f',
-                    borderRight: '4px solid #1a8f6f'
-                  }}></div>
-                </div>
-                <div style={{ 
-                  position: 'absolute',
-                  bottom: '10px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: 'rgba(26, 143, 111, 0.95)',
-                  color: 'white',
-                  padding: '8px 16px',
-                  borderRadius: '20px',
-                  fontSize: '0.8em',
-                  fontWeight: '600',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                  whiteSpace: 'nowrap'
-                }}>
-                  Scanning
-                </div>
-                <button 
-                  onClick={stopCamera}
-                  style={{ 
-                    width: '100%', 
-                    padding: '10px', 
-                    marginTop: '10px',
-                    background: '#dc3545', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '6px', 
-                    cursor: 'pointer',
-                    fontWeight: '700',
+                  <label style={{ display: 'block', fontWeight: '600', color: '#333', marginBottom: '10px', fontSize: '1.1em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Scan QR/ID:</label>
+                  <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '8px', fontStyle: 'italic' }}>
+                    USB Scanner ready
+                  </div>
+                  <input 
+                    ref={scannerInputRef}
+                    type="text"
+                    placeholder="Place cursor here and scan"
+                    value={scannerBuffer}
+                    onChange={(e) => setScannerBuffer(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '2px solid #ccc',
+                      borderRadius: '6px',
+                      fontSize: '0.85em',
+                      fontFamily: 'monospace',
+                      transition: 'all 0.2s',
+                      outline: 'none',
+                      background: '#fff',
+                      marginBottom: '12px'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#1a8f6f';
+                      e.target.style.boxShadow = '0 0 6px rgba(26, 143, 111, 0.3)';
+                      setScannerActive(true);
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#ccc';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                    onKeyDown={handleScannerKeyDown}
+                  />
+                  <div style={{
+                    background: '#f8f9fa',
+                    padding: '12px',
+                    borderRadius: '6px',
+                    border: '2px dashed #1a8f6f',
+                    textAlign: 'center',
+                    color: '#1a8f6f',
                     fontSize: '0.9em',
-                    transition: 'all 0.3s',
-                    boxShadow: '0 2px 6px rgba(220, 53, 69, 0.2)'
-                  }}
-                  onMouseOver={(e) => e.target.style.background = '#c82333'}
-                  onMouseOut={(e) => e.target.style.background = '#dc3545'}
-                >
-                  STOP
-                </button>
-              </div>
-            )}
+                    fontWeight: '600'
+                  }}>
+                    Ready to scan
+                  </div>
+                
                 </div>
               </div>
             </>
@@ -2737,6 +2675,32 @@ export default function Dashboard({ onLogout }) {
                   <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleInputChange} style={{ ...inputStyle, marginBottom: '4px' }} placeholder="Enter 11-digit contact number" />
                   <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '16px' }}>Must be 11 digits</div>
                 </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'block', fontWeight: 'bold', color: '#333', marginBottom: '8px', fontSize: '1.1em' }}>Select Patient & Room No.:</label>
+                  <button 
+                    onClick={() => setShowVisitorSelector(true)}
+                    style={{ 
+                      width: '100%',
+                      padding: '12px',
+                      background: selectedVisitorForRegistration ? '#28a745' : '#1a8f6f',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '700',
+                      fontSize: '1em',
+                      marginBottom: '8px',
+                      transition: 'all 0.3s',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                    }}
+                    onMouseOver={(e) => e.target.style.background = selectedVisitorForRegistration ? '#218838' : '#158f6f'}
+                    onMouseOut={(e) => e.target.style.background = selectedVisitorForRegistration ? '#28a745' : '#1a8f6f'}
+                  >
+                    {selectedVisitorForRegistration ? `✓ ${selectedVisitorForRegistration.name} - Room ${selectedVisitorForRegistration.room}` : '+ SELECT PATIENT'}
+                  </button>
+                  {!selectedVisitorForRegistration && <div style={{ fontSize: '0.9em', color: '#dc3545', marginBottom: '16px', fontWeight: '600' }}>Required: Select a patient to register</div>}
+                </div>
               </div>
 
               <div style={{ marginBottom: '20px', padding: '16px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f' }}>
@@ -2949,9 +2913,167 @@ export default function Dashboard({ onLogout }) {
                 )}
               </div>
 
-              <button onClick={handleRegister} disabled={loading || uploadingImage} style={{ width: '100%', padding: '18px', marginTop: '20px', background: loading || uploadingImage ? '#ccc' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.2em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'background 0.3s' }}>
-                {uploadingImage ? 'UPLOADING IMAGE...' : loading ? 'REGISTERING...' : 'REGISTER'}
+              <style>
+                {`
+                  @keyframes spin {
+                    0% {
+                      transform: rotate(0deg);
+                    }
+                    100% {
+                      transform: rotate(360deg);
+                    }
+                  }
+                  @keyframes pulse-button {
+                    0%, 100% {
+                      opacity: 1;
+                    }
+                    50% {
+                      opacity: 0.8;
+                    }
+                  }
+                  .register-loading {
+                    animation: pulse-button 1.5s ease-in-out infinite !important;
+                  }
+                  .spinner {
+                    display: inline-block;
+                    width: 16px;
+                    height: 16px;
+                    margin-right: 8px;
+                    border: 3px solid rgba(255, 255, 255, 0.3);
+                    border-top: 3px solid white;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    vertical-align: middle;
+                  }
+                `}
+              </style>
+
+              <button onClick={handleRegister} disabled={loading || uploadingImage} className={loading || uploadingImage ? 'register-loading' : ''} style={{ width: '100%', padding: '18px', marginTop: '20px', background: loading || uploadingImage ? '#666' : '#1a8f6f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.2em', fontWeight: 'bold', cursor: loading || uploadingImage ? 'not-allowed' : 'pointer', transition: 'all 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '56px' }}>
+                {uploadingImage || loading ? (
+                  <>
+                    <span className="spinner"></span>
+                    <span>{uploadingImage ? 'UPLOADING IMAGE...' : 'REGISTERING...'}</span>
+                  </>
+                ) : (
+                  'REGISTER'
+                )}
               </button>
+
+              {showVisitorSelector && (
+                <div style={{ 
+                  position: 'fixed', 
+                  top: 0, 
+                  left: 0, 
+                  right: 0, 
+                  bottom: 0, 
+                  background: 'rgba(0, 0, 0, 0.7)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  zIndex: 9999
+                }}>
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    padding: '30px',
+                    maxWidth: '600px',
+                    width: '90%',
+                    maxHeight: '80vh',
+                    overflowY: 'auto',
+                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+                    border: '3px solid #1a8f6f'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid #1a8f6f' }}>
+                      <h2 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.5em', fontWeight: '700' }}>Select Patient</h2>
+                      <button 
+                        onClick={() => setShowVisitorSelector(false)}
+                        style={{
+                          background: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '40px',
+                          height: '40px',
+                          cursor: 'pointer',
+                          fontSize: '1.2em',
+                          fontWeight: 'bold',
+                          transition: 'background 0.3s'
+                        }}
+                        onMouseOver={(e) => e.target.style.background = '#c82333'}
+                        onMouseOut={(e) => e.target.style.background = '#dc3545'}
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div style={{ marginBottom: '16px' }}>
+                      <input 
+                        type="text"
+                        placeholder="Search by name or room number..."
+                        onChange={(e) => {}}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          border: '2px solid #ccc',
+                          borderRadius: '6px',
+                          fontSize: '1em',
+                          outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ maxHeight: '400px', overflowY: 'auto', scrollbarGutter: 'stable' }}>
+                      {visitors.length > 0 ? (
+                        visitors.map((visitor, idx) => (
+                          <div 
+                            key={idx}
+                            onClick={() => {
+                              setSelectedVisitorForRegistration(visitor);
+                              setFormData({
+                                ...formData,
+                                roomNumber: visitor.room || '',
+                                patientName: visitor.patient || ''
+                              });
+                              setShowVisitorSelector(false);
+                            }}
+                            style={{
+                              padding: '16px',
+                              border: '2px solid #e0e0e0',
+                              borderRadius: '8px',
+                              marginBottom: '12px',
+                              cursor: 'pointer',
+                              transition: 'all 0.3s',
+                              background: '#f9f9f9',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}
+                            onMouseOver={(e) => {
+                              e.currentTarget.style.background = '#f0f8f5';
+                              e.currentTarget.style.borderColor = '#1a8f6f';
+                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(26, 143, 111, 0.2)';
+                            }}
+                            onMouseOut={(e) => {
+                              e.currentTarget.style.background = '#f9f9f9';
+                              e.currentTarget.style.borderColor = '#e0e0e0';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: '1.1em', fontWeight: '700', color: '#1a8f6f', marginBottom: '4px' }}>{visitor.patient}</div>
+                              <div style={{ fontSize: '0.9em', color: '#666' }}>Room: <strong>{visitor.room}</strong></div>
+                            </div>
+                            <div style={{ fontSize: '1.3em', color: '#1a8f6f', fontWeight: 'bold' }}>→</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No visitors found</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
