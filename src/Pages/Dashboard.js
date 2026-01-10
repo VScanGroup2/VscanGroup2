@@ -1947,16 +1947,16 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {currentView === 'monitoring' && (
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 200px)', width: '100%' }}>
               {message.text && (
                 <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', background: message.type === 'success' ? '#d4edda' : '#f8d7da', color: message.type === 'success' ? '#155724' : '#721c24', border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`, fontSize: '1em' }}>
                   {message.text}
                 </div>
               )}
-              <input placeholder="Search monitoring..." value={monitoringSearchQuery} onChange={(e) => setMonitoringSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '20px' }} />
+              <input placeholder="Search monitoring..." value={monitoringSearchQuery} onChange={(e) => setMonitoringSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '20px', flexShrink: 0 }} />
               
               {/* Tab Navigation */}
-              <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderBottom: '2px solid #ddd' }}>
+              <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderBottom: '2px solid #ddd', flexShrink: 0 }}>
                 <button
                   onClick={() => setMonitoringTab('active')}
                   style={{
@@ -1995,10 +1995,10 @@ export default function Dashboard({ onLogout }) {
 
               {/* Active Visitors Table */}
               {monitoringTab === 'active' && (
-                <div style={{ animation: 'fadeInSlide 0.4s ease-in' }}>
-                  <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.9em' }}>
-                      <thead style={{ background: '#d4edda', position: 'sticky', top: 0 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, width: '100%' }}>
+                  <div style={{ overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'fixed' }}>
+                      <thead style={{ background: '#d4edda', position: 'sticky', top: 0, zIndex: 10 }}>
                         <tr>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
@@ -2088,19 +2088,19 @@ export default function Dashboard({ onLogout }) {
 
               {/* Discharged Visitors Table */}
               {monitoringTab === 'discharged' && (
-                <div style={{ animation: 'fadeInSlide 0.4s ease-in' }}>
-                  <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.9em' }}>
-                      <thead style={{ background: '#f8d7da', position: 'sticky', top: 0 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, width: '100%' }}>
+                  <div style={{ overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'fixed' }}>
+                      <thead style={{ background: '#f8d7da', position: 'sticky', top: 0, zIndex: 10 }}>
                         <tr>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient Name</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Registration Date</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact #</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Reg Date</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
                           <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Discharge Date(s)</th>
+                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Discharge</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -3211,7 +3211,7 @@ export default function Dashboard({ onLogout }) {
           )}
         </div>
 
-        <div style={{ width: 260, background: 'white', borderRadius: 10, padding: 16, boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
+        <div style={{ width: 180, background: 'white', borderRadius: 10, padding: 16, boxShadow: '0 4px 10px rgba(0,0,0,0.06)' }}>
           <div onClick={() => showView('dashboard')} style={{ fontSize: 28, textAlign: 'center', marginBottom: 12, cursor: 'pointer' }}></div>
           <div onClick={() => showView('dashboard')} style={{ padding: 12, marginBottom: 10, background: currentView === 'dashboard' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'dashboard' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'dashboard' ? '600' : '500' }}>Dashboard</div>
           <div onClick={() => showView('visitorInfo')} style={{ padding: 12, marginBottom: 10, background: currentView === 'visitorInfo' ? '#1a8f6f' : '#f7f7f7', color: currentView === 'visitorInfo' ? 'white' : '#333', borderRadius: 8, cursor: 'pointer', fontSize: '1.05em', fontWeight: currentView === 'visitorInfo' ? '600' : '500' }}>List of Visitors</div>
