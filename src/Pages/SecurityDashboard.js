@@ -624,11 +624,44 @@ export default function SecurityDashboard({ onLogout }) {
               </div>
             </>
           ) : (
-            <div style={{ background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-              <div style={{ fontSize: '3em', marginBottom: '10px' }}></div>
-              <div style={{ fontSize: '0.95em' }}>Scan a visitor</div>
-              <div style={{ fontSize: '0.85em', marginTop: '5px' }}>ID or QR code</div>
-              <div style={{ fontSize: '0.85em' }}>visitor details</div>
+            <div style={{ background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <h2 style={{ color: '#1a8f6f', marginTop: 0, textAlign: 'center' }}>USB Scanner</h2>
+              <div style={{ 
+                background: '#f8f9fa', 
+                padding: '18px', 
+                borderRadius: '8px', 
+                border: '2px dashed #1a8f6f',
+                textAlign: 'center',
+                marginBottom: '12px',
+                width: '100%'
+              }}>
+                <div style={{ fontSize: '3.2em', marginBottom: '8px' }}></div>
+                <div style={{ fontSize: '1em', color: '#666', marginBottom: '12px', lineHeight: '1.4' }}>Ready to scan</div>
+                <button 
+                  onClick={() => {
+                    setScannerBuffer('');
+                    setScannerActive(true);
+                    setTimeout(() => scannerInputRef.current && scannerInputRef.current.focus(), 50);
+                  }}
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px', 
+                    background: '#1a8f6f', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '6px', 
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    fontSize: '0.95em',
+                    transition: 'all 0.3s',
+                    boxShadow: '0 2px 6px rgba(26, 143, 111, 0.2)'
+                  }}
+                  onMouseOver={(e) => e.target.style.background = '#158f6f'}
+                  onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
+                >
+                  ACTIVATE
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -674,100 +707,6 @@ export default function SecurityDashboard({ onLogout }) {
             style={{ position: 'absolute', left: -9999, top: 'auto' }}
             aria-hidden="true"
           />
-
-          {/* QR Scanner Section */}
-          <div style={{ background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ color: '#1a8f6f', marginTop: 0 }}>USB Scanner</h2>
-            
-            {!isCameraActive ? (
-              <div style={{ 
-                background: '#f8f9fa', 
-                padding: '18px', 
-                borderRadius: '8px', 
-                border: '2px dashed #1a8f6f',
-                textAlign: 'center',
-                marginBottom: '12px'
-              }}>
-                <div style={{ fontSize: '3.2em', marginBottom: '8px' }}></div>
-                <div style={{ fontSize: '1em', color: '#666', marginBottom: '12px', lineHeight: '1.4' }}>Ready to scan</div>
-                <button 
-                  onClick={() => {
-                    setScannerBuffer('');
-                    setScannerActive(true);
-                    setTimeout(() => scannerInputRef.current && scannerInputRef.current.focus(), 50);
-                  }}
-                  style={{ 
-                    width: '100%', 
-                    padding: '12px', 
-                    background: '#1a8f6f', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '6px', 
-                    cursor: 'pointer',
-                    fontWeight: '700',
-                    fontSize: '0.95em',
-                    transition: 'all 0.3s',
-                    boxShadow: '0 2px 6px rgba(26, 143, 111, 0.2)'
-                  }}
-                  onMouseOver={(e) => e.target.style.background = '#158f6f'}
-                  onMouseOut={(e) => e.target.style.background = '#1a8f6f'}
-                >
-                  ACTIVATE
-                </button>
-              </div>
-            ) : (
-              <div style={{ 
-                marginBottom: '12px',
-                position: 'relative'
-              }}>
-                <video 
-                  ref={videoRef}
-                  style={{ 
-                    width: '100%', 
-                    height: '280px',
-                    borderRadius: '8px', 
-                    border: '3px solid #1a8f6f',
-                    display: 'block',
-                    background: '#000',
-                    objectFit: 'cover',
-                    boxShadow: '0 2px 8px rgba(26, 143, 111, 0.15)'
-                  }}
-                  autoPlay
-                  playsInline
-                />
-                <canvas ref={canvasRef} style={{ display: 'none' }} />
-                <div style={{ 
-                  position: 'absolute', 
-                  top: '50%', 
-                  left: '50%', 
-                  transform: 'translate(-50%, -50%)',
-                  width: '200px',
-                  height: '200px',
-                  border: '3px solid rgba(26, 143, 111, 0.5)',
-                  borderRadius: '8px'
-                }} />
-                <button 
-                  onClick={stopCamera}
-                  style={{ 
-                    position: 'absolute',
-                    bottom: '10px',
-                    right: '10px',
-                    padding: '8px 12px',
-                    background: '#dc3545',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '0.85em'
-                  }}
-                >
-                  STOP
-                </button>
-              </div>
-            )}
-            {cameraError && <div style={{ color: '#dc3545', fontSize: '0.9em', marginTop: '12px' }}>{cameraError}</div>}
-          </div>
 
           {/* Search */}
           <input
