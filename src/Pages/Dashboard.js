@@ -1795,7 +1795,7 @@ export default function Dashboard({ onLogout }) {
                   textTransform: 'uppercase',
                   letterSpacing: '1px'
                 }}>
-                  {scannedVisitorData.status === 'active' ? 'ACTIVE' : 'DISCHARGED'}
+                  {scannedVisitorData.status === 'active' ? 'ACTIVE' : 'Discharged (Patient)'}
                 </span>
               </div>
 
@@ -2002,7 +2002,7 @@ export default function Dashboard({ onLogout }) {
                             background: v.status === 'active' ? '#d4edda' : '#f8d7da',
                             color: v.status === 'active' ? '#155724' : '#721c24'
                           }}>
-                            {v.status === 'active' ? 'ACTIVE' : 'DISCHARGED'}
+                            {v.status === 'active' ? 'ACTIVE' : 'Discharged (Patient)'}
                           </span>
                         </td>
                         <td style={{ padding: '10px 8px', fontSize: '0.9em' }}>
@@ -2174,7 +2174,7 @@ export default function Dashboard({ onLogout }) {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  Discharged
+                  Discharged (Patient)
                 </button>
               </div>
 
@@ -2969,7 +2969,7 @@ export default function Dashboard({ onLogout }) {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  Discharged
+                  Discharged(Patient)
                 </button>
               </div>
 
@@ -3025,7 +3025,7 @@ export default function Dashboard({ onLogout }) {
               )}
 
               {/* Discharged Visitors Table */}
-              {securityTab === 'discharged' && (
+              {securityTab === 'discharged(patient)' && (
                 <div style={{ animation: 'fadeInSlide 0.4s ease-in' }}>
                   <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '0.95em' }}>
@@ -3033,7 +3033,7 @@ export default function Dashboard({ onLogout }) {
                         <tr>
                           <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
                           <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
-                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient</th>
+                          <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient Name</th>
                           <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Date</th>
                           <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
                           <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
@@ -3067,7 +3067,7 @@ export default function Dashboard({ onLogout }) {
                         v.contact.toLowerCase().includes(q);
                       return matchesSearch && (v.status === 'discharged' || v.status === 'timed-out' || v.status === 'inactive');
                     }).length === 0 && (
-                      <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No discharged visitors</div>
+                      <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No Discharged Visitors</div>
                     )}
                   </div>
                 </div>

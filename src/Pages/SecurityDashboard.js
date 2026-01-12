@@ -555,7 +555,7 @@ export default function SecurityDashboard({ onLogout }) {
                 </div>
 
                 <div style={{ marginBottom: '12px' }}>
-                  <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600' }}>Patient</div>
+                  <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600' }}>Patient Name</div>
                   <div style={{ fontSize: '0.95em', color: '#333' }}>{selectedVisitor.patient}</div>
                 </div>
 
@@ -584,12 +584,12 @@ export default function SecurityDashboard({ onLogout }) {
                 <div style={{ marginBottom: '12px' }}>
                   <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600' }}>Status</div>
                   <div style={{ fontSize: '0.95em', fontWeight: '600', padding: '4px 8px', borderRadius: '4px', textAlign: 'center', background: selectedVisitor.status === 'active' ? '#d4edda' : '#f8d7da', color: selectedVisitor.status === 'active' ? '#155724' : '#721c24' }}>
-                    {selectedVisitor.status === 'active' ? 'Active' : 'Discharged'}
+                    {selectedVisitor.status === 'active' ? 'Active' : 'Discharged (Patient)'}
                   </div>
                 </div>
 
                 <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '2px solid #1a8f6f' }}>
-                  <h4 style={{ margin: '0 0 12px 0', color: '#1a8f6f', fontSize: '0.95em', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px' }}>📋 Attendance Records</h4>
+                  <h4 style={{ margin: '0 0 12px 0', color: '#1a8f6f', fontSize: '0.95em', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.4px' }}>Attendance Records</h4>
                   {allAttendanceRecords && allAttendanceRecords.filter(r => r.visitorId === selectedVisitor.id).length > 0 ? (
                     <div style={{ maxHeight: '250px', overflowY: 'auto', scrollbarGutter: 'stable' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8em' }}>
@@ -627,7 +627,7 @@ export default function SecurityDashboard({ onLogout }) {
             <div style={{ background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
               <div style={{ fontSize: '3em', marginBottom: '10px' }}></div>
               <div style={{ fontSize: '0.95em' }}>Scan a visitor</div>
-              <div style={{ fontSize: '0.85em', marginTop: '5px' }}>ID or QR code to view</div>
+              <div style={{ fontSize: '0.85em', marginTop: '5px' }}>ID or QR code</div>
               <div style={{ fontSize: '0.85em' }}>visitor details</div>
             </div>
           )}
@@ -812,7 +812,7 @@ export default function SecurityDashboard({ onLogout }) {
                 transition: 'all 0.3s ease'
               }}
             >
-              Discharged ({dischargedVisitors.length})
+              Discharged (Patient) ({dischargedVisitors.length})
             </button>
             <button
               onClick={() => setSecurityTab('reminders')}
