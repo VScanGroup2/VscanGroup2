@@ -1312,53 +1312,16 @@ export default function Dashboard({ onLogout }) {
     // If significant face/person detected (30-95% of image has face-like features)
     if (facePresencePercentage > 30 && facePresencePercentage < 95) {
       setFaceDetected(true);
-
-      // Auto-capture if not already attempted in this session
-      if (!autoCaptureAttempted && previewUrl === null) {
-        console.log('[Face Detection] Face detected! Auto-capturing...');
-        setAutoCaptureAttempted(true);
-
-        // Get current time and check readiness
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          try {
-            // Create a new canvas for capture
-            const captureCanvas = document.createElement('canvas');
-            captureCanvas.width = video.videoWidth;
-            captureCanvas.height = video.videoHeight;
-            const captureCtx = captureCanvas.getContext('2d');
-            captureCtx.drawImage(video, 0, 0);
-
-            // Convert to image data
-            const imageDataUrl = captureCanvas.toDataURL('image/jpeg', 0.95);
-
-            setPreviewUrl(imageDataUrl);
-            setMessage({
-              type: 'success',
-              text: '✓ Face captured automatically! Ready to register.'
-            });
-
-            setTimeout(() => setMessage({ type: '', text: '' }), 4000);
-
-            // Stop the face detection after capture
-            if (faceDetectionIntervalRef.current) {
-              clearInterval(faceDetectionIntervalRef.current);
-              faceDetectionIntervalRef.current = null;
-            }
-          } catch (error) {
-            console.error('[Face Detection] Auto-capture error:', error);
-            setAutoCaptureAttempted(false);
-          }
-        }
-      }
+      // User must click capture button - no automatic capture
     } else {
       setFaceDetected(false);
     }
   };
 
-  // Start face detection when camera is active
+  // Start face detection when camera is active (for UI feedback only, user must click capture)
   useEffect(() => {
-    if (isCameraActive && currentView === 'register' && !previewUrl && !autoCaptureAttempted) {
-      // Start face detection every 300ms
+    if (isCameraActive && currentView === 'register' && !previewUrl) {
+      // Start face detection every 300ms for UI feedback
       faceDetectionIntervalRef.current = setInterval(() => {
         detectFaceAndAutoCapture();
       }, 300);
@@ -1370,7 +1333,7 @@ export default function Dashboard({ onLogout }) {
         }
       };
     }
-  }, [isCameraActive, currentView, previewUrl, autoCaptureAttempted]);
+  }, [isCameraActive, currentView, previewUrl]);
 
   const handleScannerKeyDown = (e) => {
     if (e.key === 'Enter') {
