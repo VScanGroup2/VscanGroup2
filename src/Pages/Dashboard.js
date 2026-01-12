@@ -1318,21 +1318,15 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
-  // Start face detection when camera is active (for UI feedback only, user must click capture)
+  // Face detection disabled - user must manually click capture button
   useEffect(() => {
-    if (isCameraActive && currentView === 'register' && !previewUrl) {
-      // Start face detection every 300ms for UI feedback
-      faceDetectionIntervalRef.current = setInterval(() => {
-        detectFaceAndAutoCapture();
-      }, 300);
-
-      return () => {
-        if (faceDetectionIntervalRef.current) {
-          clearInterval(faceDetectionIntervalRef.current);
-          faceDetectionIntervalRef.current = null;
-        }
-      };
-    }
+    // No automatic face detection - users must manually capture
+    return () => {
+      if (faceDetectionIntervalRef.current) {
+        clearInterval(faceDetectionIntervalRef.current);
+        faceDetectionIntervalRef.current = null;
+      }
+    };
   }, [isCameraActive, currentView, previewUrl]);
 
   const handleScannerKeyDown = (e) => {
@@ -3360,20 +3354,6 @@ export default function Dashboard({ onLogout }) {
                       fontWeight: '600'
                     }}>
                       Live Webcam Feed {isCameraActive && '(Active)'}
-                      {faceDetected && (
-                        <span style={{ 
-                          marginLeft: '12px', 
-                          padding: '4px 10px',
-                          background: '#28a745',
-                          color: 'white',
-                          borderRadius: '20px',
-                          fontSize: '0.85em',
-                          fontWeight: 'bold',
-                          animation: 'pulse 1s infinite'
-                        }}>
-                          ● Face Detected
-                        </span>
-                      )}
                     </div>
                     <div style={{ 
                       position: 'relative',
@@ -3462,6 +3442,8 @@ export default function Dashboard({ onLogout }) {
                                 setPreviewUrl(imageData);
                                 setMessage({ type: 'success', text: 'Face captured successfully!' });
                                 setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                                // Stop camera automatically after successful capture
+                                stopCamera();
                               } else {
                                 console.error('Invalid image data');
                                 setMessage({ type: 'error', text: 'Failed to capture image. Please try again.' });
