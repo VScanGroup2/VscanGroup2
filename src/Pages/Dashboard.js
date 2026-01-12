@@ -3146,8 +3146,19 @@ export default function Dashboard({ onLogout }) {
                     return;
                   }
 
-                  // Check if this patient already exists
-                  const existingPatient = visitors.find(v => v.patient?.toLowerCase() === patientFormData.patientName.toLowerCase() && v.room === patientFormData.roomNumber);
+                  // Check if this room number is already assigned to an active patient (not discharged)
+                  const roomInUse = visitors.find(v => 
+                    v.room === patientFormData.roomNumber && 
+                    (v.status !== 'discharged' && v.status !== 'timed-out' && v.status !== 'inactive')
+                  );
+                  if (roomInUse) {
+                    setMessage({ type: 'error', text: `Room ${patientFormData.roomNumber} is already assigned to patient "${roomInUse.patient}". You can only add a new room after the current patient is discharged.` });
+                    setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+                    return;
+                  }
+
+                  // Check if this exact patient already exists
+                  const existingPatient = visitors.find(v => v.patient?.toLowerCase() === patientFormData.patientName.toLowerCase() && v.room === patientFormData.roomNumber && (v.status !== 'discharged' && v.status !== 'timed-out'));
                   if (existingPatient) {
                     setMessage({ type: 'error', text: 'This patient and room combination already exists!' });
                     setTimeout(() => setMessage({ type: '', text: '' }), 3000);
