@@ -21,6 +21,16 @@ export default function Dashboard({ onLogout }) {
   const [reportSearchQuery, setReportSearchQuery] = useState('');
   const [reportDateFilter, setReportDateFilter] = useState('');
   const [reportTab, setReportTab] = useState('summary'); // 'summary' only
+  const [reportType, setReportType] = useState('daily'); // 'daily' or 'weekly'
+  const [selectedWeekStart, setSelectedWeekStart] = useState(() => {
+    const today = new Date();
+    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
+    return weekStart.toISOString().split('T')[0];
+  });
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [securitySearchQuery, setSecuritySearchQuery] = useState('');
   const [securityTab, setSecurityTab] = useState('active');
   // Registration form state
@@ -50,6 +60,7 @@ export default function Dashboard({ onLogout }) {
   const scannerInputRef = useRef(null);
   const [scannerActive, setScannerActive] = useState(false);
   const [isProcessingQR, setIsProcessingQR] = useState(false);
+  const [scanCompleted, setScanCompleted] = useState(false);
   // Admin delete functionality
   const [showDeletePanel, setShowDeletePanel] = useState(false);
   const [deleteVisitorName, setDeleteVisitorName] = useState('');
@@ -1194,6 +1205,55 @@ export default function Dashboard({ onLogout }) {
     }
   };
 
+  // Face capture camera activation
+  const activateFaceCamera = async () => {
+    try {
+      setCameraError('');
+      setMessage({ type: '', text: '' });
+
+      // Request any available camera (built-in or USB)
+      const constraints = {
+        video: { 
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      // First, activate camera to render the video element
+      setIsCameraActive(true);
+
+      // Then, assign stream to video element once it's rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+
+          // Wait for video to be ready before marking as ready
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().catch(err => {
+              console.error('Play error:', err);
+              setMessage({ type: 'error', text: 'Failed to start video playback.' });
+            });
+            setMessage({ type: 'success', text: 'Camera activated — ready to capture face.' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+          };
+        } else {
+          console.error('videoRef.current is null after rendering');
+          setMessage({ type: 'error', text: 'Video element not initialized.' });
+          setIsCameraActive(false);
+        }
+      }, 0);
+
+    } catch (error) {
+      console.error('Camera error:', error);
+      setCameraError('Unable to access camera. Please check camera connection and permissions.');
+      setMessage({ type: 'error', text: 'Cannot access camera. Check connection and camera permissions.' });
+      setTimeout(() => setMessage({ type: '', text: '' }), 5000);
+    }
+  };
+
   // Face detection and auto-capture functionality
   const detectFaceAndAutoCapture = () => {
     if (!videoRef.current || !canvasRef.current || !isCameraActive) return;
@@ -1520,6 +1580,7 @@ export default function Dashboard({ onLogout }) {
                       if (data) {
                         setScannerBuffer('');
                         setIsProcessingQR(true);
+                        setScanCompleted(true);
                         console.log('[Scanner Button] Processing QR/ID:', data);
                         parseQrString(data);
                         // Clear processing state after a delay (gives time for state updates to process)
@@ -1580,7 +1641,7 @@ export default function Dashboard({ onLogout }) {
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    {isProcessingQR ? (
+                    {isProcessingQR && scanCompleted ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div style={{
                           width: '12px',
@@ -1606,7 +1667,7 @@ export default function Dashboard({ onLogout }) {
                         <span style={{ marginLeft: '8px' }}>Scanning...</span>
                       </div>
                     ) : (
-                      '✓ Ready to scan'
+                      !scanCompleted && '✓ Ready to scan'
                     )}
                   </div>
                 
@@ -1633,7 +1694,10 @@ export default function Dashboard({ onLogout }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '16px', borderBottom: '2px solid rgba(26, 143, 111, 0.2)' }}>
                 <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.4em', fontWeight: '700' }}>VISITOR VERIFIED</h3>
                 <button 
-                  onClick={() => setScannedVisitorData(null)}
+                  onClick={() => {
+                    setScannedVisitorData(null);
+                    setScanCompleted(false);
+                  }}
                   style={{ 
                     background: '#dc3545', 
                     color: 'white', 
@@ -1774,7 +1838,7 @@ export default function Dashboard({ onLogout }) {
         )}
         
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '10px', padding: '20px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)', overflowY: 'auto', overflowX: 'hidden', scrollbarGutter: 'stable', position: 'relative' }}>
-          <h1 style={{ color: '#1a8f6f', marginBottom: '20px', fontSize: '2em', fontWeight: 'bold', position: 'sticky', top: 0, backgroundColor: 'white', paddingBottom: '10px', zIndex: 5 }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'report' ? 'VISITOR REPORT' : currentView === 'patientData' ? 'PATIENT DATA' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
+          <h1 style={{ color: '#1a8f6f', marginBottom: '10px', fontSize: currentView === 'report' ? '1.4em' : '2em', fontWeight: 'bold', position: 'sticky', top: 0, backgroundColor: 'white', paddingBottom: '10px', zIndex: 5 }}>{currentView === 'dashboard' ? 'DASHBOARD' : currentView === 'visitorInfo' ? "LIST OF VISITORS" : currentView === 'registered' ? 'REGISTERED VISITOR' : currentView === 'monitoring' ? 'MONITORING' : currentView === 'report' ? 'VISITOR REPORT' : currentView === 'patientData' ? 'PATIENT DATA' : currentView === 'register' ? 'REGISTER NEW VISITOR' : 'DASHBOARD'}</h1>
 
           {currentView === 'dashboard' && (
             <>
@@ -2329,31 +2393,44 @@ export default function Dashboard({ onLogout }) {
                 </div>
               )}
               
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input 
-                  type="text"
-                  placeholder="Search by name, room, or contact..." 
-                  value={reportSearchQuery} 
-                  onChange={(e) => setReportSearchQuery(e.target.value)} 
-                  style={{ ...inputStyle, flex: 1, minWidth: '200px' }} 
-                />
-                <input 
-                  type="date"
-                  value={reportDateFilter}
-                  onChange={(e) => setReportDateFilter(e.target.value)}
-                  style={{ ...inputStyle, minWidth: '150px', padding: '10px 12px' }}
-                />
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <button
-                  onClick={() => showView('report')}
-                  style={{ padding: '10px 20px', background: '#1a8f6f', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em' }}
+                  onClick={() => setReportType('daily')}
+                  style={{ padding: '10px 20px', background: reportType === 'daily' ? '#1a8f6f' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em', transition: 'all 0.3s' }}
                 >
-                  Refresh Report
+                  Daily Report
+                </button>
+                <button
+                  onClick={() => setReportType('weekly')}
+                  style={{ padding: '10px 20px', background: reportType === 'weekly' ? '#1a8f6f' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em', transition: 'all 0.3s' }}
+                >
+                  Weekly Report
+                </button>
+                <button
+                  onClick={() => setReportType('monthly')}
+                  style={{ padding: '10px 20px', background: reportType === 'monthly' ? '#1a8f6f' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em', transition: 'all 0.3s' }}
+                >
+                  Monthly Report
                 </button>
                 <button
                   onClick={() => {
                     const printContent = document.querySelector('[data-report-print]');
                     if (printContent) {
                       const printWindow = window.open('', '_blank');
+                      // Clone the content and remove height restrictions for printing
+                      const clonedContent = printContent.cloneNode(true);
+                      
+                      // Remove all overflow and max-height styles to show all content
+                      const removeHeightRestrictions = (element) => {
+                        element.style.maxHeight = 'none';
+                        element.style.height = 'auto';
+                        element.style.overflowY = 'visible';
+                        element.style.overflowX = 'visible';
+                        element.style.overflow = 'visible';
+                        Array.from(element.children).forEach(child => removeHeightRestrictions(child));
+                      };
+                      removeHeightRestrictions(clonedContent);
+                      
                       printWindow.document.write(`
                         <html>
                           <head>
@@ -2367,14 +2444,16 @@ export default function Dashboard({ onLogout }) {
                               th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 12px; }
                               tbody tr:nth-child(even) { background: #f9f9f9; }
                               .page-break { page-break-after: always; }
+                              div { overflow: visible !important; max-height: none !important; height: auto !important; }
                               @media print {
                                 body { margin: 0; }
                                 .print-btn { display: none; }
+                                * { overflow: visible !important; max-height: none !important; height: auto !important; }
                               }
                             </style>
                           </head>
                           <body>
-                            ${printContent.innerHTML}
+                            ${clonedContent.innerHTML}
                           </body>
                         </html>
                       `);
@@ -2388,35 +2467,14 @@ export default function Dashboard({ onLogout }) {
                 </button>
               </div>
 
-              {/* Tab Navigation */}
-              <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '3px solid #ddd', backgroundColor: '#f8f9fa', borderRadius: '8px 8px 0 0' }}>
-                <button
-                  onClick={() => setReportTab('summary')}
-                  style={{
-                    flex: 1,
-                    padding: '16px 20px',
-                    border: 'none',
-                    background: reportTab === 'summary' ? '#1a8f6f' : 'transparent',
-                    color: reportTab === 'summary' ? 'white' : '#666',
-                    fontWeight: reportTab === 'summary' ? '700' : '600',
-                    fontSize: '1em',
-                    cursor: 'pointer',
-                    borderRadius: '8px 0 0 0',
-                    transition: 'all 0.3s ease',
-                    boxShadow: reportTab === 'summary' ? '0 2px 8px rgba(26, 143, 111, 0.3)' : 'none'
-                  }}
-                >
-                  Visitor Summary
-                </button>
-              </div>
-              
               {/* Tab Content - Visitor Summary */}
-              {reportTab === 'summary' && (
+              {reportTab === 'summary' && reportType === 'daily' && (
                 <div style={{ animation: 'fadeInSlide 0.3s ease' }} data-report-print>
                   <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f', marginBottom: '20px' }}>
-                    <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '15px', fontSize: '1.6em' }}>Visitor Summary Report</h3>
-                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
-                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '1.3em' }}>Total visitors: <strong>{visitors.length}</strong></p>
+                    <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '8px', fontSize: '1.2em' }}>Daily Visitor Log Report</h3>
+                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em', margin: '8px 0 15px 0' }}>Report Date: <strong>{new Date().toLocaleDateString()}</strong></p>
+                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
+                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Total visitors: <strong>{visitors.length}</strong></p>
                     
                     <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 280px)', minWidth: 0, border: '1px solid #ddd' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.05em', background: 'white' }}>
@@ -2529,6 +2587,220 @@ export default function Dashboard({ onLogout }) {
                         <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found</div>
                       )}
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Weekly Report Section */}
+              {reportTab === 'summary' && reportType === 'weekly' && (
+                <div style={{ animation: 'fadeInSlide 0.3s ease' }} data-report-print>
+                  <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f', marginBottom: '20px' }}>
+                    <div style={{ marginBottom: '16px', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #ddd' }}>
+                      <label style={{ display: 'block', fontSize: '0.95em', fontWeight: '600', color: '#1a8f6f', marginBottom: '8px' }}>Select Week Start Date:</label>
+                      <input
+                        type="date"
+                        value={selectedWeekStart}
+                        onChange={(e) => setSelectedWeekStart(e.target.value)}
+                        style={{ ...inputStyle, minWidth: '180px', padding: '8px 10px', fontSize: '0.95em' }}
+                      />
+                    </div>
+                    {(() => {
+                      const weekStart = new Date(selectedWeekStart);
+                      const weekEnd = new Date(weekStart);
+                      weekEnd.setDate(weekEnd.getDate() + 6);
+                      
+                      // Filter visitors for selected week
+                      const weeklyVisitors = visitors.filter(v => {
+                        const vDate = v.date || v.registrationDate || new Date().toLocaleDateString();
+                        const visitDate = new Date(vDate);
+                        return visitDate >= weekStart && visitDate <= weekEnd;
+                      });
+                      
+                      return (
+                        <>
+                          <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '8px', fontSize: '1.2em' }}>Weekly Visitor Report</h3>
+                          <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em', margin: '8px 0 15px 0' }}>Report Week: <strong>{weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}</strong></p>
+                          <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
+                          <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Total visitors this week: <strong>{weeklyVisitors.length}</strong></p>
+                          
+                          <div style={{ marginBottom: '20px', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #ddd' }}>
+                            <h4 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '12px', fontSize: '1.05em', fontWeight: '600' }}>Weekly Visitation Summary</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+                              {(() => {
+                                const visitorsByDate = {};
+                                weeklyVisitors.forEach(v => {
+                                  const date = v.date || v.registrationDate || new Date().toLocaleDateString();
+                                  if (!visitorsByDate[date]) {
+                                    visitorsByDate[date] = 0;
+                                  }
+                                  visitorsByDate[date]++;
+                                });
+                                
+                                const sortedDates = Object.keys(visitorsByDate).sort((a, b) => {
+                                  return new Date(b) - new Date(a);
+                                });
+                                
+                                return sortedDates.map(date => {
+                                  const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'short' });
+                                  return (
+                                    <div 
+                                      key={date}
+                                      style={{
+                                        padding: '12px',
+                                        background: '#f8f9fa',
+                                        borderRadius: '6px',
+                                        border: '1px solid #ddd',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '4px' }}>{dayName}</div>
+                                      <div style={{ fontSize: '0.9em', fontWeight: '600', color: '#1a8f6f', marginBottom: '6px' }}>{new Date(date).toLocaleDateString()}</div>
+                                      <div style={{ fontSize: '1.4em', fontWeight: '700', color: '#28a745' }}>{visitorsByDate[date]}</div>
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
+
+                          <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0, border: '1px solid #ddd' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.05em', background: 'white' }}>
+                              <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
+                                <tr>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient Name</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Visit Date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {weeklyVisitors.map((v) => (
+                                  <tr key={v.id} style={{ borderBottom: '1px solid #ddd' }}>
+                                    <td style={{ padding: '12px 10px' }}>{v.name}</td>
+                                    <td style={{ padding: '12px 10px' }}>{v.room}</td>
+                                    <td style={{ padding: '12px 10px' }}>{v.patient}</td>
+                                    <td style={{ padding: '12px 10px' }}>{v.contact}</td>
+                                    <td style={{ padding: '12px 10px', color: '#007bff', fontWeight: '600' }}>{v.date || v.registrationDate || 'N/A'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {weeklyVisitors.length === 0 && (
+                              <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found for this week</div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* Monthly Report Section */}
+              {reportTab === 'summary' && reportType === 'monthly' && (
+                <div style={{ animation: 'fadeInSlide 0.3s ease' }} data-report-print>
+                  <div style={{ padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f', marginBottom: '20px' }}>
+                    <div style={{ marginBottom: '16px', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #ddd' }}>
+                      <label style={{ display: 'block', fontSize: '0.95em', fontWeight: '600', color: '#1a8f6f', marginBottom: '8px' }}>Select Month:</label>
+                      <input
+                        type="month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        style={{ ...inputStyle, minWidth: '180px', padding: '8px 10px', fontSize: '0.95em' }}
+                      />
+                    </div>
+                    {(() => {
+                      const [yearStr, monthStr] = selectedMonth.split('-');
+                      const selectedYear = parseInt(yearStr);
+                      const selectedMonthNum = parseInt(monthStr) - 1; // JavaScript months are 0-indexed
+                      
+                      // Filter visitors for selected month
+                      const monthlyVisitors = visitors.filter(v => {
+                        const vDate = v.date || v.registrationDate || new Date().toLocaleDateString();
+                        const visitDate = new Date(vDate);
+                        return visitDate.getFullYear() === selectedYear && visitDate.getMonth() === selectedMonthNum;
+                      });
+                      
+                      const monthName = new Date(selectedYear, selectedMonthNum).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                      
+                      return (
+                        <>
+                          <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '8px', fontSize: '1.2em' }}>Monthly Visitor Report</h3>
+                          <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em', margin: '8px 0 15px 0' }}>Report Month: <strong>{monthName}</strong></p>
+                          <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
+                          <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Total visitors this month: <strong>{monthlyVisitors.length}</strong></p>
+                          
+                          <div style={{ marginBottom: '20px', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #ddd' }}>
+                            <h4 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '12px', fontSize: '1.05em', fontWeight: '600' }}>Monthly Visitation Summary</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+                              {(() => {
+                                const visitorsByDate = {};
+                                monthlyVisitors.forEach(v => {
+                                  const date = v.date || v.registrationDate || new Date().toLocaleDateString();
+                                  if (!visitorsByDate[date]) {
+                                    visitorsByDate[date] = 0;
+                                  }
+                                  visitorsByDate[date]++;
+                                });
+                                
+                                const sortedDates = Object.keys(visitorsByDate).sort((a, b) => {
+                                  return new Date(b) - new Date(a);
+                                });
+                                
+                                return sortedDates.map(date => {
+                                  const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'short' });
+                                  return (
+                                    <div 
+                                      key={date}
+                                      style={{
+                                        padding: '12px',
+                                        background: '#f8f9fa',
+                                        borderRadius: '6px',
+                                        border: '1px solid #ddd',
+                                        textAlign: 'center'
+                                      }}
+                                    >
+                                      <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '4px' }}>{dayName}</div>
+                                      <div style={{ fontSize: '0.9em', fontWeight: '600', color: '#1a8f6f', marginBottom: '6px' }}>{new Date(date).toLocaleDateString()}</div>
+                                      <div style={{ fontSize: '1.4em', fontWeight: '700', color: '#28a745' }}>{visitorsByDate[date]}</div>
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
+
+                          <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 350px)', minWidth: 0, border: '1px solid #ddd' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.05em', background: 'white' }}>
+                              <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
+                                <tr>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient Name</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
+                                  <th style={{ padding: '14px 10px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Visit Date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {monthlyVisitors.map((v) => (
+                                  <tr key={v.id} style={{ borderBottom: '1px solid #ddd' }}>
+                                    <td style={{ padding: '12px 10px' }}>{v.name}</td>
+                                    <td style={{ padding: '12px 10px' }}>{v.room}</td>
+                                    <td style={{ padding: '12px 10px' }}>{v.patient}</td>
+                                    <td style={{ padding: '12px 10px' }}>{v.contact}</td>
+                                    <td style={{ padding: '12px 10px', color: '#007bff', fontWeight: '600' }}>{v.date || v.registrationDate || 'N/A'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            {monthlyVisitors.length === 0 && (
+                              <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found for this month</div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -3066,7 +3338,7 @@ export default function Dashboard({ onLogout }) {
                 
                 <div style={{ textAlign: 'center', marginBottom: '15px' }}>
                   <button 
-                    onClick={activateUsbScanner}
+                    onClick={activateFaceCamera}
                     style={{ 
                       width: '100%', 
                       padding: '12px', 
