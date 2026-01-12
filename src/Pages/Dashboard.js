@@ -1632,7 +1632,7 @@ export default function Dashboard({ onLogout }) {
                       e.target.style.transform = 'translateY(0)';
                     }}
                   >
-                    🔍 SCAN
+                    SCAN
                   </button>
                   <div style={{
                     background: isProcessingQR ? '#e3f2fd' : '#f8f9fa',
@@ -1675,7 +1675,7 @@ export default function Dashboard({ onLogout }) {
                         <span style={{ marginLeft: '8px' }}>Scanning...</span>
                       </div>
                     ) : (
-                      !scanCompleted && '✓ Ready to scan'
+                      !scanCompleted && 'Ready to scan'
                     )}
                   </div>
                 
