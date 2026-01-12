@@ -1449,12 +1449,17 @@ export default function Dashboard({ onLogout }) {
   const activeVisitors = visitors.filter(v => v.status === 'active');
   const filteredVisitors = visitors.filter(v => {
     const q = searchQuery.toLowerCase();
+    // Exclude added patients (those with empty contact info)
+    if (!v.contact || v.contact.trim() === '') return false;
     return v.name.toLowerCase().includes(q) || v.room.toLowerCase().includes(q) || v.patient.toLowerCase().includes(q) || v.date.toLowerCase().includes(q);
   });
   const filteredRegisteredVisitors = visitors.filter(v => {
     const q = registeredSearchQuery.toLowerCase();
+    // Exclude added patients (those with empty contact info)
+    if (!v.contact || v.contact.trim() === '') return false;
     return v.name.toLowerCase().includes(q) || v.room.toLowerCase().includes(q) || v.patient.toLowerCase().includes(q) || v.contact.toLowerCase().includes(q);
   });
+  const reportFilteredVisitors = visitors.filter(v => v.contact && v.contact.trim() !== '');
   const filteredHistoryVisitors = visitors.filter(v => {
     const q = historySearchQuery.toLowerCase();
     return v.name.toLowerCase().includes(q) || v.room.toLowerCase().includes(q) || v.patient.toLowerCase().includes(q) || v.date.toLowerCase().includes(q);
@@ -2439,7 +2444,7 @@ export default function Dashboard({ onLogout }) {
                     <h3 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '8px', fontSize: '1.2em' }}>Daily Visitor Log Report</h3>
                     <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em', margin: '8px 0 15px 0' }}>Report Date: <strong>{new Date().toLocaleDateString()}</strong></p>
                     <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
-                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Total visitors: <strong>{visitors.length}</strong></p>
+                    <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Total visitors: <strong>{reportFilteredVisitors.length}</strong></p>
                     
                     <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 280px)', minWidth: 0, border: '1px solid #ddd' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '100%', fontSize: '1.05em', background: 'white' }}>
@@ -2456,7 +2461,7 @@ export default function Dashboard({ onLogout }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {visitors
+                          {reportFilteredVisitors
                             .map((v) => {
                               // Count total visits and collect visit dates with check-in and check-out times
                               const visitorCheckIns = allAttendanceRecords.filter(
@@ -2548,7 +2553,7 @@ export default function Dashboard({ onLogout }) {
                             })}
                         </tbody>
                       </table>
-                      {visitors.length === 0 && (
+                      {reportFilteredVisitors.length === 0 && (
                         <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found</div>
                       )}
                     </div>
@@ -2575,7 +2580,7 @@ export default function Dashboard({ onLogout }) {
                       weekEnd.setDate(weekEnd.getDate() + 6);
                       
                       // Filter visitors for selected week
-                      const weeklyVisitors = visitors.filter(v => {
+                      const weeklyVisitors = reportFilteredVisitors.filter(v => {
                         const vDate = v.date || v.registrationDate || new Date().toLocaleDateString();
                         const visitDate = new Date(vDate);
                         return visitDate >= weekStart && visitDate <= weekEnd;
@@ -2681,7 +2686,7 @@ export default function Dashboard({ onLogout }) {
                       const selectedMonthNum = parseInt(monthStr) - 1; // JavaScript months are 0-indexed
                       
                       // Filter visitors for selected month
-                      const monthlyVisitors = visitors.filter(v => {
+                      const monthlyVisitors = reportFilteredVisitors.filter(v => {
                         const vDate = v.date || v.registrationDate || new Date().toLocaleDateString();
                         const visitDate = new Date(vDate);
                         return visitDate.getFullYear() === selectedYear && visitDate.getMonth() === selectedMonthNum;
@@ -2794,7 +2799,7 @@ export default function Dashboard({ onLogout }) {
                   <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', border: '1px solid #ddd' }}>
                     <tbody>
                       {Object.entries(
-                        visitors.reduce((acc, v) => {
+                        reportFilteredVisitors.reduce((acc, v) => {
                           const patientName = v.patient || 'N/A';
                           if (!acc[patientName]) {
                             acc[patientName] = [];
@@ -2867,7 +2872,7 @@ export default function Dashboard({ onLogout }) {
                         ))}
                     </tbody>
                   </table>
-                  {visitors.length === 0 && (
+                  {reportFilteredVisitors.length === 0 && (
                     <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found</div>
                   )}
                 </div>
