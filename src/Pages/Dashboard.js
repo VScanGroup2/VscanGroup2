@@ -49,6 +49,7 @@ export default function Dashboard({ onLogout }) {
   const [scannerBuffer, setScannerBuffer] = useState('');
   const scannerInputRef = useRef(null);
   const [scannerActive, setScannerActive] = useState(false);
+  const [isProcessingQR, setIsProcessingQR] = useState(false);
   // Admin delete functionality
   const [showDeletePanel, setShowDeletePanel] = useState(false);
   const [deleteVisitorName, setDeleteVisitorName] = useState('');
@@ -90,6 +91,11 @@ export default function Dashboard({ onLogout }) {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Debug scannedVisitorData state changes
+  useEffect(() => {
+    console.log('[Dashboard] scannedVisitorData changed:', scannedVisitorData);
+  }, [scannedVisitorData]);
 
   useEffect(() => {
     console.log('[Dashboard] Setting up Firestore listener on mount...');
@@ -862,6 +868,7 @@ export default function Dashboard({ onLogout }) {
   // Alternating scan system: odd scans (1,3,5...) = Time-in, even scans (2,4,6...) = Time-out
   const parseQrString = async (raw) => {
     try {
+      console.log('[parseQrString] ENTERED with raw:', raw, 'typeof:', typeof raw, 'length:', raw ? raw.length : 'null');
       if (!raw || !raw.trim()) return false;
       const trimmed = raw.trim();
       let qrData;
@@ -927,7 +934,14 @@ export default function Dashboard({ onLogout }) {
             }
             console.log('[Dashboard] TIME-IN update sent to Firestore');
             
-            const updatedVisitor = { ...visitor, timeIn: currentTime, date: checkInDate, status: 'active' };
+            const updatedVisitor = { 
+              ...visitor, 
+              timeIn: currentTime, 
+              date: checkInDate, 
+              fullDate: checkInDate,
+              status: 'active'
+            };
+            console.log('[parseQrString-ID-TIMEIN] About to call setScannedVisitorData with:', updatedVisitor);
             setScannedVisitorData(updatedVisitor);
             setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-IN) recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
@@ -956,7 +970,8 @@ export default function Dashboard({ onLogout }) {
             });
             console.log('[Dashboard] TIME-OUT update sent to Firestore');
             
-            const updatedVisitor = { ...visitor, timeOut: currentTime };
+            const updatedVisitor = { ...visitor, timeOut: currentTime, fullDate: visitor.date || checkInDate, status: 'active' };
+            console.log('[parseQrString-ID-TIMEOUT] About to call setScannedVisitorData with:', updatedVisitor);
             setScannedVisitorData(updatedVisitor);
             setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-OUT) recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
@@ -1028,7 +1043,14 @@ export default function Dashboard({ onLogout }) {
             }
             console.log('[Dashboard] TIME-IN update sent to Firestore');
             
-            const updatedVisitor = { ...visitor, timeIn: currentTime, date: checkInDate, status: 'active' };
+            const updatedVisitor = { 
+              ...visitor, 
+              timeIn: currentTime, 
+              date: checkInDate, 
+              fullDate: checkInDate,
+              status: 'active'
+            };
+            console.log('[parseQrString-JSON-TIMEIN] About to call setScannedVisitorData with:', updatedVisitor);
             setScannedVisitorData(updatedVisitor);
             setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-IN) recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
@@ -1057,7 +1079,8 @@ export default function Dashboard({ onLogout }) {
             });
             console.log('[Dashboard] TIME-OUT update sent to Firestore');
             
-            const updatedVisitor = { ...visitor, timeOut: currentTime };
+            const updatedVisitor = { ...visitor, timeOut: currentTime, fullDate: visitor.date || checkInDate, status: 'active' };
+            console.log('[parseQrString-JSON-TIMEOUT] About to call setScannedVisitorData with:', updatedVisitor);
             setScannedVisitorData(updatedVisitor);
             setMessage({ type: 'success', text: `${visitor.name} - Scan #${scanCount} (TIME-OUT) recorded at ${currentTime}` });
             setTimeout(() => setMessage({ type: '', text: '' }), 4000);
@@ -1077,6 +1100,7 @@ export default function Dashboard({ onLogout }) {
             status: 'active',
             photo: null
           };
+          console.log('[parseQrString-JSON-NO-VISITOR] About to call setScannedVisitorData with scannedData:', scannedData);
           setScannedVisitorData(scannedData);
           setMessage({ type: 'success', text: 'Visitor information loaded from scanner.' });
           setTimeout(() => setMessage({ type: '', text: '' }), 3000);
@@ -1280,11 +1304,27 @@ export default function Dashboard({ onLogout }) {
   const handleScannerKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      const data = scannerBuffer;
-      setScannerBuffer('');
-      parseQrString(data);
-      // keep input focused for next scan
-      setTimeout(() => scannerInputRef.current && scannerInputRef.current.focus(), 50);
+      const data = scannerBuffer.trim();
+      console.log('[Scanner] Enter pressed with data:', data);
+      if (data) {
+        setScannerBuffer('');
+        setIsProcessingQR(true);
+        console.log('[Scanner] Processing QR/ID:', data);
+        parseQrString(data);
+        // Clear processing state after a delay (gives time for state updates to process)
+        setTimeout(() => {
+          setIsProcessingQR(false);
+        }, 1500);
+        // keep input focused for next scan
+        setTimeout(() => {
+          if (scannerInputRef.current) {
+            scannerInputRef.current.focus();
+            console.log('[Scanner] Input refocused');
+          }
+        }, 50);
+      } else {
+        console.log('[Scanner] Empty data, ignoring');
+      }
     }
   };
 
@@ -1426,15 +1466,6 @@ export default function Dashboard({ onLogout }) {
       </div>
 
       <div style={{ display: 'flex', flex: 1, width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '20px', gap: '20px', overflow: 'hidden' }}>
-        {/* Hidden input to receive USB scanner keyboard-wedge input */}
-        <input
-          ref={scannerInputRef}
-          value={scannerBuffer}
-          onChange={(e) => setScannerBuffer(e.target.value)}
-          onKeyDown={handleScannerKeyDown}
-          style={{ position: 'absolute', left: -9999, top: 'auto' }}
-          aria-hidden="true"
-        />
         {currentView === 'monitoring' && (
         <div style={{ width: 240, background: 'white', borderRadius: 12, padding: 15, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', position: 'sticky', top: '20px', height: 'calc(100vh - 60px)', maxHeight: '100vh' }}>
           {!scannedVisitorData && (
@@ -1443,16 +1474,15 @@ export default function Dashboard({ onLogout }) {
               
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', scrollbarGutter: 'stable' }}>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontWeight: '600', color: '#333', marginBottom: '10px', fontSize: '1.1em', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Scan QR/ID:</label>
-                  <div style={{ fontSize: '0.85em', color: '#666', marginBottom: '8px', fontStyle: 'italic' }}>
-                    USB Scanner ready
-                  </div>
                   <input 
                     ref={scannerInputRef}
                     type="text"
-                    placeholder="Place cursor here and scan"
+                    placeholder=""
                     value={scannerBuffer}
-                    onChange={(e) => setScannerBuffer(e.target.value)}
+                    onChange={(e) => {
+                      console.log('[Scanner Input] Value changed:', e.target.value);
+                      setScannerBuffer(e.target.value);
+                    }}
                     style={{
                       width: '100%',
                       padding: '10px',
@@ -1476,17 +1506,105 @@ export default function Dashboard({ onLogout }) {
                     }}
                     onKeyDown={handleScannerKeyDown}
                   />
+                  <button
+                    onClick={() => {
+                      // Ensure input is focused to capture any pending scanner data
+                      if (scannerInputRef.current) {
+                        scannerInputRef.current.focus();
+                      }
+                      const data = scannerBuffer.trim();
+                      console.log('[Scanner Button] Scan pressed with data:', data, 'scannerBuffer:', scannerBuffer);
+                      if (data) {
+                        setScannerBuffer('');
+                        setIsProcessingQR(true);
+                        console.log('[Scanner Button] Processing QR/ID:', data);
+                        parseQrString(data);
+                        // Clear processing state after a delay (gives time for state updates to process)
+                        setTimeout(() => {
+                          setIsProcessingQR(false);
+                        }, 1500);
+                        // keep input focused for next scan
+                        setTimeout(() => {
+                          if (scannerInputRef.current) {
+                            scannerInputRef.current.focus();
+                            console.log('[Scanner Button] Input refocused');
+                          }
+                        }, 50);
+                      } else {
+                        setMessage({ type: 'error', text: 'Please enter or scan a QR/ID first!' });
+                        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: '#1a8f6f',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '1em',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      marginBottom: '12px',
+                      boxShadow: '0 3px 8px rgba(26, 143, 111, 0.3)'
+                    }}
+                    onMouseOver={(e) => {
+                      e.target.style.background = '#158f6f';
+                      e.target.style.boxShadow = '0 5px 12px rgba(26, 143, 111, 0.4)';
+                      e.target.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.target.style.background = '#1a8f6f';
+                      e.target.style.boxShadow = '0 3px 8px rgba(26, 143, 111, 0.3)';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    🔍 SCAN
+                  </button>
                   <div style={{
-                    background: '#f8f9fa',
+                    background: isProcessingQR ? '#e3f2fd' : '#f8f9fa',
                     padding: '12px',
                     borderRadius: '6px',
-                    border: '2px dashed #1a8f6f',
+                    border: `2px solid ${isProcessingQR ? '#1a8f6f' : '#ddd'}`,
                     textAlign: 'center',
-                    color: '#1a8f6f',
+                    color: isProcessingQR ? '#1a8f6f' : '#1a8f6f',
                     fontSize: '0.9em',
-                    fontWeight: '600'
+                    fontWeight: '600',
+                    transition: 'all 0.3s ease',
+                    minHeight: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}>
-                    Ready to scan
+                    {isProcessingQR ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          background: '#1a8f6f',
+                          animation: 'pulse 1.5s ease-in-out infinite'
+                        }} />
+                        <div style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          background: '#1a8f6f',
+                          animation: 'pulse 1.5s ease-in-out 0.3s infinite'
+                        }} />
+                        <div style={{
+                          width: '12px',
+                          height: '12px',
+                          borderRadius: '50%',
+                          background: '#1a8f6f',
+                          animation: 'pulse 1.5s ease-in-out 0.6s infinite'
+                        }} />
+                        <span style={{ marginLeft: '8px' }}>Scanning...</span>
+                      </div>
+                    ) : (
+                      '✓ Ready to scan'
+                    )}
                   </div>
                 
                 </div>
