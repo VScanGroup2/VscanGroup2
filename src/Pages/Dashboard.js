@@ -297,6 +297,14 @@ export default function Dashboard({ onLogout }) {
       return;
     }
 
+    // Check if visitor limit reached for this patient (maximum 2 visitors per patient)
+    const patientVisitorCount = visitors.filter(v => v.patient === selectedVisitorForRegistration.patient && v.status === 'active').length;
+    if (patientVisitorCount >= 2) {
+      setMessage({ type: 'error', text: `Only 2 visitors are allowed per patient. Patient "${selectedVisitorForRegistration.patient}" already has ${patientVisitorCount} active visitor(s).` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      return;
+    }
+
     // Check if a face photo was captured
     if (!previewUrl) {
       setMessage({ type: 'error', text: 'Please capture a face photo first!' });
@@ -3327,7 +3335,7 @@ export default function Dashboard({ onLogout }) {
                     onMouseOver={(e) => e.target.style.background = selectedVisitorForRegistration ? '#218838' : '#158f6f'}
                     onMouseOut={(e) => e.target.style.background = selectedVisitorForRegistration ? '#28a745' : '#1a8f6f'}
                   >
-                    {selectedVisitorForRegistration ? `✓ ${selectedVisitorForRegistration.name} - Room ${selectedVisitorForRegistration.room}` : '+ SELECT PATIENT'}
+                    {selectedVisitorForRegistration ? 'Selection Done' : 'Select Patient'}
                   </button>
                   {!selectedVisitorForRegistration && <div style={{ fontSize: '0.9em', color: '#dc3545', marginBottom: '16px', fontWeight: '600' }}>Required: Select a patient to register</div>}
                 </div>
@@ -3655,48 +3663,61 @@ export default function Dashboard({ onLogout }) {
 
                     <div style={{ maxHeight: '400px', overflowY: 'auto', scrollbarGutter: 'stable' }}>
                       {visitors.length > 0 ? (
-                        visitors.map((visitor, idx) => (
-                          <div 
-                            key={idx}
-                            onClick={() => {
-                              setSelectedVisitorForRegistration(visitor);
-                              setFormData({
-                                ...formData,
-                                roomNumber: visitor.room || '',
-                                patientName: visitor.patient || ''
-                              });
-                              setShowVisitorSelector(false);
-                            }}
-                            style={{
-                              padding: '16px',
-                              border: '2px solid #e0e0e0',
-                              borderRadius: '8px',
-                              marginBottom: '12px',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s',
-                              background: '#f9f9f9',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center'
-                            }}
-                            onMouseOver={(e) => {
-                              e.currentTarget.style.background = '#f0f8f5';
-                              e.currentTarget.style.borderColor = '#1a8f6f';
-                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(26, 143, 111, 0.2)';
-                            }}
-                            onMouseOut={(e) => {
-                              e.currentTarget.style.background = '#f9f9f9';
-                              e.currentTarget.style.borderColor = '#e0e0e0';
-                              e.currentTarget.style.boxShadow = 'none';
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontSize: '1.1em', fontWeight: '700', color: '#1a8f6f', marginBottom: '4px' }}>{visitor.patient}</div>
-                              <div style={{ fontSize: '0.9em', color: '#666' }}>Room: <strong>{visitor.room}</strong></div>
+                        visitors.map((visitor, idx) => {
+                          // Check if this patient already has 2 active visitors
+                          const activeVisitorCount = visitors.filter(v => v.patient === visitor.patient && v.status === 'active').length;
+                          const isDisabled = activeVisitorCount >= 2;
+                          
+                          return (
+                            <div 
+                              key={idx}
+                              onClick={() => {
+                                // Only allow selection if patient doesn't have 2 active visitors
+                                if (!isDisabled) {
+                                  setSelectedVisitorForRegistration(visitor);
+                                  setFormData({
+                                    ...formData,
+                                    roomNumber: visitor.room || '',
+                                    patientName: visitor.patient || ''
+                                  });
+                                  setShowVisitorSelector(false);
+                                }
+                              }}
+                              style={{
+                                padding: '16px',
+                                border: isDisabled ? '2px solid #ccc' : '2px solid #e0e0e0',
+                                borderRadius: '8px',
+                                marginBottom: '12px',
+                                cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                transition: 'all 0.3s',
+                                background: isDisabled ? '#f5f5f5' : '#f9f9f9',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                opacity: isDisabled ? 0.6 : 1
+                              }}
+                              onMouseOver={(e) => {
+                                if (!isDisabled) {
+                                  e.currentTarget.style.background = '#f0f8f5';
+                                  e.currentTarget.style.borderColor = '#1a8f6f';
+                                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(26, 143, 111, 0.2)';
+                                }
+                              }}
+                              onMouseOut={(e) => {
+                                e.currentTarget.style.background = isDisabled ? '#f5f5f5' : '#f9f9f9';
+                                e.currentTarget.style.borderColor = isDisabled ? '#ccc' : '#e0e0e0';
+                                e.currentTarget.style.boxShadow = 'none';
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontSize: '1.1em', fontWeight: '700', color: isDisabled ? '#999' : '#1a8f6f', marginBottom: '4px' }}>{visitor.patient}</div>
+                                <div style={{ fontSize: '0.9em', color: '#666' }}>Room: <strong>{visitor.room}</strong></div>
+                                {isDisabled && <div style={{ fontSize: '0.85em', color: '#dc3545', marginTop: '4px', fontWeight: '600' }}>⚠ Visitor limit reached (2 active visitors)</div>}
+                              </div>
+                              <div style={{ fontSize: '1.3em', color: isDisabled ? '#ccc' : '#1a8f6f', fontWeight: 'bold' }}>→</div>
                             </div>
-                            <div style={{ fontSize: '1.3em', color: '#1a8f6f', fontWeight: 'bold' }}>→</div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>No visitors found</div>
                       )}
