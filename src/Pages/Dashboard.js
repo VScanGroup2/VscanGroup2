@@ -2182,17 +2182,17 @@ export default function Dashboard({ onLogout }) {
               {monitoringTab === 'active' && (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, width: '100%' }}>
                   <div style={{ overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', scrollbarGutter: 'stable', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'fixed' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em', tableLayout: 'auto' }}>
                       <thead style={{ background: '#d4edda', position: 'sticky', top: 0, zIndex: 10 }}>
                         <tr>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Name</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Room</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Patient Name</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Contact</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Reg Date</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time In</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Time Out</th>
-                          <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap' }}>Status</th>
+                          <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid #1a8f6f' }}>Name</th>
+                          <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid #1a8f6f' }}>Room</th>
+                          <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid #1a8f6f' }}>Patient Name</th>
+                          <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid #1a8f6f' }}>Contact</th>
+                          <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid #1a8f6f' }}>Reg Date</th>
+                          <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid #1a8f6f' }}>Time In</th>
+                          <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid #1a8f6f' }}>Time Out</th>
+                          <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: '600', whiteSpace: 'nowrap', borderBottom: '2px solid #1a8f6f' }}>Status</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2225,13 +2225,13 @@ export default function Dashboard({ onLogout }) {
 
                           return (
                           <tr key={v.id} style={{ borderBottom: '1px solid #eee', transition: 'background 0.2s', background: latestTimeOut ? '#fff3cd' : 'transparent' }} onMouseOver={(e) => e.currentTarget.style.background = latestTimeOut ? '#ffeaa7' : '#f0f8f5'} onMouseOut={(e) => e.currentTarget.style.background = latestTimeOut ? '#fff3cd' : 'transparent'}>
-                            <td style={{ padding: '10px 8px' }}>{v.name}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.room}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.patient}</td>
-                            <td style={{ padding: '10px 8px' }}>{v.contact}</td>
-                            <td style={{ padding: '10px 8px', fontWeight: '600', color: '#007bff' }}>{v.date || (v.registrationDate ? v.registrationDate.replace(/\//g, '-') : 'N/A')}</td>
-                            <td style={{ padding: '10px 8px', fontWeight: '600', color: '#155724' }}>{latestTimeIn || 'N/A'}</td>
-                            <td style={{ padding: '10px 8px', fontWeight: latestTimeOut ? '600' : '400', color: latestTimeOut ? '#dc3545' : '#999' }}>
+                            <td style={{ padding: '12px 16px' }}>{v.name}</td>
+                            <td style={{ padding: '12px 16px' }}>{v.room}</td>
+                            <td style={{ padding: '12px 16px' }}>{v.patient}</td>
+                            <td style={{ padding: '12px 16px' }}>{v.contact}</td>
+                            <td style={{ padding: '12px 16px', fontWeight: '600', color: '#007bff' }}>{v.date || (v.registrationDate ? v.registrationDate.replace(/\//g, '-') : 'N/A')}</td>
+                            <td style={{ padding: '12px 16px', fontWeight: '600', color: '#155724' }}>{latestTimeIn || 'N/A'}</td>
+                            <td style={{ padding: '12px 16px', fontWeight: latestTimeOut ? '600' : '400', color: latestTimeOut ? '#dc3545' : '#999' }}>
                               {latestTimeOut ? (
                                 <span style={{ 
                                   padding: '3px 8px',
@@ -2247,7 +2247,7 @@ export default function Dashboard({ onLogout }) {
                                 'Pending'
                               )}
                             </td>
-                            <td style={{ padding: '10px 8px', fontSize: '0.9em' }}>
+                            <td style={{ padding: '12px 16px', fontSize: '0.9em' }}>
                               <span style={{ 
                                 padding: '4px 10px', 
                                 borderRadius: '12px', 
