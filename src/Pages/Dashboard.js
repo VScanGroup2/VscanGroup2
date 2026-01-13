@@ -1852,7 +1852,7 @@ export default function Dashboard({ onLogout }) {
             <div>
               <input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
               <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 200px)', minWidth: 0, scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px', tableLayout: 'fixed' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px', tableLayout: 'auto' }}>
                   <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
                       <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Name</th>
@@ -1992,7 +1992,7 @@ export default function Dashboard({ onLogout }) {
                                     fontSize: '1em'
                                   }}
                                 >
-                                  Discharged (Patient)
+                                  Discharge (Patient)
                                 </button>
                                 <button 
                                   onClick={() => {
@@ -3170,6 +3170,7 @@ export default function Dashboard({ onLogout }) {
                         <tr style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0 }}>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Patient Name</th>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Room Number</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Date of Confine</th>
                           <th style={{ padding: '12px', textAlign: 'center', fontWeight: '700', borderBottom: '2px solid #0d5443' }}>Action</th>
                         </tr>
                       </thead>
@@ -3178,6 +3179,7 @@ export default function Dashboard({ onLogout }) {
                           <tr key={idx} style={{ background: idx % 2 === 0 ? 'white' : '#f9fdf7', borderBottom: '1px solid #ddd' }}>
                             <td style={{ padding: '12px', fontWeight: '600', color: '#333' }}>{visitor.patient}</td>
                             <td style={{ padding: '12px', fontWeight: '600', color: '#333' }}>{visitor.room}</td>
+                            <td style={{ padding: '12px', fontWeight: '600', color: '#007bff' }}>{visitor.date || 'N/A'}</td>
                             <td style={{ padding: '12px', textAlign: 'center' }}>
                               <button
                                 onClick={async () => {
@@ -3196,7 +3198,7 @@ export default function Dashboard({ onLogout }) {
                                 onMouseOver={(e) => e.target.style.background = '#c82333'}
                                 onMouseOut={(e) => e.target.style.background = '#dc3545'}
                               >
-                                Remove
+                                Discharge
                               </button>
                             </td>
                           </tr>
