@@ -2384,52 +2384,152 @@ export default function Dashboard({ onLogout }) {
                 </button>
                 <button
                   onClick={() => {
-                    const printContent = document.querySelector('[data-report-print]');
-                    if (printContent) {
-                      const printWindow = window.open('', '_blank');
-                      // Clone the content and remove height restrictions for printing
-                      const clonedContent = printContent.cloneNode(true);
+                    const printWindow = window.open('', '_blank');
+                    let printHTML = '';
+                    
+                    if (reportType === 'weekly') {
+                      const weekStart = new Date(selectedWeekStart);
+                      const weekEnd = new Date(weekStart);
+                      weekEnd.setDate(weekEnd.getDate() + 6);
                       
-                      // Remove all overflow and max-height styles to show all content
-                      const removeHeightRestrictions = (element) => {
-                        element.style.maxHeight = 'none';
-                        element.style.height = 'auto';
-                        element.style.overflowY = 'visible';
-                        element.style.overflowX = 'visible';
-                        element.style.overflow = 'visible';
-                        Array.from(element.children).forEach(child => removeHeightRestrictions(child));
-                      };
-                      removeHeightRestrictions(clonedContent);
+                      const weeklyVisitors = reportFilteredVisitors.filter(v => {
+                        const visitorDate = new Date(v.date || v.registrationDate || new Date());
+                        return visitorDate >= weekStart && visitorDate <= weekEnd;
+                      });
                       
-                      printWindow.document.write(`
-                        <html>
-                          <head>
-                            <title>Visitor Report</title>
-                            <style>
-                              body { font-family: Arial, sans-serif; margin: 20px; background: white; }
-                              h1 { color: #1a8f6f; text-align: center; margin-bottom: 10px; }
-                              .report-info { text-align: center; margin-bottom: 20px; font-size: 14px; color: #666; }
-                              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                              thead { background: #1a8f6f; color: white; }
-                              th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 12px; }
-                              tbody tr:nth-child(even) { background: #f9f9f9; }
-                              .page-break { page-break-after: always; }
-                              div { overflow: visible !important; max-height: none !important; height: auto !important; }
-                              @media print {
-                                body { margin: 0; }
-                                .print-btn { display: none; }
-                                * { overflow: visible !important; max-height: none !important; height: auto !important; }
-                              }
-                            </style>
-                          </head>
-                          <body>
-                            ${clonedContent.innerHTML}
-                          </body>
-                        </html>
-                      `);
-                      printWindow.document.close();
-                      setTimeout(() => printWindow.print(), 250);
+                      printHTML = `
+                        <h1>Weekly Visitor Report</h1>
+                        <div class="report-info">
+                          <p><strong>Report Week:</strong> ${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}</p>
+                          <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+                          <p><strong>Total visitors this week:</strong> ${weeklyVisitors.length}</p>
+                        </div>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Contact</th>
+                              <th>Date</th>
+                              <th>Time In</th>
+                              <th>Time Out</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${weeklyVisitors.map(v => `
+                              <tr>
+                                <td>${v.name || '-'}</td>
+                                <td>${v.contact || '-'}</td>
+                                <td>${v.date || v.registrationDate || '-'}</td>
+                                <td>${v.timeIn || '-'}</td>
+                                <td>${v.timeOut || '-'}</td>
+                              </tr>
+                            `).join('')}
+                          </tbody>
+                        </table>
+                      `;
+                    } else if (reportType === 'monthly') {
+                      const currentMonth = new Date().getMonth();
+                      const currentYear = new Date().getFullYear();
+                      
+                      const monthlyVisitors = reportFilteredVisitors.filter(v => {
+                        const visitorDate = new Date(v.date || v.registrationDate || new Date());
+                        return visitorDate.getMonth() === currentMonth && visitorDate.getFullYear() === currentYear;
+                      });
+                      
+                      const monthName = new Date(currentYear, currentMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                      
+                      printHTML = `
+                        <h1>Monthly Visitor Report</h1>
+                        <div class="report-info">
+                          <p><strong>Report Month:</strong> ${monthName}</p>
+                          <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+                          <p><strong>Total visitors this month:</strong> ${monthlyVisitors.length}</p>
+                        </div>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Contact</th>
+                              <th>Date</th>
+                              <th>Time In</th>
+                              <th>Time Out</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${monthlyVisitors.map(v => `
+                              <tr>
+                                <td>${v.name || '-'}</td>
+                                <td>${v.contact || '-'}</td>
+                                <td>${v.date || v.registrationDate || '-'}</td>
+                                <td>${v.timeIn || '-'}</td>
+                                <td>${v.timeOut || '-'}</td>
+                              </tr>
+                            `).join('')}
+                          </tbody>
+                        </table>
+                      `;
+                    } else {
+                      // Daily Report (default)
+                      printHTML = `
+                        <h1>Daily Visitor Log Report</h1>
+                        <div class="report-info">
+                          <p><strong>Report Date:</strong> ${new Date().toLocaleDateString()}</p>
+                          <p><strong>Generated on:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+                          <p><strong>Total visitors:</strong> ${reportFilteredVisitors.length}</p>
+                        </div>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Contact</th>
+                              <th>Date</th>
+                              <th>Time In</th>
+                              <th>Time Out</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${reportFilteredVisitors.map(v => `
+                              <tr>
+                                <td>${v.name || '-'}</td>
+                                <td>${v.contact || '-'}</td>
+                                <td>${v.date || v.registrationDate || '-'}</td>
+                                <td>${v.timeIn || '-'}</td>
+                                <td>${v.timeOut || '-'}</td>
+                              </tr>
+                            `).join('')}
+                          </tbody>
+                        </table>
+                      `;
                     }
+                    
+                    printWindow.document.write(`
+                      <html>
+                        <head>
+                          <title>Visitor Report</title>
+                          <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; background: white; }
+                            h1 { color: #1a8f6f; text-align: center; margin-bottom: 10px; }
+                            .report-info { text-align: center; margin-bottom: 20px; font-size: 14px; color: #666; }
+                            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                            thead { background: #1a8f6f; color: white; }
+                            th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 12px; }
+                            tbody tr:nth-child(even) { background: #f9f9f9; }
+                            .page-break { page-break-after: always; }
+                            div { overflow: visible !important; max-height: none !important; height: auto !important; }
+                            @media print {
+                              body { margin: 0; }
+                              .print-btn { display: none; }
+                              * { overflow: visible !important; max-height: none !important; height: auto !important; }
+                            }
+                          </style>
+                        </head>
+                        <body>
+                          ${printHTML}
+                        </body>
+                      </html>
+                    `);
+                    printWindow.document.close();
+                    setTimeout(() => printWindow.print(), 250);
                   }}
                   style={{ padding: '10px 20px', background: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em' }}
                 >
@@ -2593,7 +2693,7 @@ export default function Dashboard({ onLogout }) {
                           <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
                           <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Total visitors this week: <strong>{weeklyVisitors.length}</strong></p>
                           
-                          <div style={{ marginBottom: '20px', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #ddd' }}>
+                          <div className="no-print" style={{ marginBottom: '20px', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #ddd' }}>
                             <h4 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '12px', fontSize: '1.05em', fontWeight: '600' }}>Weekly Visitation Summary</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                               {(() => {
@@ -2701,7 +2801,7 @@ export default function Dashboard({ onLogout }) {
                           <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Generated on: <strong>{new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</strong></p>
                           <p style={{ color: '#666', marginBottom: '15px', fontSize: '0.9em' }}>Total visitors this month: <strong>{monthlyVisitors.length}</strong></p>
                           
-                          <div style={{ marginBottom: '20px', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #ddd' }}>
+                          <div style={{ marginBottom: '20px', padding: '16px', background: 'white', borderRadius: '8px', border: '1px solid #ddd' }} className="no-print">
                             <h4 style={{ color: '#1a8f6f', marginTop: 0, marginBottom: '12px', fontSize: '1.05em', fontWeight: '600' }}>Monthly Visitation Summary</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                               {(() => {
@@ -2889,6 +2989,12 @@ export default function Dashboard({ onLogout }) {
                     to {
                       opacity: 1;
                       transform: translateX(0);
+                    }
+                  }
+                  
+                  @media print {
+                    .no-print {
+                      display: none !important;
                     }
                   }
                 `}
