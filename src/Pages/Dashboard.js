@@ -1856,7 +1856,7 @@ export default function Dashboard({ onLogout }) {
                   <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
                       <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Name</th>
-                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Room</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'center', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '50px' }}>Room</th>
                       <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Patient Name</th>
                       <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Contact</th>
                       <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Reg Date</th>
@@ -1946,7 +1946,7 @@ export default function Dashboard({ onLogout }) {
                       return (
                       <tr key={v.id}>
                         <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</td>
-                        <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.room}</td>
+                        <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center', width: '50px' }}>{v.room}</td>
                         <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.patient}</td>
                         <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.contact}</td>
                         <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.date}</td>
