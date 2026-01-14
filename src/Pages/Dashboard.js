@@ -1852,7 +1852,7 @@ export default function Dashboard({ onLogout }) {
             <div>
               <input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ ...inputStyle, marginBottom: '12px' }} />
               <div style={{ overflowY: 'auto', overflowX: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 200px)', minWidth: 0, scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px', tableLayout: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                   <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
                       <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Name</th>
