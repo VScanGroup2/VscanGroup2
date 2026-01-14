@@ -1855,16 +1855,16 @@ export default function Dashboard({ onLogout }) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                   <thead style={{ background: '#1a8f6f', color: 'white', position: 'sticky', top: 0, zIndex: 10 }}>
                     <tr>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Name</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Room</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Patient Name</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Contact Number</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Registration Date</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Time In</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Time Out</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Discharge Date(s)</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Status</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: '0.95em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Action</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Name</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Room</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Patient Name</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Contact</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Reg Date</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Time In</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Time Out</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Discharge</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Status</th>
+                      <th style={{ padding: '6px 4px', textAlign: 'left', fontSize: '0.75em', fontWeight: 'bold', position: 'sticky', top: 0, background: '#1a8f6f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1945,54 +1945,56 @@ export default function Dashboard({ onLogout }) {
                       
                       return (
                       <tr key={v.id}>
-                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.name}</td>
-                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.room}</td>
-                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.patient}</td>
-                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.contact}</td>
-                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.date}</td>
-                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayTimeIn}</td>
-                        <td style={{ padding: '10px 8px', fontSize: '1em', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayTimeOut || 'N/A'}</td>
-                        <td style={{ padding: '10px 8px', fontSize: '1em', fontWeight: '600', color: allDischargeDates.length > 0 ? '#721c24' : '#999' }}>
+                        <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</td>
+                        <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.room}</td>
+                        <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.patient}</td>
+                        <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.contact}</td>
+                        <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.date}</td>
+                        <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayTimeIn}</td>
+                        <td style={{ padding: '6px 4px', fontSize: '0.8em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayTimeOut || 'N/A'}</td>
+                        <td style={{ padding: '6px 4px', fontSize: '0.8em', fontWeight: '600', color: allDischargeDates.length > 0 ? '#721c24' : '#999' }}>
                           {allDischargeDates.length > 0 ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                               {allDischargeDates.map((date, idx) => (
-                                <div key={idx} style={{ padding: '4px 8px', background: '#ffcccc', borderRadius: '3px', fontSize: '0.85em' }}>
+                                <div key={idx} style={{ padding: '2px 4px', background: '#ffcccc', borderRadius: '3px', fontSize: '0.7em' }}>
                                   {date}
                                 </div>
                               ))}
                             </div>
                           ) : '-'}
                         </td>
-                        <td style={{ padding: '10px 8px', fontSize: '1em' }}>
+                        <td style={{ padding: '6px 4px', fontSize: '0.75em' }}>
                           <span style={{ 
-                            padding: '6px 10px', 
+                            padding: '3px 6px', 
                             borderRadius: '12px', 
-                            fontSize: '0.85em',
+                            fontSize: '0.75em',
                             fontWeight: 'bold',
                             background: v.status === 'active' ? '#d4edda' : '#f8d7da',
-                            color: v.status === 'active' ? '#155724' : '#721c24'
+                            color: v.status === 'active' ? '#155724' : '#721c24',
+                            whiteSpace: 'nowrap'
                           }}>
-                            {v.status === 'active' ? 'ACTIVE' : 'Discharged (Patient)'}
+                            {v.status === 'active' ? 'ACTIVE' : 'Discharged'}
                           </span>
                         </td>
-                        <td style={{ padding: '10px 8px', fontSize: '0.9em' }}>
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <td style={{ padding: '6px 4px', fontSize: '0.75em' }}>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
                             {v.status === 'active' ? (
                               <>
                                 <button 
                                   onClick={() => handleDischarge(v.id)}
                                   style={{ 
-                                    padding: '8px 18px', 
+                                    padding: '4px 8px', 
                                     background: '#dc3545', 
                                     color: 'white', 
                                     border: 'none', 
-                                    borderRadius: '6px', 
+                                    borderRadius: '4px', 
                                     cursor: 'pointer',
                                     fontWeight: 'bold',
-                                    fontSize: '1em'
+                                    fontSize: '0.7em',
+                                    whiteSpace: 'nowrap'
                                   }}
                                 >
-                                  Discharge (Patient)
+                                  Discharge
                                 </button>
                                 <button 
                                   onClick={() => {
@@ -2001,21 +2003,22 @@ export default function Dashboard({ onLogout }) {
                                     }
                                   }}
                                   style={{ 
-                                    padding: '8px 18px', 
+                                    padding: '4px 8px', 
                                     background: '#6c757d', 
                                     color: 'white', 
                                     border: 'none', 
-                                    borderRadius: '6px', 
+                                    borderRadius: '4px', 
                                     cursor: 'pointer',
                                     fontWeight: 'bold',
-                                    fontSize: '1em'
+                                    fontSize: '0.7em',
+                                    whiteSpace: 'nowrap'
                                   }}
                                 >
                                   Delete
                                 </button>
                               </>
                             ) : (
-                              <span style={{ color: '#999', fontSize: '1em' }}>Completed</span>
+                              <span style={{ color: '#999', fontSize: '0.75em' }}>Done</span>
                             )}
                           </div>
                         </td>
