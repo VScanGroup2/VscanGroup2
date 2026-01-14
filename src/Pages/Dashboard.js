@@ -2366,25 +2366,27 @@ export default function Dashboard({ onLogout }) {
                 </div>
               )}
               
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <button
-                  onClick={() => setReportType('daily')}
-                  style={{ padding: '10px 20px', background: reportType === 'daily' ? '#1a8f6f' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em', transition: 'all 0.3s' }}
-                >
-                  Daily Report
-                </button>
-                <button
-                  onClick={() => setReportType('weekly')}
-                  style={{ padding: '10px 20px', background: reportType === 'weekly' ? '#1a8f6f' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em', transition: 'all 0.3s' }}
-                >
-                  Weekly Report
-                </button>
-                <button
-                  onClick={() => setReportType('monthly')}
-                  style={{ padding: '10px 20px', background: reportType === 'monthly' ? '#1a8f6f' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em', transition: 'all 0.3s' }}
-                >
-                  Monthly Report
-                </button>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button
+                    onClick={() => setReportType('daily')}
+                    style={{ padding: '10px 20px', background: reportType === 'daily' ? '#1a8f6f' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em', transition: 'all 0.3s' }}
+                  >
+                    Daily Report
+                  </button>
+                  <button
+                    onClick={() => setReportType('weekly')}
+                    style={{ padding: '10px 20px', background: reportType === 'weekly' ? '#1a8f6f' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em', transition: 'all 0.3s' }}
+                  >
+                    Weekly Report
+                  </button>
+                  <button
+                    onClick={() => setReportType('monthly')}
+                    style={{ padding: '10px 20px', background: reportType === 'monthly' ? '#1a8f6f' : '#ccc', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.95em', transition: 'all 0.3s' }}
+                  >
+                    Monthly Report
+                  </button>
+                </div>
                 <button
                   onClick={() => {
                     const printWindow = window.open('', '_blank');
