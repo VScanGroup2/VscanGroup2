@@ -916,7 +916,7 @@ export default function SecurityDashboard({ onLogout }) {
                 <>
                   <div style={{ marginBottom: '20px', padding: '15px', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '8px', color: '#856404' }}>
                     <div style={{ fontWeight: '700', fontSize: '1em', marginBottom: '5px' }}>Visiting Hours Exceeded</div>
-                    <div style={{ fontSize: '0.9em' }}>The following visitors did not time out after the visiting hours (8:00 AM - 6:00 PM). Please remind them to check out.</div>
+                    <div style={{ fontSize: '0.9em' }}>The following visitors did not time out after the visiting hours (8:00 AM - 6:00 PM). Please remind them to time out.</div>
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em' }}>
                     <thead style={{ background: '#fff3cd', position: 'sticky', top: 0 }}>
@@ -954,7 +954,7 @@ export default function SecurityDashboard({ onLogout }) {
               ) : (
                 <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>
                   <div style={{ fontSize: '3em', marginBottom: '10px' }}>✓</div>
-                  <div style={{ fontSize: '1em', fontWeight: '600' }}>All visitors checked out</div>
+                  <div style={{ fontSize: '1em', fontWeight: '600' }}>All visitors timed out</div>
                   <div style={{ fontSize: '0.9em', marginTop: '5px' }}>No reminders needed at this time</div>
                 </div>
               )}
