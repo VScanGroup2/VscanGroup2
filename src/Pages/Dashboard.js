@@ -2355,6 +2355,110 @@ export default function Dashboard({ onLogout }) {
                   }
                 `}
               </style>
+
+              {/* Visitors by Patient Section */}
+              <div style={{ marginTop: '16px', padding: '12px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f' }}>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px', 
+                    cursor: 'pointer',
+                    marginTop: 0,
+                    marginBottom: showVisitorsByPatient ? '12px' : 0
+                  }}
+                  onClick={() => setShowVisitorsByPatient(!showVisitorsByPatient)}
+                >
+                  <span style={{ fontSize: '1em', color: '#1a8f6f', fontWeight: 'bold', display: 'inline-block', minWidth: '16px' }}>
+                    {showVisitorsByPatient ? '▼' : '▶'}
+                  </span>
+                  <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.2em' }}>Visitors by Patient</h3>
+                </div>
+                
+                {showVisitorsByPatient && (
+                <div style={{ overflowY: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 400px)', minWidth: 0 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', border: '1px solid #ddd' }}>
+                    <tbody>
+                      {Object.entries(
+                        filteredMonitoringVisitors.reduce((acc, v) => {
+                          const patientName = v.patient || 'N/A';
+                          if (!acc[patientName]) {
+                            acc[patientName] = [];
+                          }
+                          acc[patientName].push(v);
+                          return acc;
+                        }, {})
+                      )
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .map(([patientName, patientVisitors]) => (
+                          <React.Fragment key={patientName}>
+                            <tr 
+                              style={{ 
+                                background: '#e8f4f8', 
+                                borderBottom: '2px solid #1a8f6f',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => setExpandedPatients(prev => ({
+                                ...prev,
+                                [patientName]: !prev[patientName]
+                              }))}
+                            >
+                              <td style={{ padding: '14px 16px', fontWeight: '600', color: '#1a8f6f', fontSize: '1.1em', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <span style={{ fontSize: '1.2em', transition: 'transform 0.3s', display: 'inline-block' }}>
+                                  {expandedPatients[patientName] ? '▼' : '▶'}
+                                </span>
+                                <span>{patientName}</span>
+                                <span style={{ marginLeft: 'auto', fontSize: '0.95em', color: '#666', fontWeight: '500' }}>{patientVisitors.length} visitor{patientVisitors.length !== 1 ? 's' : ''}</span>
+                              </td>
+                            </tr>
+                            {expandedPatients[patientName] && patientVisitors.map((v) => (
+                              <tr 
+                                key={v.id}
+                                style={{ 
+                                  background: '#fafafa',
+                                  borderBottom: '1px solid #eee'
+                                }}
+                              >
+                                <td style={{ padding: '14px 40px' }}>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                                    <div>
+                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Visitor Name</div>
+                                      <div style={{ fontSize: '1em', fontWeight: '600', color: '#1a8f6f' }}>{v.name}</div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Room</div>
+                                      <div style={{ fontSize: '1em', color: '#333' }}>{v.room}</div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Contact</div>
+                                      <div style={{ fontSize: '1em', color: '#333' }}>{v.contact}</div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Reg Date</div>
+                                      <div style={{ fontSize: '1em', color: '#007bff', fontWeight: '600' }}>{v.date ? v.date.replace(/\//g, '-') : (v.registrationDate ? v.registrationDate.replace(/\//g, '-') : 'N/A')}</div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Time-In</div>
+                                      <div style={{ fontSize: '1em', color: '#155724', fontWeight: '600' }}>{v.timeIn || 'N/A'}</div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Time-Out</div>
+                                      <div style={{ fontSize: '1em', color: v.timeOut ? '#dc3545' : '#999', fontWeight: v.timeOut ? '600' : '400' }}>{v.timeOut || 'N/A'}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                    </tbody>
+                  </table>
+                  {filteredMonitoringVisitors.length === 0 && (
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found</div>
+                  )}
+                </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -2879,110 +2983,6 @@ export default function Dashboard({ onLogout }) {
                   </div>
                 </div>
               )}
-
-              {/* Visitors by Patient Section */}
-              <div style={{ marginTop: '40px', padding: '20px', background: '#f0f8f6', borderRadius: '8px', border: '2px solid #1a8f6f' }}>
-                <div 
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '12px', 
-                    cursor: 'pointer',
-                    marginTop: 0,
-                    marginBottom: showVisitorsByPatient ? '20px' : 0
-                  }}
-                  onClick={() => setShowVisitorsByPatient(!showVisitorsByPatient)}
-                >
-                  <span style={{ fontSize: '1.4em', color: '#1a8f6f', fontWeight: 'bold', display: 'inline-block', minWidth: '20px' }}>
-                    {showVisitorsByPatient ? '▼' : '▶'}
-                  </span>
-                  <h3 style={{ color: '#1a8f6f', margin: 0, fontSize: '1.6em' }}>Visitors by Patient</h3>
-                </div>
-                
-                {showVisitorsByPatient && (
-                <div style={{ overflowY: 'auto', borderRadius: '8px', scrollbarGutter: 'stable', maxHeight: 'calc(100vh - 400px)', minWidth: 0 }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', border: '1px solid #ddd' }}>
-                    <tbody>
-                      {Object.entries(
-                        reportFilteredVisitors.reduce((acc, v) => {
-                          const patientName = v.patient || 'N/A';
-                          if (!acc[patientName]) {
-                            acc[patientName] = [];
-                          }
-                          acc[patientName].push(v);
-                          return acc;
-                        }, {})
-                      )
-                        .sort((a, b) => a[0].localeCompare(b[0]))
-                        .map(([patientName, patientVisitors]) => (
-                          <React.Fragment key={patientName}>
-                            <tr 
-                              style={{ 
-                                background: '#e8f4f8', 
-                                borderBottom: '2px solid #1a8f6f',
-                                cursor: 'pointer'
-                              }}
-                              onClick={() => setExpandedPatients(prev => ({
-                                ...prev,
-                                [patientName]: !prev[patientName]
-                              }))}
-                            >
-                              <td style={{ padding: '14px 16px', fontWeight: '600', color: '#1a8f6f', fontSize: '1.1em', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ fontSize: '1.2em', transition: 'transform 0.3s', display: 'inline-block' }}>
-                                  {expandedPatients[patientName] ? '▼' : '▶'}
-                                </span>
-                                <span>{patientName}</span>
-                                <span style={{ marginLeft: 'auto', fontSize: '0.95em', color: '#666', fontWeight: '500' }}>{patientVisitors.length} visitor{patientVisitors.length !== 1 ? 's' : ''}</span>
-                              </td>
-                            </tr>
-                            {expandedPatients[patientName] && patientVisitors.map((v) => (
-                              <tr 
-                                key={v.id}
-                                style={{ 
-                                  background: '#fafafa',
-                                  borderBottom: '1px solid #eee'
-                                }}
-                              >
-                                <td style={{ padding: '14px 40px' }}>
-                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                                    <div>
-                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Visitor Name</div>
-                                      <div style={{ fontSize: '1em', fontWeight: '600', color: '#1a8f6f' }}>{v.name}</div>
-                                    </div>
-                                    <div>
-                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Room</div>
-                                      <div style={{ fontSize: '1em', color: '#333' }}>{v.room}</div>
-                                    </div>
-                                    <div>
-                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Contact</div>
-                                      <div style={{ fontSize: '1em', color: '#333' }}>{v.contact}</div>
-                                    </div>
-                                    <div>
-                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Reg Date</div>
-                                      <div style={{ fontSize: '1em', color: '#007bff', fontWeight: '600' }}>{v.date ? v.date.replace(/\//g, '-') : (v.registrationDate ? v.registrationDate.replace(/\//g, '-') : 'N/A')}</div>
-                                    </div>
-                                    <div>
-                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Time-In</div>
-                                      <div style={{ fontSize: '1em', color: '#155724', fontWeight: '600' }}>{v.timeIn || 'N/A'}</div>
-                                    </div>
-                                    <div>
-                                      <div style={{ fontSize: '0.85em', color: '#666', fontWeight: '600', textTransform: 'uppercase', marginBottom: '4px' }}>Time-Out</div>
-                                      <div style={{ fontSize: '1em', color: v.timeOut ? '#dc3545' : '#999', fontWeight: v.timeOut ? '600' : '400' }}>{v.timeOut || 'N/A'}</div>
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </React.Fragment>
-                        ))}
-                    </tbody>
-                  </table>
-                  {reportFilteredVisitors.length === 0 && (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#999', fontSize: '1.1em' }}>No records found</div>
-                  )}
-                </div>
-                )}
-              </div>
 
               <style>
                 {`
